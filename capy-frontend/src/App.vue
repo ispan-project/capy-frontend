@@ -1,10 +1,8 @@
-<script setup>
-import { RouterView } from 'vue-router';
-</script>
-
+<script setup></script>
 <template>
-<RouterView />
-
+  <el-scrollbar>
+    <RouterView></RouterView>
+  </el-scrollbar>
 </template>
 <style scoped>
 

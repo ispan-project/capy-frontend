@@ -1,7 +1,7 @@
-import { axios } from "axios";
+import axios from "axios";
 // 建立實體時指派預設配置
 const instance = axios.create({
-  baseURL: "https://api.example.com",
+  baseURL: "http://10.0.103.99:8080/api",
   timeout: 6000,
 });
 // 新增一個請求攔截器
@@ -30,3 +30,4 @@ instance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+export default instance;

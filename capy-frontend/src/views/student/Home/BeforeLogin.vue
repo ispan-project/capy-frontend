@@ -1,13 +1,9 @@
 <script setup>
-import { ref } from 'vue'
-
-const abc = ref(3)
-
-import demo1 from '@/views/student/Home/Navbar.vue'
-import demo2 from '@/views/student/Home/Carousel.vue'
+import Navbar from '@/views/student/Home/Navbar.vue'
+import Carousel from '@/views/student/Home/Carousel.vue'
 import GoldenTeachers from '@/views/student/Home/GoldenTeachers.vue'
 import LatestCourses from '@/views/student/Home/LatestCourses.vue'
-import tags from '@/views/student/Home/tags.vue'
+import Tags from '@/views/student/Home/tags.vue'
 import TopCourses from '@/views/student/Home/TopCourses.vue'
 </script>
 
@@ -15,21 +11,23 @@ import TopCourses from '@/views/student/Home/TopCourses.vue'
   <div class="common-layout">
     <el-container>
       <el-header>
-        <demo1 />
+        <Navbar />
       </el-header>
 
       <el-main>
-        <div><demo2 /></div>
-        <h1 style="margin-left: 650px;">Top Courses</h1>
-        <div><TopCourses /></div>
+        <Carousel />
 
-        <h1 style="margin-left: 700px;">Tags</h1>
-        <div><tags /></div>
+        <h1 class="section-title">Top Courses</h1>
+        <TopCourses />
 
-        <h1 style="margin-left: 600px;">Latest Courses</h1>
-        <div><LatestCourses /></div>
+        <h1 class="section-title">Tags</h1>
+        <Tags />
 
-        <div><GoldenTeachers /></div>
+        <h1 class="section-title">Latest Courses</h1>
+        <LatestCourses />
+
+        <h1 class="section-title">Golden Teacher</h1>
+        <GoldenTeachers />
       </el-main>
 
       <el-footer>Footer</el-footer>
@@ -38,4 +36,8 @@ import TopCourses from '@/views/student/Home/TopCourses.vue'
 </template>
 
 <style scoped>
+.section-title {
+  text-align: center;
+  margin: 2rem 0 1rem;
+}
 </style>

@@ -1,0 +1,466 @@
+<template>
+  <div class="chapters-sidebar">
+    <!-- 側邊欄頭部 -->
+    <div class="sidebar-header">
+      <div class="header-content">
+        <h3 class="sidebar-title">課程內容</h3>
+      </div>
+
+      <!-- 整體進度條 -->
+      <div class="progress-section">
+        <div class="progress-info">
+          <span class="progress-text">學習進度</span>
+          <span class="progress-stats">{{ completedCount }}/{{ totalCount }}</span>
+        </div>
+        <el-progress
+          :percentage="progressPercentage"
+          :stroke-width="8"
+          :show-text="false"
+          color="#67C23A"
+        />
+      </div>
+    </div>
+
+    <!-- 章節列表 -->
+    <div class="sidebar-content">
+      <el-scrollbar class="chapters-scrollbar">
+        <el-collapse v-model="activeChapters" accordion>
+          <el-collapse-item
+            v-for="chapter in chapters"
+            :key="chapter.id"
+            :name="chapter.id"
+            class="chapter-item"
+          >
+            <!-- 章節標題 -->
+            <template #title>
+              <div class="chapter-title">
+                <el-icon class="chapter-icon">
+                  <Folder />
+                </el-icon>
+                <span class="chapter-text">{{ chapter.title }}</span>
+                <span class="chapter-count">({{ getChapterLessonCount(chapter) }})</span>
+              </div>
+            </template>
+
+            <!-- 單元列表 -->
+            <div class="lessons-list">
+              <div
+                v-for="lesson in chapter.lessons"
+                :key="lesson.id"
+                class="lesson-item"
+                :class="{
+                  'is-active': lesson.id === currentLessonId,
+                  'is-completed': lesson.isCompleted,
+                  'is-locked': lesson.isLocked
+                }"
+                @click="handleLessonClick(lesson)"
+              >
+                <!-- 左側狀態圖示 -->
+                <div class="lesson-status">
+                  <el-icon v-if="lesson.isCompleted" class="status-icon completed">
+                    <CircleCheck />
+                  </el-icon>
+                  <el-icon v-else-if="lesson.isLocked" class="status-icon locked">
+                    <Lock />
+                  </el-icon>
+                  <el-icon v-else-if="lesson.id === currentLessonId" class="status-icon playing">
+                    <VideoPlay />
+                  </el-icon>
+                  <div v-else class="status-dot"></div>
+                </div>
+
+                <!-- 單元資訊 -->
+                <div class="lesson-info">
+                  <div class="lesson-title">{{ lesson.title }}</div>
+                  <div class="lesson-meta">
+                    <span class="lesson-duration">
+                      <el-icon><Clock /></el-icon>
+                      {{ formatDuration(lesson.duration) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 右側播放圖示（當前播放） -->
+                <div v-if="lesson.id === currentLessonId" class="lesson-playing">
+                  <el-icon class="playing-icon">
+                    <CaretRight />
+                  </el-icon>
+                </div>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </el-scrollbar>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+import {
+  Folder,
+  CircleCheck,
+  Lock,
+  VideoPlay,
+  Clock,
+  CaretRight
+} from '@element-plus/icons-vue'
+
+/**
+ * Props 定義
+ * @property {Array} chapters - 章節列表
+ * @property {string} currentLessonId - 當前播放的單元 ID
+ * @property {boolean} collapsible - 是否可收合
+ */
+const props = defineProps({
+  chapters: {
+    type: Array,
+    required: true,
+    default: () => []
+  },
+  currentLessonId: {
+    type: String,
+    default: ''
+  }
+})
+
+/**
+ * Emits 定義
+ * @event lesson-click - 點擊單元 (lesson)
+ */
+const emit = defineEmits(['lesson-click'])
+
+// 狀態
+const activeChapters = ref([])
+
+/**
+ * 計算總單元數
+ */
+const totalCount = computed(() => {
+  return props.chapters.reduce((total, chapter) => {
+    return total + chapter.lessons.length
+  }, 0)
+})
+
+/**
+ * 計算已完成單元數
+ */
+const completedCount = computed(() => {
+  return props.chapters.reduce((total, chapter) => {
+    return total + chapter.lessons.filter(lesson => lesson.isCompleted).length
+  }, 0)
+})
+
+/**
+ * 計算進度百分比
+ */
+const progressPercentage = computed(() => {
+  if (totalCount.value === 0) return 0
+  return Math.round((completedCount.value / totalCount.value) * 100)
+})
+
+/**
+ * 取得章節的單元數量
+ * @param {Object} chapter - 章節物件
+ * @returns {number} 單元數量
+ */
+const getChapterLessonCount = (chapter) => {
+  return chapter.lessons.length
+}
+
+/**
+ * 格式化時長
+ * @param {number} seconds - 秒數
+ * @returns {string} 格式化後的時長
+ */
+const formatDuration = (seconds) => {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+  return `${minutes}:${String(secs).padStart(2, '0')}`
+}
+
+/**
+ * 處理單元點擊
+ * @param {Object} lesson - 單元物件
+ */
+const handleLessonClick = (lesson) => {
+  if (lesson.isLocked) {
+    return
+  }
+  emit('lesson-click', lesson)
+}
+
+/**
+ * 自動展開包含當前單元的章節
+ */
+const expandCurrentChapter = () => {
+  if (!props.currentLessonId) return
+
+  for (const chapter of props.chapters) {
+    const hasCurrentLesson = chapter.lessons.some(
+      lesson => lesson.id === props.currentLessonId
+    )
+    if (hasCurrentLesson) {
+      activeChapters.value = [chapter.id]
+      break
+    }
+  }
+}
+
+/**
+ * 監聽當前單元變化
+ */
+watch(() => props.currentLessonId, () => {
+  expandCurrentChapter()
+}, { immediate: true })
+</script>
+
+<style scoped lang="scss">
+.chapters-sidebar {
+  height: 100%;
+  background-color: #ffffff;
+  border-left: 1px solid #DCDFE6;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.sidebar-header {
+  padding: 20px;
+  border-bottom: 1px solid #DCDFE6;
+  background-color: #fafafa;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
+      margin: 0;
+    }
+  }
+
+  .progress-section {
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      .progress-text {
+        font-size: 14px;
+        color: #606266;
+      }
+
+      .progress-stats {
+        font-size: 14px;
+        font-weight: 600;
+        color: #67C23A;
+      }
+    }
+  }
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow: hidden;
+
+  .chapters-scrollbar {
+    height: 100%;
+
+    :deep(.el-scrollbar__view) {
+      padding: 8px 0;
+    }
+  }
+}
+
+.chapter-item {
+  :deep(.el-collapse-item__header) {
+    padding: 12px 20px;
+    background-color: #f5f7fa;
+    border-bottom: 1px solid #EBEEF5;
+    font-weight: 600;
+
+    &:hover {
+      background-color: #ecf5ff;
+    }
+  }
+
+  :deep(.el-collapse-item__content) {
+    padding: 0;
+  }
+
+  .chapter-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+
+    .chapter-icon {
+      color: #409EFF;
+      font-size: 18px;
+    }
+
+    .chapter-text {
+      flex: 1;
+      font-size: 15px;
+      color: #303133;
+    }
+
+    .chapter-count {
+      font-size: 13px;
+      color: #909399;
+      font-weight: 400;
+    }
+  }
+}
+
+.lessons-list {
+  background-color: #ffffff;
+}
+
+.lesson-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px 12px 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:hover:not(.is-locked) {
+    background-color: #f5f7fa;
+  }
+
+  &.is-active {
+    background-color: #ecf5ff;
+    border-left: 3px solid #409EFF;
+  }
+
+  &.is-completed {
+    .lesson-title {
+      color: #67C23A;
+    }
+  }
+
+  &.is-locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+
+    .lesson-title {
+      color: #C0C4CC;
+    }
+  }
+
+  .lesson-status {
+    margin-right: 12px;
+    flex-shrink: 0;
+
+    .status-icon {
+      font-size: 18px;
+
+      &.completed {
+        color: #67C23A;
+      }
+
+      &.locked {
+        color: #E6A23C;
+      }
+
+      &.playing {
+        color: #409EFF;
+      }
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #DCDFE6;
+    }
+  }
+
+  .lesson-info {
+    flex: 1;
+    min-width: 0;
+
+    .lesson-title {
+      font-size: 14px;
+      color: #303133;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lesson-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .lesson-duration {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: #909399;
+
+        .el-icon {
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .lesson-playing {
+    margin-left: 8px;
+    flex-shrink: 0;
+
+    .playing-icon {
+      font-size: 20px;
+      color: #409EFF;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  }
+}
+
+// 動畫
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// 響應式設計
+@media (max-width: 768px) {
+  .sidebar-header {
+    padding: 16px;
+
+    .sidebar-title {
+      font-size: 16px;
+    }
+  }
+
+  .lesson-item {
+    padding: 10px 16px 10px 32px;
+
+    .lesson-info {
+      .lesson-title {
+        font-size: 13px;
+      }
+    }
+  }
+}
+</style>

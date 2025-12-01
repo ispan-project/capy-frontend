@@ -1,18 +1,17 @@
 <script setup>
-const abc = ref(3);
 </script>
 <template>
-  <el-scrollbar>
-    <RouterView></RouterView>
-  </el-scrollbar>
+  <RouterView/>
 </template>
-<style scoped>
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
 #app {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
-</style>
-<style scoped>
-
 </style>

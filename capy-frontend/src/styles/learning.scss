@@ -1,0 +1,437 @@
+/**
+ * 課程學習頁面全域樣式
+ * 包含色彩系統、間距系統、字體規範等
+ */
+ 
+@use "sass:math";
+@use "sass:color";
+
+// ==================== 色彩系統 ====================
+// 使用 Capy Focus 主題變數
+$primary-color: var(--capy-primary);      // Capy Teal 主色
+$bg-dark: var(--capy-bg-learning);        // 深色背景（學習模式）
+$bg-light: var(--capy-bg-surface);        // 淺色背景
+$bg-gray: var(--capy-bg-base);            // 灰色背景
+$text-primary: var(--capy-text-primary);  // 主要文字
+$text-secondary: var(--capy-text-secondary); // 次要文字
+$text-regular: var(--capy-text-regular);  // 常規文字
+$border-color: var(--capy-border-base);   // 邊框色
+$border-light: var(--capy-border-lighter); // 淺色邊框
+$success-color: var(--capy-success);      // 完成狀態
+$warning-color: var(--capy-warning);      // 警告/鎖定狀態
+$danger-color: var(--capy-danger);        // 錯誤狀態
+$info-color: var(--capy-info);            // 資訊狀態
+$brand-color: var(--capy-brand);          // 品牌色（水豚棕）
+
+// ==================== 間距系統 ====================
+// 使用 8px 基準網格
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// ==================== 字體系統 ====================
+$font-size-xs: 12px;
+$font-size-sm: 13px;
+$font-size-base: 14px;
+$font-size-md: 15px;
+$font-size-lg: 16px;
+$font-size-xl: 18px;
+$font-size-xxl: 20px;
+$font-size-title: 24px;
+
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// ==================== 陰影系統 ====================
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+$shadow-base: 0 2px 8px rgba(0, 0, 0, 0.08);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+$shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
+
+// ==================== 圓角系統 ====================
+$radius-sm: 4px;
+$radius-base: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-circle: 50%;
+
+// ==================== 過渡動畫 ====================
+$transition-fast: 0.2s;
+$transition-base: 0.3s;
+$transition-slow: 0.5s;
+
+// ==================== 斷點系統 ====================
+$breakpoint-xs: 480px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 992px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1920px;
+
+// ==================== Mixins ====================
+
+// 響應式斷點
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == 'xs' {
+    @media (max-width: $breakpoint-xs) { @content; }
+  }
+  @else if $breakpoint == 'sm' {
+    @media (max-width: $breakpoint-sm) { @content; }
+  }
+  @else if $breakpoint == 'md' {
+    @media (max-width: $breakpoint-md) { @content; }
+  }
+  @else if $breakpoint == 'lg' {
+    @media (max-width: $breakpoint-lg) { @content; }
+  }
+  @else if $breakpoint == 'xl' {
+    @media (max-width: $breakpoint-xl) { @content; }
+  }
+}
+
+// 文字截斷
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Flexbox 置中
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 清除浮動
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
+
+// 自訂滾動條
+@mixin custom-scrollbar($width: 8px, $track-color: #f5f5f5, $thumb-color: #c0c4cc) {
+  &::-webkit-scrollbar {
+    width: $width;
+    height: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: $track-color;
+    border-radius: math.div($width, 2);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: $thumb-color;
+    border-radius: math.div($width, 2);
+    transition: background-color $transition-base;
+
+    &:hover {
+      background-color: #a8acb0;
+    }
+  }
+}
+// ==================== 全域樣式 ====================
+
+// 自訂滾動條樣式
+* {
+  @include custom-scrollbar(8px, #f5f5f5, #c0c4cc);
+}
+
+// 學習頁面容器
+.learning-container {
+  min-height: 100vh;
+  background-color: var(--capy-bg-base);
+}
+
+// 卡片樣式
+.learning-card {
+  background-color: var(--capy-bg-surface);
+  border-radius: $radius-md;
+  box-shadow: var(--capy-shadow-base);
+  padding: $spacing-lg;
+  transition: box-shadow $transition-base;
+
+  &:hover {
+    box-shadow: var(--capy-shadow-md);
+  }
+}
+
+// 區塊標題
+.section-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  color: var(--capy-text-primary);
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 2px solid var(--capy-border-base);
+}
+
+// 空狀態樣式
+.empty-state {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-xxl;
+  color: $text-secondary;
+
+  .empty-icon {
+    font-size: 64px;
+    margin-bottom: $spacing-md;
+    opacity: 0.5;
+  }
+
+  .empty-text {
+    font-size: $font-size-md;
+  }
+}
+
+// 載入中樣式
+.loading-state {
+  @include flex-center;
+  min-height: 200px;
+  
+  .loading-spinner {
+    font-size: 48px;
+    color: var(--capy-primary);
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ==================== Element Plus 樣式覆寫 ====================
+
+// 按鈕樣式增強
+.el-button {
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 標籤樣式增強
+.el-tag {
+  font-weight: $font-weight-medium;
+  border-radius: $radius-base;
+}
+
+// 輸入框樣式增強
+.el-input {
+  .el-input__wrapper {
+    transition: all $transition-base;
+    
+    &:hover {
+      box-shadow: 0 0 0 1px var(--capy-border-dark) inset;
+    }
+  }
+}
+
+// 表格樣式增強
+.el-table {
+  font-size: $font-size-base;
+
+  th {
+    background-color: #fafafa;
+    font-weight: $font-weight-semibold;
+    color: $text-primary;
+  }
+
+  .el-table__row {
+    transition: background-color $transition-fast;
+
+    &:hover {
+      background-color: #f5f7fa;
+    }
+  }
+}
+
+// Tabs 樣式增強
+.el-tabs {
+  .el-tabs__item {
+    font-size: $font-size-md;
+    font-weight: $font-weight-medium;
+    transition: all $transition-base;
+
+    &:hover {
+      color: var(--capy-primary);
+    }
+
+    &.is-active {
+      font-weight: $font-weight-semibold;
+    }
+  }
+}
+
+// 摺疊面板樣式增強
+.el-collapse {
+  .el-collapse-item__header {
+    font-weight: $font-weight-medium;
+    transition: all $transition-base;
+
+    &:hover {
+      background-color: #f5f7fa;
+    }
+  }
+}
+
+// 訊息提示樣式增強
+.el-message {
+  min-width: 300px;
+  box-shadow: $shadow-lg;
+  border-radius: $radius-md;
+}
+
+// ==================== 工具類別 ====================
+
+// 間距工具類別
+@each $name, $value in (
+  'xs': $spacing-xs,
+  'sm': $spacing-sm,
+  'md': $spacing-md,
+  'lg': $spacing-lg,
+  'xl': $spacing-xl,
+  'xxl': $spacing-xxl
+) {
+  .m-#{$name} { margin: $value !important; }
+  .mt-#{$name} { margin-top: $value !important; }
+  .mr-#{$name} { margin-right: $value !important; }
+  .mb-#{$name} { margin-bottom: $value !important; }
+  .ml-#{$name} { margin-left: $value !important; }
+  .mx-#{$name} { margin-left: $value !important; margin-right: $value !important; }
+  .my-#{$name} { margin-top: $value !important; margin-bottom: $value !important; }
+
+  .p-#{$name} { padding: $value !important; }
+  .pt-#{$name} { padding-top: $value !important; }
+  .pr-#{$name} { padding-right: $value !important; }
+  .pb-#{$name} { padding-bottom: $value !important; }
+  .pl-#{$name} { padding-left: $value !important; }
+  .px-#{$name} { padding-left: $value !important; padding-right: $value !important; }
+  .py-#{$name} { padding-top: $value !important; padding-bottom: $value !important; }
+}
+
+// 文字工具類別
+.text-primary-color { color: var(--capy-primary) !important; }
+.text-brand { color: var(--capy-brand) !important; }
+.text-main { color: var(--capy-text-primary) !important; }
+.text-secondary { color: var(--capy-text-secondary) !important; }
+.text-regular { color: var(--capy-text-regular) !important; }
+.text-success { color: var(--capy-success) !important; }
+.text-warning { color: var(--capy-warning) !important; }
+.text-danger { color: var(--capy-danger) !important; }
+.text-info { color: var(--capy-info) !important; }
+
+.text-center { text-align: center !important; }
+.text-left { text-align: left !important; }
+.text-right { text-align: right !important; }
+
+.text-ellipsis { @include text-ellipsis(1); }
+.text-ellipsis-2 { @include text-ellipsis(2); }
+.text-ellipsis-3 { @include text-ellipsis(3); }
+
+// Flex 工具類別
+.flex { display: flex !important; }
+.flex-center { @include flex-center; }
+.flex-column { flex-direction: column !important; }
+.flex-wrap { flex-wrap: wrap !important; }
+.flex-1 { flex: 1 !important; }
+.justify-start { justify-content: flex-start !important; }
+.justify-center { justify-content: center !important; }
+.justify-end { justify-content: flex-end !important; }
+.justify-between { justify-content: space-between !important; }
+.align-start { align-items: flex-start !important; }
+.align-center { align-items: center !important; }
+.align-end { align-items: flex-end !important; }
+
+// 顯示工具類別
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-inline { display: inline !important; }
+.d-inline-block { display: inline-block !important; }
+
+// 響應式顯示
+@include respond-to('sm') {
+  .d-sm-none { display: none !important; }
+  .d-sm-block { display: block !important; }
+}
+
+@include respond-to('md') {
+  .d-md-none { display: none !important; }
+  .d-md-block { display: block !important; }
+}
+
+@include respond-to('lg') {
+  .d-lg-none { display: none !important; }
+  .d-lg-block { display: block !important; }
+}
+
+// ==================== 無障礙樣式 ====================
+
+// 鍵盤焦點樣式
+*:focus-visible {
+  outline: 2px solid var(--capy-primary);
+  outline-offset: 2px;
+}
+
+// 跳過導航連結（螢幕閱讀器）
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--capy-primary);
+  color: white;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// ==================== 列印樣式 ====================
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .learning-header,
+  .sidebar-container {
+    display: none !important;
+  }
+
+  .content-section {
+    display: block !important;
+  }
+
+  * {
+    box-shadow: none !important;
+  }
+}

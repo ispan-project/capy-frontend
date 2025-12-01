@@ -46,7 +46,8 @@ body.no-scroll {
   transition: overflow 3s;
 }
 body {
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-family: "Noto Sans TC", sans-serif;
   /* overflow-wrap: break-word;
   word-break: break-word; */

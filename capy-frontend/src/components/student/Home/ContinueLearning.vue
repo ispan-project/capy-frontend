@@ -79,25 +79,24 @@ const handleCardClick = (courseId) => {
 
 <style scoped>
 .continue-learning {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--capy-spacing-lg);
 }
 
 .course-card {
   display: flex;
   gap: 16px;
-  background: white;
-  border-radius: 12px;
+  background: var(--capy-bg-surface);
+  border-radius: var(--capy-radius-lg);
   padding: 16px;
-  width: 360px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  transition: all var(--capy-transition-base);
   cursor: pointer;
+  border: 1px solid var(--capy-border-lighter);
 }
 
 .course-card:hover {
@@ -175,23 +174,18 @@ const handleCardClick = (courseId) => {
 }
 
 /* 響應式設計 */
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
   .continue-learning {
-    justify-content: center;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 }
 
 @media (max-width: 768px) {
   .continue-learning {
-    flex-direction: column;
-    align-items: center;
-    padding: 0 10px;
+    grid-template-columns: 1fr;
+    padding: 0 var(--capy-spacing-md);
     gap: 16px;
-  }
-
-  .course-card {
-    width: 100%;
-    max-width: 500px;
   }
 }
 

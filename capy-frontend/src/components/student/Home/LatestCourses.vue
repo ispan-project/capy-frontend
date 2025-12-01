@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Pagination, Navigation } from 'swiper/modules'
+import { Autoplay, Navigation } from 'swiper/modules';
 import ExploreCourseCard from '@/components/student/Explore/ExploreCard/ExploreCourseCard.vue'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'swiper/css/navigation'
 
-const modules = [Pagination, Navigation]
+const modules = [Autoplay, Navigation]
 
 const coursesData = ref([
   {
@@ -79,11 +79,17 @@ const handleTagClick = (tag) => {
 
 <template>
   <swiper
+    :loop="true"
     :slides-per-view="3"
     :centered-slides="false"
     :space-between="30"
     :navigation="true"
     :modules="modules"
+    :autoplay="{
+      delay: 5000,                // 每 3 秒切換一次
+      disableOnInteraction: false, // 手動滑動後，自動播放「不會」停止 (重要!)
+      pauseOnMouseEnter: true     // 滑鼠移入時暫停 (提升 UX)
+    }"
     :breakpoints="{
       1024: { slidesPerView: 3, spaceBetween: 30 },
       768: { slidesPerView: 2, spaceBetween: 20 },
@@ -104,14 +110,15 @@ const handleTagClick = (tag) => {
 <style scoped>
 .course-swiper {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 20px auto;
   padding: 0 40px;
 }
 
 .course-swiper :deep(.swiper-button-next),
 .course-swiper :deep(.swiper-button-prev) {
-  color: #409eff;
+  color: var(--capy-primary);
+  cursor: pointer;
 }
 
 .course-swiper :deep(.swiper-button-next):after,

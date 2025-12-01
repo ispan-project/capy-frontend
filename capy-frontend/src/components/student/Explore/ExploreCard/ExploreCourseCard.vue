@@ -27,7 +27,7 @@
     </div>
 
     <!-- Course Info -->
-    <CourseInfo :course="course" @tag-click="handleTagClick" />
+    <CourseInfo :course="course" @tag-click="handleTagClick" :hide-tags="false" />
   </el-card>
 </template>
 
@@ -62,17 +62,21 @@ const goToCourseDetail = () => {
 
 <style scoped>
 .course-card {
-  border-radius: 12px;
+  border-radius: var(--capy-radius-lg);
   overflow: hidden;
-  transition: all 0.3s;
+  transition: all var(--capy-transition-base);
   cursor: pointer;
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--capy-border-lighter);
 }
 
 .course-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-8px);
+  box-shadow: var(--capy-shadow-lg);
+  border-color: var(--capy-primary);
 }
 
 .course-cover {
@@ -103,4 +107,5 @@ const goToCourseDetail = () => {
 .placeholder-icon {
   font-size: 48px;
 }
+
 </style>

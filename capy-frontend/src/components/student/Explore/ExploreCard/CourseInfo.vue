@@ -3,6 +3,18 @@
     <!-- Title -->
     <h3 class="course-title">{{ course.title }}</h3>
 
+    <!-- Tags (below title) -->
+    <div class="course-tags" v-if="!hideTags && course.tags && course.tags.length > 0">
+      <span
+        v-for="tag in course.tags"
+        :key="tag"
+        class="tag-item"
+        @click="handleTagClick(tag, $event)"
+      >
+        {{ tag }}
+      </span>
+    </div>
+
     <!-- Teacher -->
     <p class="course-teacher">by {{ course.instructor || course.instructor_name || '未知講師' }}</p>
 
@@ -21,21 +33,6 @@
     <div class="course-price">
       <span class="price">NT$ {{ formatPrice(course.price) }}</span>
     </div>
-
-    <!-- Tags -->
-    <div class="course-tags">
-      <el-tag
-        v-for="tag in course.tags"
-        :key="tag"
-        size="small"
-        type="info"
-        effect="plain"
-        class="clickable-tag"
-        @click="handleTagClick(tag, $event)"
-      >
-        {{ tag }}
-      </el-tag>
-    </div>
   </div>
 </template>
 
@@ -44,6 +41,10 @@ const props = defineProps({
   course: {
     type: Object,
     required: true
+  },
+  hideTags: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -92,7 +93,7 @@ const handleTagClick = (tag, event) => {
   font-size: 16px;
   font-weight: 600;
   color: #2c3e50;
-  margin: 0 0 8px 0;
+  margin: 0 0 var(--capy-spacing-sm) 0;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -101,6 +102,32 @@ const handleTagClick = (tag, event) => {
   overflow: hidden;
   text-overflow: ellipsis;
   min-height: 44px;
+}
+
+.course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.tag-item {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(0, 191, 165, 0.1);
+  color: var(--capy-primary);
+  font-size: var(--capy-font-size-xs);
+  font-weight: var(--capy-font-weight-semibold);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 191, 165, 0.2);
+  cursor: pointer;
+  transition: all var(--capy-transition-fast);
+}
+
+.tag-item:hover {
+  background: rgba(0, 191, 165, 0.15);
+  border-color: var(--capy-primary);
+  transform: translateY(-1px);
 }
 
 .course-teacher {
@@ -123,7 +150,11 @@ const handleTagClick = (tag, event) => {
 .course-rating :deep(.el-rate__text) {
   font-size: 14px;
   font-weight: 600;
-  color: #f39c12;
+  color: var(--capy-warning);
+}
+
+.course-rating :deep(.el-rate__icon) {
+  color: var(--capy-warning);
 }
 
 .rating-count {
@@ -140,29 +171,7 @@ const handleTagClick = (tag, event) => {
 .price {
   font-size: 18px;
   font-weight: 700;
-  color: #2c3e50;
-}
-
-.course-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: auto;
-}
-
-.course-tags :deep(.el-tag) {
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.clickable-tag {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.clickable-tag:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: var(--capy-primary);
 }
 
 /* RWD */

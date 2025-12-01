@@ -46,17 +46,14 @@ body.no-scroll {
   transition: overflow 3s;
 }
 body {
-  overflow-x: hidden;
-  overflow-y: auto;
   font-family: "Noto Sans TC", sans-serif;
-  /* overflow-wrap: break-word;
-  word-break: break-word; */
 }
 .wrapper {
   background-color: #fcfcfd;
   box-shadow: 0 0 8px #0000001f;
   padding: 24px;
   border-radius: 16px;
+  height: 90%;
 }
 .section-heading {
   margin-bottom: 36px;

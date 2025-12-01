@@ -78,7 +78,13 @@ const viewCourseDetail = (courseId) => {
           <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="courseTitle" label="課程名稱" />
+      <el-table-column prop="courseTitle" label="課程名稱">
+        <template #default="{ row }">
+          <div style="width: 80%; padding-left: 10%">
+            <p>{{ row.courseTitle }}</p>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="category" label="分類" />
       <el-table-column prop="applicant" label="申請人" />
       <el-table-column prop="submittedAt" label="申請時間" />
@@ -103,7 +109,11 @@ const viewCourseDetail = (courseId) => {
 :deep(.tbody-cell .cell) {
   display: flex;
   justify-content: center;
+
   padding: 8px 0;
+}
+:deep(.table-row .cell) {
+  padding: 12px 0;
 }
 
 :deep(.table-head .cell) {

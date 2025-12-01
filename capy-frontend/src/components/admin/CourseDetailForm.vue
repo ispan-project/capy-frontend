@@ -303,12 +303,13 @@ const tagOptions = [
 <template>
   <div class="wrapper">
     <h2 class="section-title">課程基本資訊</h2>
-    <el-form size="large" label-position="top" label-width="auto" :model="formModel">
-      <el-form-item>
-        <template #label>
+    <el-form size="large" label-position="top" :model="formModel">
+      <el-form-item label="課程名稱 :">
+        <!-- <template #label>
           <span class="form-label">課程名稱 :</span>
-        </template>
-        <el-input readonly style="width: 80%" v-model="formModel.name" />
+        </template> -->
+        <!-- <el-input readonly style="width: 80%" v-model="formModel.name" /> -->
+        Lorem ipsum dolor sit amet.
       </el-form-item>
       <el-form-item label="課程封面 :">
         <img
@@ -319,15 +320,17 @@ const tagOptions = [
         />
       </el-form-item>
       <el-form-item label="課程價格 :">
-        <el-input style="width: auto" v-model="formModel.price">
+        {{ 55 }}
+        <!-- <el-input readonly style="width: auto" v-model="formModel.price">
           <template #prefix> NTD &nbsp&nbsp</template>
-        </el-input>
+        </el-input> -->
       </el-form-item>
       <el-form-item label="課程分類 :">
-        <el-cascader v-model="formModel.cate" :options="cateOptions" />
+        <!-- <el-cascader disabled v-model="formModel.cate" :options="cateOptions" /> -->
+        商業>會計
       </el-form-item>
       <el-form-item label="課程標籤 :">
-        <el-select
+        <!-- <el-select
           disabled
           v-model="tagValue"
           placeholder="選擇課程標籤"
@@ -344,10 +347,12 @@ const tagOptions = [
             :label="tag.label"
             :value="tag.label"
           />
-        </el-select>
+        </el-select> -->
+        <el-tag effect="plain" round size="large">88</el-tag>
       </el-form-item>
       <el-form-item label="課程簡介 :">
-        <el-input style="width: 80%" type="textarea" :rows="5" placeholder="輸入課程簡介" />
+        <!-- <el-input style="width: 80%" type="textarea" :rows="5" placeholder="輸入課程簡介" /> -->
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Doloribus, molestias.</p>
       </el-form-item>
     </el-form>
   </div>
@@ -373,7 +378,20 @@ const tagOptions = [
   height: 178px;
   text-align: center;
 }
-:deep(.el-form) {
+/* :deep(.el-form) {
   overflow: hidden;
+} */
+.form-label {
+  font-weight: 500;
+
+  /* color: #000; */
+}
+:deep(.el-form-item__content) {
+  padding-left: 16px;
+}
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
 }
 </style>

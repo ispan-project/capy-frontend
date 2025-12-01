@@ -1,5 +1,34 @@
 <script setup>
+import { useRoute } from "vue-router";
+const route = useRoute();
+const scrollbarRef = ref(null); // 指向 el-scrollbar
+watch(
+  () => route.fullPath,
+  () => {
+    const wrap = scrollbarRef.value?.wrapRef;
+    if (wrap) wrap.scrollTo({ top: 0, behavior: "smooth" });
+  }
+);
 const isCollapse = ref(true);
+
+const userProfile = {
+  name: "Admin User",
+  avatar: "https://picsum.photos/seed/capy-admin/80",
+};
+
+const handleUserCommand = (command) => {
+  if (command === "logout") {
+    ElMessage.info("已登出（待串接 API）");
+    return;
+  }
+  if (command === "switch-teacher") {
+    ElMessage.info("切換至講師端（待串接路由）");
+    return;
+  }
+  if (command === "switch-student") {
+    ElMessage.info("切換至學生端（待串接路由）");
+  }
+};
 </script>
 <template>
   <div class="common-layout">
@@ -97,8 +126,31 @@ const isCollapse = ref(true);
         style="transition: margin 0.5s"
         :style="{ 'margin-left': isCollapse ? '200px' : '64px' }"
       >
-        <el-scrollbar style="height: 100vh; width: 100%">
-          <el-header>hello,user123</el-header>
+        <el-scrollbar ref="scrollbarRef" style="height: 100vh; width: 100%">
+          <el-header>
+            <div class="header-actions">
+              <el-dropdown trigger="hover" @command="handleUserCommand">
+                <span class="user-chip">
+                  <el-avatar :size="40" :src="userProfile.avatar" />
+                  <span class="user-name">{{ userProfile.name }}</span>
+                  <el-icon class="arrow"><ArrowDown /></el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu style="width: 200px">
+                    <el-dropdown-item command="switch-teacher">切換至講師端</el-dropdown-item>
+                    <el-dropdown-item command="switch-student">切換至學生端</el-dropdown-item>
+                    <el-dropdown-item divided command="logout"
+                      ><span
+                        ><el-icon size="large" style="vertical-align: middle"
+                          ><SwitchButton /></el-icon
+                        >退出登入</span
+                      ></el-dropdown-item
+                    >
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </el-header>
           <el-main>
             <div class="main-container">
               <RouterView></RouterView>
@@ -129,13 +181,16 @@ const isCollapse = ref(true);
 .el-menu--popup .router-link-active .el-menu-item {
   color: #6cf;
 }
-.el-header {
+:deep(.el-header) {
   border-bottom: 1px solid #d1d9e1;
   background-color: #6cf;
-  padding: 0 24px;
+  /* padding: 24px 24px !important; */
+  /* height: 80px; */
+  height: auto;
+  padding: 8px 24px;
   display: flex;
   align-items: center;
-  justify-content: end;
+  justify-content: flex-end;
 }
 .el-aside {
   overflow: hidden;
@@ -167,5 +222,43 @@ const isCollapse = ref(true);
 .el-switch {
   margin-top: 50px;
   margin-left: 10px;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  background-color: #f5fbff;
+  color: #304455;
+  font-weight: 500;
+  cursor: pointer;
+  /* transition: box-shadow 0.2s; */
+}
+/* .user-chip:hover { */
+/* box-shadow: 0 2px 10px #00000015; */
+/* transform: translateY(-1px); */
+/* } */
+.user-name {
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.arrow {
+  font-size: 14px;
+  color: #6c7a89;
+}
+:deep(.el-dropdown-menu__item) {
+  padding: 12px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  justify-content: center;
+  font-weight: 500;
 }
 </style>

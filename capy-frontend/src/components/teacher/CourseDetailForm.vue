@@ -1,4 +1,6 @@
 <script setup>
+import TagPool from "./TagPool.vue";
+
 const formModel = ref({
   name: "java basic",
   price: "3600",
@@ -275,6 +277,8 @@ const cateOptions = [
   },
 ];
 //tags
+const tagpoolRef = ref(null);
+onMounted(() => console.log(tagpoolRef.value.activeList));
 const tagValue = ref(null);
 const tagOptions = [
   {
@@ -332,7 +336,7 @@ const deleteChapter = (index) => {
         <el-cascader v-model="formModel.cate" :options="cateOptions" />
       </el-form-item>
       <el-form-item label="課程標籤 :">
-        <el-select
+        <!-- <el-select
           v-model="tagValue"
           placeholder="選擇課程標籤"
           style="width: 240px"
@@ -348,7 +352,10 @@ const deleteChapter = (index) => {
             :label="tag.label"
             :value="tag.label"
           />
-        </el-select>
+        </el-select> -->
+        <div style="width: 50%">
+          <TagPool ref="tagpoolRef" />
+        </div>
       </el-form-item>
       <el-form-item label="課程簡介 :">
         <el-input style="width: 80%" type="textarea" :rows="5" placeholder="輸入課程簡介" />

@@ -108,6 +108,7 @@ const viewCourseDetail = (courseId) => {
 </script>
 <template>
   <h2 class="section-heading">課程狀態管理</h2>
+
   <div class="wrapper">
     <el-table
       stripe
@@ -123,7 +124,13 @@ const viewCourseDetail = (courseId) => {
           <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="courseTitle" label="課程名稱" />
+      <el-table-column label="課程名稱">
+        <template #default="{ row }">
+          <div style="width: 80%; padding-left: 10%">
+            <p>{{ row.courseTitle }}</p>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="instructor" label="講師" />
       <el-table-column prop="category" label="分類" />
       <el-table-column label="狀態">
@@ -158,7 +165,7 @@ const viewCourseDetail = (courseId) => {
 :deep(.tbody-cell .cell) {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  padding: 12px 0;
 }
 
 :deep(.table-head .cell) {

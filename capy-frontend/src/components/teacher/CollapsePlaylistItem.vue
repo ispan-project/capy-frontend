@@ -139,8 +139,8 @@ const form = ref({
           >
         </p>
         <div>
-          <el-button size="small" @click.stop="editChapter">編輯</el-button
-          ><el-button size="small" @click.stop="deleteChapter" type="info">刪除</el-button>
+          <el-button @click.stop="editChapter">編輯</el-button
+          ><el-button @click.stop="deleteChapter" type="info">刪除</el-button>
         </div>
       </div>
     </template>

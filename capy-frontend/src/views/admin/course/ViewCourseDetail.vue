@@ -18,15 +18,15 @@ const props = defineProps({
     <CoursePlaylist />
     <CourseAttachment />
     <div class="operation-btns">
-      <el-button size="large" type="info"
+      <el-button @click="$router.go(-1)" size="large" type="info"
         ><el-icon style="margin-right: 4px" size="large"><ArrowLeftBold /></el-icon
         >返回課程列表</el-button
       >
-      <div v-if="props.viewtype === 'apply'">
+      <div class="operation-btns" v-if="props.viewtype === 'apply'">
         <el-button type="danger" size="large">審核拒絕</el-button>
         <el-button type="primary" size="large">審核通過</el-button>
       </div>
-      <div v-else>
+      <div class="operation-btns" v-else>
         <!-- 用pinia 的課程狀態判斷 -->
         <el-button type="danger" size="large">強制下架</el-button>
         <el-button type="primary" size="large">恢復上架</el-button>
@@ -39,6 +39,6 @@ const props = defineProps({
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
+  gap: 24px;
 }
 </style>

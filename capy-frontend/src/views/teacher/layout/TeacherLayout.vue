@@ -33,10 +33,7 @@ const isCollapse = ref(true);
             <el-icon><Document /></el-icon>
             <template #title>發布公告</template>
           </el-menu-item>
-          <el-menu-item index="/teacher/coursedata">
-            <el-icon><DataAnalysis /></el-icon>
-            <template #title>數據分析</template>
-          </el-menu-item>
+
           <el-menu-item index="/teacher/teacherprofile">
             <el-icon><Avatar /></el-icon>
             <template #title>教師個人詳情</template>
@@ -61,7 +58,7 @@ const isCollapse = ref(true);
         :style="{ 'margin-left': isCollapse ? '200px' : '64px' }"
       >
         <el-scrollbar style="height: 100vh; width: 100%">
-          <el-header><el-button><</el-button>hello,user123</el-header>
+          <el-header>hello,user123</el-header>
           <el-main>
             <div class="main-container">
               <RouterView></RouterView>
@@ -83,7 +80,7 @@ const isCollapse = ref(true);
   padding: 0 24px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 .el-aside {
   overflow: hidden;

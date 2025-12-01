@@ -68,6 +68,7 @@ const deleteAttachment = async () => {
   <div class="wrapper">
     <h2 class="section-title">課程附件一覽</h2>
     <el-select
+      size="large"
       v-model="currentchapter"
       placeholder="選擇章節"
       style="width: 240px; margin-bottom: 12px"
@@ -79,7 +80,15 @@ const deleteAttachment = async () => {
         :value="item.value"
       />
     </el-select>
-    <el-table :data="tableData" style="width: 100%">
+    <el-table
+      stripe
+      :row-class-name="() => 'table-row'"
+      :cell-class-name="() => 'tbody-cell'"
+      :header-cell-class-name="() => 'table-head'"
+      size="large"
+      :data="tableData"
+      style="width: 100%; margin-top: 24px"
+    >
       <el-table-column prop="date" label="所屬章節" width="180" />
       <el-table-column prop="name" label="所屬單元" width="180" />
       <el-table-column prop="address" label="文件名稱" />
@@ -93,4 +102,15 @@ const deleteAttachment = async () => {
     </el-table>
   </div>
 </template>
-<style scoped></style>
+<style scoped>
+:deep(.tbody-cell .cell) {
+  display: flex;
+  justify-content: center;
+}
+
+:deep(.table-head .cell) {
+  font-size: 18px;
+  text-align: center;
+  padding: 4px 0 28px 0;
+}
+</style>

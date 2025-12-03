@@ -29,6 +29,22 @@ const goToCourse = (id) => {
 const formatPrice = (price) => {
   return price.toLocaleString('zh-TW')
 }
+
+const formatCount = (count) => {
+  if (count == null) {
+    return '0'
+  }
+
+  const num = Number(count)
+  if (Number.isNaN(num)) {
+    return String(count)
+  }
+
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`
+  }
+  return num.toString()
+}
 </script>
 
 <template>
@@ -51,7 +67,7 @@ const formatPrice = (price) => {
       480: { slidesPerView: 1, spaceBetween: 10 }
     }"
     class="course-swiper"
-  >
+  ><!-- Navigation Buttons -->
     <swiper-slide v-for="course in displayCourses" :key="course.id">
       <div class="course-card" @click="goToCourse(course.id)">
         <!-- Image Area -->
@@ -90,6 +106,7 @@ const formatPrice = (price) => {
                 show-score
                 :score-template="`${course.averageRating}`"
               />
+              <span class="rating-count">({{ formatCount(course.reviewCount) }})</span>
             </div>
 
             <div class="price-section">
@@ -105,6 +122,10 @@ const formatPrice = (price) => {
       </div>
     </swiper-slide>
   </swiper>
+    <div class="swiper-button-next"></div>
+    <div class="swiper-button-prev"></div>
+
+
 </template>
 
 <style scoped>
@@ -308,6 +329,17 @@ const formatPrice = (price) => {
   font-weight: var(--capy-font-weight-semibold);
   color: var(--capy-warning);
   margin-left: 4px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-count {
+  font-size: 13px;
+  color: #909399;
 }
 
 .price-section {

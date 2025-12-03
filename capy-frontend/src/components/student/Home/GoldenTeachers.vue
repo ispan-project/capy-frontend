@@ -59,13 +59,13 @@ const formatStudentCount = (count) => {
         <div class="teacher-stats">
           <div class="stat-item">
             <el-icon class="stat-icon"><User /></el-icon>
-            <span class="stat-value">{{ formatStudentCount(teacher.studentCount) }}</span>
+            <span class="stat-value">{{ formatStudentCount(teacher.totalStudents) }}</span>
             <span class="stat-label">學員</span>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
             <el-icon class="stat-icon"><Reading /></el-icon>
-            <span class="stat-value">{{ teacher.courseCount }}</span>
+            <span class="stat-value">{{ teacher.totalCourses }}</span>
             <span class="stat-label">課程</span>
           </div>
         </div>

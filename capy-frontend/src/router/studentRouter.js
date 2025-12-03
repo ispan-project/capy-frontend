@@ -167,6 +167,11 @@ const studentRoutes = [
     component: () => import('@/views/student/Auth&Register/LoginPage.vue')
   },
   {
+    path: '/register',
+    name: 'register',
+    component: () => import('@/views/student/Auth&Register/LoginPage.vue')
+  },
+  {
     path: '/oauth-callback',
     name: 'authCallback',
     component: () => import('@/views/student/Auth&Register/AuthCallback.vue')

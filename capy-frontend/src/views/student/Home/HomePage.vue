@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { getHomePageData } from '@/api/student/home.js'
+import { getHomePageData, getContinueLearningData } from '@/api/student/home.js'
 import { ElMessage } from 'element-plus'
 import Carousel from '@/components/student/Home/Carousel.vue'
 import TrustBar from '@/components/student/Home/TrustBar.vue'
@@ -50,7 +50,7 @@ const fetchHomeData = async () => {
         popularTags: apiData.topTags || [],
         carousel: [],  // 暫時為空，等待後端提供
         stats: null,   // 暫時為空，等待後端提供
-        continueLearning: []  // 需要登入後才有資料
+        continueLearning: []  // 初始化為空陣列，稍後單獨獲取
       }
 
       console.log('設定後的 homeData:', homeData.value)
@@ -69,9 +69,46 @@ const fetchHomeData = async () => {
   }
 }
 
+const fetchContinueLearningData = async () => {
+  try {
+    const response = await getContinueLearningData()
+
+    console.log('繼續學習 API 回應:', response)
+
+    if (response && Array.isArray(response)) {
+      homeData.value.continueLearning = response
+      console.log('繼續學習課程數量:', response.length)
+      console.log('繼續學習課程資料:', response)
+    } else {
+      console.warn('繼續學習 API 回應格式不符合預期:', response)
+      homeData.value.continueLearning = []
+    }
+  } catch (error) {
+    console.log('獲取繼續學習資料失敗（可能未登入或無課程）:', error)
+    // 設為空陣列，避免頁面崩潰
+    homeData.value.continueLearning = []
+    // 不顯示錯誤訊息，因為未登入或沒有課程是正常情況
+  }
+}
 // 組件掛載時獲取資料
-onMounted(() => {
-  fetchHomeData()
+onMounted(async () => {
+  await fetchHomeData()
+  // 嘗試獲取繼續學習資料（如果未登入會靜默失敗）
+  await fetchContinueLearningData()
+})
+
+// 監聽登入狀態變化，當用戶登入後重新獲取繼續學習資料
+watch(isLoggedIn, async (newValue, oldValue) => {
+  // 當從未登入變為已登入時，重新獲取繼續學習資料
+  if (newValue && !oldValue) {
+    console.log('檢測到用戶登入，重新獲取繼續學習資料')
+    await fetchContinueLearningData()
+  }
+  // 當從已登入變為未登入時，清空繼續學習資料
+  if (!newValue && oldValue) {
+    console.log('檢測到用戶登出，清空繼續學習資料')
+    homeData.value.continueLearning = []
+  }
 })
 </script>
 
@@ -94,7 +131,7 @@ onMounted(() => {
         <TrustBar :stats="homeData.stats" />
       </section>
 
-      <!-- Continue Learning (登入後才顯示) -->
+      <!-- Continue Learning (登入後且有課程才顯示) -->
       <section v-if="isLoggedIn && homeData.continueLearning.length > 0" class="section-wrapper section-white">
         <div class="section-container">
           <div class="section-header">
@@ -221,7 +258,7 @@ onMounted(() => {
 /* Section Header with Underline */
 .section-header {
   text-align: center;
-  margin-bottom: var(--capy-spacing-xxl);
+  margin-bottom: var(--capy-spacing-xl);
 }
 
 .section-title-student {

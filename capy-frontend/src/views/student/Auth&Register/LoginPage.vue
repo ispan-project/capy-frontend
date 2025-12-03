@@ -3,7 +3,7 @@
     <!-- 左側圖片區域 -->
     <div class="left-section">
       <div class="image-wrapper">
-        <img src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&h=800&fit=crop" alt="學習圖片" class="side-image" />
+        <img src="/Gemini_Generated_Image_wncmt4wncmt4wncm.png" alt="學習圖片" class="side-image" />
       </div>
     </div>
 
@@ -101,16 +101,25 @@
           <!-- 註冊表單 -->
           <div v-else>
           <div class="form-group">
-            <label class="form-label">使用者名稱</label>
-            <input
-              v-model="registerForm.username"
-              type="text"
-              class="form-input"
-              placeholder="輸入使用者名稱"
-              @input="handleUsernameInput"
-            />
-            <div v-if="usernameValidation.message" :class="['validation-message', usernameValidation.type]">
-              {{ usernameValidation.message }}
+            <label class="form-label">暱稱</label>
+            <div class="input-with-icon">
+              <input
+                v-model="registerForm.username"
+                type="text"
+                class="form-input"
+                placeholder="輸入暱稱（至少 2 個字元）"
+                @input="handleNicknameInput"
+                @compositionstart="handleCompositionStart"
+                @compositionend="handleCompositionEnd"
+              />
+              <div v-if="nicknameValidation.checking" class="input-icon">
+                <el-icon class="is-loading">
+                  <Loading />
+                </el-icon>
+              </div>
+            </div>
+            <div v-if="nicknameValidation.message" :class="['validation-message', nicknameValidation.type]">
+              {{ nicknameValidation.message }}
             </div>
           </div>
 
@@ -183,7 +192,7 @@
             <label for="terms" class="checkbox-label">我同意服務條款和隱私政策</label>
           </div>
 
-          <button class="submit-button register" @click="handleRegister">建立帳號</button>
+          <button class="submit-button" @click="handleRegister">建立帳號</button>
 
           <button class="google-button" @click="handleGoogleLogin">
             <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
@@ -202,10 +211,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { View, Hide, Message } from '@element-plus/icons-vue';
-import { validateUsername, debounce } from '@/utils/usernameValidator';
+import { View, Hide, Message, Loading } from '@element-plus/icons-vue';
+import {
+  validateNicknameFormat,
+  createNicknameValidator,
+  debounce,
+  VALIDATION_MESSAGES,
+  MIN_NICKNAME_LENGTH
+} from '@/utils/usernameValidator';
 import { ElMessage } from 'element-plus';
 import { login, register, initiateGoogleOAuth } from '@/api/oauth/oauth';
 import { useUserStore } from '@/stores/user';
@@ -241,23 +256,113 @@ const registerForm = reactive({
   googleId: '' // 用於儲存 Google ID（如果是從 OAuth 導向過來的）
 });
 
-// 使用者名稱驗證結果
-const usernameValidation = reactive({
+// 暱稱驗證狀態
+const nicknameValidation = reactive({
   message: '',
-  type: '' // 'success' | 'error' | 'warning'
+  type: '', // 'success' | 'error' | 'warning' | 'info'
+  checking: false, // 是否正在檢查中
+  available: null // true: 可用, false: 不可用, null: 未檢查或錯誤
 });
 
-// 使用者名稱驗證函式（帶 debounce）
-const validateUsernameDebounced = debounce((username) => {
-  const result = validateUsername(username);
-  usernameValidation.message = result.message;
-  usernameValidation.type = result.type;
-}, 300);
+// 中文輸入法狀態
+const isComposing = ref(false);
 
-// 處理使用者名稱輸入
-const handleUsernameInput = () => {
-  validateUsernameDebounced(registerForm.username);
+// 建立暱稱驗證器（處理請求競爭）
+const nicknameValidator = createNicknameValidator();
+
+// 暱稱驗證函式（帶 debounce 和 API 檢查）
+const validateNicknameDebounced = debounce(async (nickname) => {
+  // 如果正在組字中，不執行驗證
+  if (isComposing.value) {
+    return;
+  }
+
+  const trimmedNickname = nickname.trim();
+
+  // 先進行前端格式驗證
+  const formatValidation = validateNicknameFormat(trimmedNickname);
+
+  // 如果格式驗證失敗，直接顯示錯誤
+  if (!formatValidation.valid) {
+    nicknameValidation.message = formatValidation.message;
+    nicknameValidation.type = formatValidation.type;
+    nicknameValidation.checking = false;
+    nicknameValidation.available = null;
+    return;
+  }
+
+  // 格式驗證通過，開始 API 檢查
+  nicknameValidation.checking = true;
+  nicknameValidation.message = VALIDATION_MESSAGES.CHECKING;
+  nicknameValidation.type = 'info';
+
+  try {
+    // 呼叫 API 檢查暱稱
+    const result = await nicknameValidator.validate(trimmedNickname);
+
+    // 如果返回 null，表示這是舊的請求，被新請求取代了
+    if (result === null) {
+      return;
+    }
+
+    // 更新驗證結果
+    nicknameValidation.message = result.message;
+    nicknameValidation.type = result.type;
+    nicknameValidation.available = result.available;
+    nicknameValidation.checking = false;
+  } catch (error) {
+    console.error('暱稱驗證錯誤:', error);
+    nicknameValidation.message = VALIDATION_MESSAGES.ERROR;
+    nicknameValidation.type = 'warning';
+    nicknameValidation.available = null;
+    nicknameValidation.checking = false;
+  }
+}, 500); // 500ms debounce
+
+// 處理暱稱輸入
+const handleNicknameInput = () => {
+  // 如果正在組字中，不觸發驗證
+  if (isComposing.value) {
+    return;
+  }
+
+  const nickname = registerForm.username.trim();
+
+  // 如果長度不足最小要求，顯示提示但不呼叫 API
+  if (nickname.length === 0) {
+    nicknameValidation.message = '';
+    nicknameValidation.type = '';
+    nicknameValidation.checking = false;
+    nicknameValidation.available = null;
+    return;
+  }
+
+  // 觸發 debounced 驗證
+  validateNicknameDebounced(registerForm.username);
 };
+
+// 處理中文輸入法開始組字
+const handleCompositionStart = () => {
+  isComposing.value = true;
+};
+
+// 處理中文輸入法結束組字
+const handleCompositionEnd = () => {
+  isComposing.value = false;
+  // 組字完成後，觸發驗證
+  handleNicknameInput();
+};
+
+// 清理函式
+onUnmounted(() => {
+  // 取消所有待處理的驗證
+  if (validateNicknameDebounced.cancel) {
+    validateNicknameDebounced.cancel();
+  }
+  if (nicknameValidator.cancel) {
+    nicknameValidator.cancel();
+  }
+});
 
 // 處理登入
 const handleLogin = async () => {
@@ -288,7 +393,7 @@ const handleLogin = async () => {
     ElMessage.success('登入成功！');
 
     // 檢查是否有原始目標路徑
-    const redirectPath = route.query.redirect || '/student/my-learning';
+    const redirectPath = route.query.redirect || '/';
 
     // 跳轉頁面
     await router.push(redirectPath);
@@ -320,10 +425,22 @@ const handleLogin = async () => {
 
 // 處理註冊
 const handleRegister = async () => {
-  // 驗證使用者名稱
-  const usernameResult = validateUsername(registerForm.username);
-  if (!usernameResult.valid) {
-    ElMessage.error(usernameResult.message || '使用者名稱不符合規則');
+  // 檢查是否正在驗證暱稱
+  if (nicknameValidation.checking) {
+    ElMessage.warning('請等待暱稱驗證完成');
+    return;
+  }
+
+  // 驗證暱稱格式
+  const formatValidation = validateNicknameFormat(registerForm.username);
+  if (!formatValidation.valid) {
+    ElMessage.error(formatValidation.message || '暱稱格式不正確');
+    return;
+  }
+
+  // 檢查暱稱是否可用（必須通過 API 驗證）
+  if (nicknameValidation.available !== true) {
+    ElMessage.error('請使用可用的暱稱');
     return;
   }
 
@@ -344,11 +461,21 @@ const handleRegister = async () => {
   }
 
   try {
+    // 註冊前再次確認暱稱可用性（防止併發問題）
+    const finalCheck = await nicknameValidator.validate(registerForm.username.trim());
+    if (finalCheck && finalCheck.available !== true) {
+      ElMessage.error('此暱稱已被使用，請重新選擇');
+      nicknameValidation.available = false;
+      nicknameValidation.message = VALIDATION_MESSAGES.TAKEN;
+      nicknameValidation.type = 'error';
+      return;
+    }
+
     // 呼叫註冊 API
     await register({
       email: registerForm.email,
       password: registerForm.password,
-      nickname: registerForm.username,
+      nickname: registerForm.username.trim(),
       googleId: registerForm.googleId || undefined // 如果有 Google ID 則一併送出
     });
 
@@ -377,7 +504,7 @@ const handleRegister = async () => {
         ElMessage.success('登入成功！');
 
         // 跳轉到學生中心
-        const redirectPath = route.query.redirect || '/student/my-learning';
+        const redirectPath = route.query.redirect || '/home';
         await router.push(redirectPath);
       } catch (loginError) {
         console.error('自動登入失敗:', loginError);
@@ -679,6 +806,50 @@ onMounted(() => {
 .validation-message.error {
   color: var(--capy-danger);
   background: var(--el-color-danger-light-9);
+}
+
+.validation-message.warning {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+}
+
+.validation-message.info {
+  color: var(--capy-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 輸入框帶 icon */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon .form-input {
+  padding-right: 40px;
+}
+
+.input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--capy-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.input-icon .is-loading {
+  animation: rotating 1.5s linear infinite;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 忘記密碼 */

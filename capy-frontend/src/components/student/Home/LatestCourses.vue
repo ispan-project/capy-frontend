@@ -60,6 +60,10 @@ const handleTagClick = (tag) => {
       />
     </swiper-slide>
   </swiper>
+
+  <!-- Navigation Buttons -->
+  <div class="swiper-button-prev"></div>
+  <div class="swiper-button-next"></div>
 </template>
 
 <style scoped>

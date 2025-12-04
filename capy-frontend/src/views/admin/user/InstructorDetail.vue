@@ -181,14 +181,14 @@ const handleDownload = (item) => {
   max-width: 900px;
 }
 
-/* 基本資料卡片 */
+/* 基本資料卡片 - 使用主題色 */
 .profile-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, var(--capy-primary) 0%, var(--capy-brand) 100%);
+  border-radius: var(--capy-radius-xl);
   padding: 28px 32px;
-  margin-bottom: 24px;
-  color: white;
-  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  margin-bottom: var(--capy-spacing-lg);
+  color: var(--capy-text-inverse);
+  box-shadow: 0 10px 40px rgba(var(--capy-primary-rgb), 0.3);
 }
 
 .profile-header {
@@ -201,13 +201,13 @@ const handleDownload = (item) => {
 .avatar-section {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--capy-spacing-md);
 }
 
 .avatar {
   width: 72px;
   height: 72px;
-  border-radius: 50%;
+  border-radius: var(--capy-radius-circle);
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   display: flex;
@@ -218,8 +218,8 @@ const handleDownload = (item) => {
 
 .avatar-text {
   font-size: 28px;
-  font-weight: 700;
-  color: white;
+  font-weight: var(--capy-font-weight-bold);
+  color: var(--capy-text-inverse);
 }
 
 .profile-basic {
@@ -229,15 +229,15 @@ const handleDownload = (item) => {
 }
 
 .profile-name {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--capy-font-size-title);
+  font-weight: var(--capy-font-weight-bold);
   margin: 0;
 }
 
 .profile-id {
-  font-size: 14px;
+  font-size: var(--capy-font-size-base);
   opacity: 0.85;
-  font-weight: 500;
+  font-weight: var(--capy-font-weight-medium);
 }
 
 .profile-info-grid {
@@ -250,21 +250,21 @@ const handleDownload = (item) => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
   padding: 14px 16px;
-  border-radius: 12px;
-  transition: background 0.2s;
+  border-radius: var(--capy-radius-lg);
+  transition: background var(--capy-transition-base);
 }
 
 .info-item:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .info-icon {
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--capy-radius-md);
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -273,7 +273,7 @@ const handleDownload = (item) => {
 }
 
 .info-icon.warning {
-  background: rgba(230, 162, 60, 0.3);
+  background: rgba(var(--capy-warning), 0.3);
 }
 
 .info-icon .el-icon {
@@ -288,14 +288,14 @@ const handleDownload = (item) => {
 }
 
 .info-content .info-label {
-  font-size: 12px;
+  font-size: var(--capy-font-size-xs);
   opacity: 0.8;
-  font-weight: 500;
+  font-weight: var(--capy-font-weight-medium);
 }
 
 .info-content .info-value {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--capy-font-size-md);
+  font-weight: var(--capy-font-weight-semibold);
   word-break: break-all;
   display: flex;
   align-items: center;
@@ -305,12 +305,12 @@ const handleDownload = (item) => {
 
 /* 區塊卡片 */
 .section-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px 28px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f2f5;
+  background: var(--capy-bg-surface);
+  border-radius: var(--capy-radius-xl);
+  padding: var(--capy-spacing-lg) 28px;
+  margin-bottom: var(--capy-spacing-lg);
+  box-shadow: var(--capy-shadow-base);
+  border: 1px solid var(--capy-border-lighter);
 }
 
 .section-header {
@@ -318,19 +318,19 @@ const handleDownload = (item) => {
   align-items: center;
   gap: 12px;
   margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f2f5;
+  padding-bottom: var(--capy-spacing-md);
+  border-bottom: 1px solid var(--capy-border-lighter);
 }
 
 .section-icon {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--capy-radius-md);
+  background: linear-gradient(135deg, var(--capy-primary) 0%, var(--capy-brand) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--capy-text-inverse);
 }
 
 .section-icon .el-icon {
@@ -338,9 +338,9 @@ const handleDownload = (item) => {
 }
 
 .section-card .section-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #303133;
+  font-size: var(--capy-font-size-xl);
+  font-weight: var(--capy-font-weight-bold);
+  color: var(--capy-text-primary);
   margin: 0;
 }
 
@@ -353,7 +353,7 @@ const handleDownload = (item) => {
   display: flex;
   gap: 20px;
   position: relative;
-  padding-bottom: 24px;
+  padding-bottom: var(--capy-spacing-lg);
 }
 
 .timeline-item:last-child {
@@ -367,38 +367,38 @@ const handleDownload = (item) => {
   top: 20px;
   bottom: 0;
   width: 2px;
-  background: #e5ecf6;
+  background: var(--capy-border-light);
 }
 
 .timeline-dot {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: #e5ecf6;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 2px #e5ecf6;
+  border-radius: var(--capy-radius-circle);
+  background: var(--capy-border-light);
+  border: 3px solid var(--capy-bg-surface);
+  box-shadow: 0 0 0 2px var(--capy-border-light);
   flex-shrink: 0;
   margin-top: 4px;
   z-index: 1;
 }
 
 .timeline-dot.active {
-  background: #667eea;
-  box-shadow: 0 0 0 2px #667eea;
+  background: var(--capy-primary);
+  box-shadow: 0 0 0 2px var(--capy-primary);
 }
 
 .timeline-content {
   flex: 1;
-  background: #f9fafb;
-  padding: 16px 20px;
-  border-radius: 12px;
-  border: 1px solid #f0f2f5;
-  transition: all 0.2s;
+  background: var(--capy-bg-base);
+  padding: var(--capy-spacing-md) 20px;
+  border-radius: var(--capy-radius-lg);
+  border: 1px solid var(--capy-border-lighter);
+  transition: all var(--capy-transition-base);
 }
 
 .timeline-content:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  border-color: var(--capy-primary);
+  box-shadow: 0 4px 12px rgba(var(--capy-primary-rgb), 0.1);
 }
 
 .timeline-header {
@@ -411,24 +411,24 @@ const handleDownload = (item) => {
 }
 
 .company-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #303133;
+  font-size: var(--capy-font-size-lg);
+  font-weight: var(--capy-font-weight-bold);
+  color: var(--capy-text-primary);
   margin: 0;
 }
 
 .period-badge {
-  font-size: 12px;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  font-size: var(--capy-font-size-xs);
+  color: var(--capy-primary);
+  background: rgba(var(--capy-primary-rgb), 0.1);
   padding: 4px 12px;
   border-radius: 20px;
-  font-weight: 600;
+  font-weight: var(--capy-font-weight-semibold);
 }
 
 .job-title {
-  font-size: 14px;
-  color: #606266;
+  font-size: var(--capy-font-size-base);
+  color: var(--capy-text-regular);
   margin: 0;
 }
 
@@ -442,18 +442,18 @@ const handleDownload = (item) => {
 .file-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #f0f2f5;
-  transition: all 0.2s;
+  gap: var(--capy-spacing-md);
+  padding: var(--capy-spacing-md) 20px;
+  background: var(--capy-bg-base);
+  border-radius: var(--capy-radius-lg);
+  border: 1px solid var(--capy-border-lighter);
+  transition: all var(--capy-transition-base);
 }
 
 .file-card:hover {
-  border-color: #667eea;
-  background: #fafbff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+  border-color: var(--capy-primary);
+  background: var(--el-color-primary-light-9);
+  box-shadow: 0 4px 12px rgba(var(--capy-primary-rgb), 0.08);
 }
 
 .file-card.file-link {
@@ -463,12 +463,12 @@ const handleDownload = (item) => {
 .file-icon {
   width: 48px;
   height: 48px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: var(--capy-radius-md);
+  background: linear-gradient(135deg, var(--capy-primary) 0%, var(--capy-brand) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--capy-text-inverse);
   flex-shrink: 0;
 }
 
@@ -478,16 +478,16 @@ const handleDownload = (item) => {
 }
 
 .file-info .file-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #303133;
+  font-size: var(--capy-font-size-md);
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-text-primary);
   margin: 0 0 4px 0;
   word-break: break-all;
 }
 
 .file-info .file-size {
-  font-size: 13px;
-  color: #909399;
+  font-size: var(--capy-font-size-sm);
+  color: var(--capy-text-secondary);
   margin: 0;
 }
 
@@ -496,11 +496,11 @@ const handleDownload = (item) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 0;
+  padding: var(--capy-spacing-lg) 0;
   margin-top: 8px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--capy-border-lighter);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--capy-spacing-md);
 }
 
 .action-main {
@@ -517,7 +517,7 @@ const handleDownload = (item) => {
 
   .profile-header {
     flex-direction: column;
-    gap: 16px;
+    gap: var(--capy-spacing-md);
   }
 
   .action-bar {

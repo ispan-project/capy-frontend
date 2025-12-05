@@ -58,6 +58,15 @@
             />
           </div>
 
+<<<<<<< HEAD
+=======
+          <!-- 密碼強度提示 -->
+          <div v-if="passwordStrengthMessage"
+               :class="['password-hint', passwordHintClass]">
+            <el-icon><InfoFilled /></el-icon>
+            <span>{{ passwordStrengthMessage }}</span>
+          </div>
+>>>>>>> Ian/Student/UIUX
 
           <el-button
             type="primary"
@@ -93,6 +102,52 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
 
+<<<<<<< HEAD
+=======
+// 密碼強度提示和驗證
+const passwordStrengthMessage = computed(() => {
+  if (!newPassword.value) return '';
+
+  if (newPassword.value.length < 8) {
+    return '❌ 密碼長度至少需要 8 個字元';
+  }
+
+  // 檢查密碼強度
+  const hasUpperCase = /[A-Z]/.test(newPassword.value);
+  const hasLowerCase = /[a-z]/.test(newPassword.value);
+  const hasNumber = /[0-9]/.test(newPassword.value);
+  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword.value);
+
+  // 必須包含大小寫字母和數字
+  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
+  }
+
+  const strength = [hasUpperCase, hasLowerCase, hasNumber, hasSpecial].filter(Boolean).length;
+
+  if (strength === 3) return '✓ 密碼強度：良好';
+  return '✓ 密碼強度：優秀';
+});
+
+// 檢查密碼是否符合要求
+const isPasswordValid = computed(() => {
+  if (!newPassword.value || newPassword.value.length < 8) return false;
+
+  const hasUpperCase = /[A-Z]/.test(newPassword.value);
+  const hasLowerCase = /[a-z]/.test(newPassword.value);
+  const hasNumber = /[0-9]/.test(newPassword.value);
+
+  return hasUpperCase && hasLowerCase && hasNumber;
+});
+
+// 密碼提示的樣式 class
+const passwordHintClass = computed(() => {
+  const message = passwordStrengthMessage.value;
+  if (message.startsWith('❌')) return 'hint-error';
+  if (message.startsWith('✓')) return 'hint-success';
+  return 'hint-info';
+});
+>>>>>>> Ian/Student/UIUX
 
 // 驗證密碼
 const validatePasswords = () => {
@@ -106,6 +161,7 @@ const validatePasswords = () => {
     return false;
   }
 
+<<<<<<< HEAD
   // 檢查是否包含小寫字母
   if (!/[a-z]/.test(newPassword.value)) {
     ElMessage.error('密碼必須包含至少一個小寫字母 (a-z)');
@@ -115,6 +171,11 @@ const validatePasswords = () => {
   // 檢查是否包含數字
   if (!/[0-9]/.test(newPassword.value)) {
     ElMessage.error('密碼必須包含至少一個數字 (0-9)');
+=======
+  // 檢查密碼是否符合強制要求
+  if (!isPasswordValid.value) {
+    ElMessage.error('密碼必須包含大寫字母、小寫字母和數字');
+>>>>>>> Ian/Student/UIUX
     return false;
   }
 
@@ -300,9 +361,33 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+<<<<<<< HEAD
   font-size: 13px;
   color: #666;
   transition: all 0.3s ease;
+=======
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  animation: slideDown 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.password-hint.hint-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.password-hint.hint-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.password-hint.hint-info {
+  background: #dbeafe;
+  color: #2563eb;
+>>>>>>> Ian/Student/UIUX
 }
 
 .requirement-item.optional {

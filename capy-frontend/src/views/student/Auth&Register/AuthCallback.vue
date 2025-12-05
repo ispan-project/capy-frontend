@@ -32,67 +32,130 @@ const userStore = useUserStore()
  * 3. /login?email=...&googleId=... - 未綁定，需要註冊
  * 4. /login?oauthError=... - 錯誤或帳號停用
  *
- * 注意：情境 3 和 4 會直接 redirect 到 /login，由 LoginPage.vue 處理
+ * 注意：情境 2 和 3 會直接 redirect 到 /login，由 LoginPage.vue 處理
+ *
+ * 修復：加入延遲和重試機制，確保 Cookie 在瀏覽器重導向後已完全設定
  */
 onMounted(async () => {
   try {
-    // 檢查是否為 Google 綁定流程
-    const oauthAction = sessionStorage.getItem('oauth_action')
-    const googleId = route.query.googleId
-    const googleEmail = route.query.googleEmail
-    const oauthError = route.query.error
-    const errorMessage = route.query.message
-    const errorCode = route.query.code
+    // 🔍 診斷 log
+    console.log('🔍 [AuthCallback] onMounted 觸發')
+    console.log('🔍 [AuthCallback] route.path:', route.path)
+    console.log('🔍 [AuthCallback] route.query:', JSON.stringify(route.query))
+    console.log('🔍 [AuthCallback] google_bind_flow:', sessionStorage.getItem('google_bind_flow'))
+    console.log('🔍 [AuthCallback] oauth_redirect:', sessionStorage.getItem('oauth_redirect'))
 
-    // 檢查 OAuth 錯誤（後端在 OAuth 階段就返回的錯誤）
-    if (oauthAction === 'bind_google' && oauthError) {
-      // 清除暫存的資料
-      sessionStorage.removeItem('oauth_action')
+    // 檢查 URL 參數
+    const { error, code, message, googleId, flow } = route.query
+    const isBindFlow = sessionStorage.getItem('google_bind_flow')
 
-      // 根據錯誤碼顯示對應訊息
-      let displayMessage = errorMessage || '綁定失敗'
+    console.log('🔍 [AuthCallback] error:', error)
+    console.log('🔍 [AuthCallback] googleId:', googleId)
+    console.log('🔍 [AuthCallback] flow:', flow)
+    console.log('🔍 [AuthCallback] isBindFlow:', isBindFlow)
 
-      if (errorCode === '409' || errorCode === 409) {
-        displayMessage = errorMessage || 'Google 帳號已被其他使用者綁定'
-      } else if (errorCode === '401' || errorCode === 401) {
-        displayMessage = errorMessage || '未授權的操作'
-      } else if (errorCode === '400' || errorCode === 400) {
-        displayMessage = errorMessage || '請求參數錯誤'
-      }
+    // 情境 1：綁定流程錯誤
+    if (error === 'true' && (isBindFlow === 'true' || flow === 'bind')) {
+      console.log('❌ [AuthCallback] 檢測到綁定錯誤')
 
-      ElMessage.error(displayMessage)
+      const errorMessage = message ? decodeURIComponent(message) : '綁定失敗'
+      ElMessage.error(errorMessage)
 
-      // 跳轉回原始頁面
+      sessionStorage.removeItem('google_bind_flow')
       const redirectPath = sessionStorage.getItem('oauth_redirect') || '/student-center'
       sessionStorage.removeItem('oauth_redirect')
+
+      console.log('🔍 [AuthCallback] 重導向到:', redirectPath)
       await router.replace(redirectPath)
       return
     }
 
-    if (oauthAction === 'bind_google' && googleId) {
-      // 處理 Google 綁定
-      await handleGoogleBinding(googleId, googleEmail)
-      return
-    }
+    // 情境 2：綁定流程成功（後端返回 googleId 和 flow=bind）
+    if (googleId && (flow === 'bind' || isBindFlow === 'true')) {
+      console.log('✅ [AuthCallback] 檢測到綁定流程，重導向到學生中心並帶上 googleId')
 
-    // 一般登入流程：嘗試從後端獲取使用者資訊（透過 Cookie 驗證）
-    await userStore.init()
+      // 取得原始頁面路徑
+      const redirectPath = sessionStorage.getItem('oauth_redirect') || '/student-center'
 
-    // 檢查是否成功獲取使用者資訊
-    if (userStore.isAuthenticated) {
-      ElMessage.success('登入成功!')
-
-      // 檢查是否有原始目標路徑
-      const redirectPath = sessionStorage.getItem('oauth_redirect') || route.query.redirect || '/'
+      // 不要清除標記，讓 StudentProfileEditDialog 可以檢測到
+      // sessionStorage.removeItem('google_bind_flow')  // ← 保留標記
       sessionStorage.removeItem('oauth_redirect')
 
-      // 跳轉到目標頁面
-      await router.replace(redirectPath)
+      // 重導向到學生中心並帶上 googleId
+      await router.replace({
+        path: redirectPath,
+        query: { googleId }
+      })
       return
-    } else {
+    }
+
+    console.log('🔍 [AuthCallback] 非綁定流程，繼續登入流程')
+
+    // 給予瀏覽器一點時間來同步 Cookie（修復重導向後 Cookie 未設定的問題）
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    // 嘗試從後端獲取使用者資訊（透過 Cookie 驗證）
+    // 加入重試機制：最多嘗試 3 次，每次間隔 500ms
+    let attempt = 0
+    const maxAttempts = 3
+    let lastError = null
+
+    while (attempt < maxAttempts) {
+      try {
+        await userStore.init()
+
+        // 檢查是否成功獲取使用者資訊
+        if (userStore.isAuthenticated) {
+          ElMessage.success('登入成功!')
+
+          // 檢查是否有原始目標路徑
+          const redirectPath = route.query.redirect || '/'
+
+          // 跳轉到目標頁面
+          await router.replace(redirectPath)
+          return
+        }
+
+        // 如果沒有驗證成功但也沒有錯誤，可能需要重試
+        if (attempt < maxAttempts - 1) {
+          console.log(`Cookie 驗證失敗，第 ${attempt + 1} 次重試...`)
+          await new Promise(resolve => setTimeout(resolve, 500))
+          attempt++
+          continue
+        }
+
+        // 最後一次嘗試仍失敗
+        break
+
+      } catch (err) {
+        lastError = err
+
+        // 如果是 401 錯誤，不需要重試（表示未綁定或未授權）
+        if (err.response?.status === 401 || err.status === 401) {
+          break
+        }
+
+        // 其他錯誤，如果還有重試次數則繼續
+        if (attempt < maxAttempts - 1) {
+          console.log(`驗證發生錯誤，第 ${attempt + 1} 次重試...`, err)
+          await new Promise(resolve => setTimeout(resolve, 500))
+          attempt++
+          continue
+        }
+
+        break
+      }
+    }
+
+    // 所有嘗試都失敗後的處理
+    if (!userStore.isAuthenticated) {
       // 如果無法獲取使用者資訊，表示 Cookie 無效或未設定
       // 可能是未綁定的 Google 帳號，重導向到登入頁面
-      ElMessage.warning('請完成帳號設定')
+      if (lastError?.response?.status === 401 || lastError?.status === 401) {
+        ElMessage.info('請完成帳號註冊')
+      } else {
+        ElMessage.warning('請完成帳號設定')
+      }
       await router.replace('/login')
       return
     }

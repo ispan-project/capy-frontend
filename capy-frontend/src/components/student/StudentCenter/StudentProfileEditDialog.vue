@@ -114,9 +114,6 @@
                     <el-icon><CircleClose /></el-icon>
                     <span>未連結</span>
                   </div>
-                  <div v-if="isGoogleBound && googleEmail" class="binding-email">
-                    {{ googleEmail }}
-                  </div>
                 </div>
               </div>
               <div class="binding-action">
@@ -125,15 +122,17 @@
                   type="default"
                   plain
                   @click="handleBindGoogle"
+                  :loading="bindingGoogle"
+                  :disabled="bindingGoogle"
                   class="bind-button"
                 >
-                  連結 Google 帳號
+                  {{ bindingGoogle ? '綁定中...' : '連結 Google 帳號' }}
                 </el-button>
                 <el-button
                   v-else
                   type="danger"
                   plain
-                  @click="handleUnlinkGoogle"
+                  @click="handleUnbindGoogle"
                   class="unbind-button"
                 >
                   解除連結
@@ -239,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, h } from 'vue'
+import { ref, watch, computed, h, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElInput } from 'element-plus'
 
 // ===== 除錯程式碼開始 =====
@@ -258,18 +257,10 @@ import {
   Delete,
   WarningFilled
 } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import StudentPasswordForm from './StudentPasswordForm.vue'
-import {
-  updateStudentProfile,
-  uploadStudentAvatar,
-  updateStudentPassword,
-  deleteStudentAccount,
-  getStudentProfile,
-  bindGoogleAccount,
-  unlinkGoogleAccount
-} from '@/api/student/Studentcenter'
+import { bindGoogleAccount } from '@/api/oauth/oauth'
 
 // Props
 const props = defineProps({
@@ -283,7 +274,7 @@ const props = defineProps({
       email: '',
       nickname: '',
       avatarUrl: '',
-      google_id: null,
+      googleLinked: false,
       google_email: null
     })
   },
@@ -308,9 +299,12 @@ const currentView = ref('settings') // 'settings' | 'password_change'
 const deletingAccount = ref(false)
 const previewAvatarUrl = ref('') // 本地預覽 URL
 const pendingAvatarFile = ref(null) // 待上傳的檔案
+const bindingGoogle = ref(false) // Google 綁定載入狀態
+const pendingGoogleBind = ref(null) // 儲存待綁定的 Google 資訊
 
 // Router and Store
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // Form Data
@@ -322,33 +316,23 @@ const formData = ref({
 
 // Computed - Use 'user' prop or fallback to 'currentUser' for backward compatibility
 const currentUserData = computed(() => {
-  // 優先使用 props，如果沒有則使用 userStore
-  const data = props.currentUser || props.user || userStore.userInfo
-  console.log('=== currentUserData computed ===', data)
-  return data
+  const userData = props.user || props.currentUser || {}
+  console.log('🔍 Dialog currentUserData:', userData)
+  return userData
 })
 
 // Computed - Check if Google account is bound
 const isGoogleBound = computed(() => {
-  console.log('=== isGoogleBound computed ===')
-  console.log('currentUserData.value:', currentUserData.value)
-  console.log('googleLinked:', currentUserData.value.googleLinked)
-  console.log('google_id:', currentUserData.value.google_id)
-
-  // 優先使用後端提供的 googleLinked 欄位
-  if (currentUserData.value.googleLinked !== undefined) {
-    console.log('✅ 使用 googleLinked:', currentUserData.value.googleLinked)
-    return currentUserData.value.googleLinked
-  }
-  // 向下相容：檢查 google_id
-  const result = !!currentUserData.value.google_id
-  console.log('⚠️ 使用 google_id, 結果:', result)
+  const result = currentUserData.value.googleLinked === true
+  console.log('🔍 isGoogleBound:', result, 'googleLinked:', currentUserData.value.googleLinked)
   return result
 })
 
 // Computed - Get Google email if available
 const googleEmail = computed(() => {
-  return currentUserData.value.google_email || null
+  const email = currentUserData.value.google_email || currentUserData.value.email || null
+  console.log('🔍 googleEmail:', email)
+  return email
 })
 
 // Computed - Modal Title
@@ -532,48 +516,28 @@ const beforeAvatarUpload = (file) => {
   return true
 }
 
-// Handle Bind Google Account
-const handleBindGoogle = async () => {
-  try {
-    // 直接跳轉到 Google OAuth 授權頁面（不先要求密碼）
-    ElMessage.info('正在跳轉至 Google 授權頁面...')
+// Handle Bind Google Account - 第一階段：導向 OAuth
+const handleBindGoogle = () => {
+  ElMessage.info('正在跳轉至 Google 授權頁面...')
 
-    // 標記為綁定流程
-    sessionStorage.setItem('oauth_redirect', window.location.pathname)
-    sessionStorage.setItem('oauth_action', 'bind_google')
+  // 標記為綁定流程（用於回調時識別）
+  sessionStorage.setItem('google_bind_flow', 'true')
+  sessionStorage.setItem('oauth_redirect', window.location.pathname)
 
-    // 跳轉到 Google OAuth 授權頁面
-    const bindUrl = 'http://localhost:8080/api/oauth2/authorization/google'
-    window.location.href = bindUrl
-
-  } catch (error) {
-    console.error('Google 綁定錯誤:', error)
-    ElMessage.error('綁定失敗，請稍後再試')
-  }
+  // 重導向到後端的 Google OAuth 綁定端點
+  // 加上 bind=true 參數讓後端識別這是綁定流程
+  window.location.href = 'http://localhost:8080/api/oauth2/authorization/google?bind=true'
 }
 
-// Handle Unlink Google Account
-const handleUnlinkGoogle = async () => {
+// Handle Bind Google Account - 第二階段：密碼確認
+const confirmBindWithPassword = async (googleId) => {
   try {
-    // 顯示確認對話框
-    await ElMessageBox.confirm(
-      '解除連結後，您將無法使用 Google 帳號登入。確定要解除連結嗎？',
-      '解除 Google 帳號連結',
-      {
-        confirmButtonText: '確認解除',
-        cancelButtonText: '取消',
-        type: 'warning',
-        showClose: true,
-        closeOnClickModal: false
-      }
-    )
-
-    // 顯示密碼輸入對話框以驗證使用者身份
+    // 彈出密碼輸入對話框
     const { value: password } = await ElMessageBox.prompt(
-      '為了安全起見，請輸入您的帳號密碼以確認解除連結',
-      '驗證身份',
+      '為了安全起見，請輸入您的帳號密碼以確認綁定 Google 帳號',
+      '確認密碼',
       {
-        confirmButtonText: '確認解除',
+        confirmButtonText: '確認綁定',
         cancelButtonText: '取消',
         inputType: 'password',
         inputPlaceholder: '請輸入密碼',
@@ -581,57 +545,102 @@ const handleUnlinkGoogle = async () => {
           if (!value) {
             return '請輸入密碼'
           }
-          if (value.length < 6) {
-            return '密碼長度至少需要 6 個字元'
+          if (value.length < 8) {
+            return '密碼長度至少 8 個字元'
           }
           return true
         },
         inputErrorMessage: '密碼格式不正確',
-        customClass: 'google-bind-password-prompt'
+        customClass: 'google-bind-password-dialog',
+        confirmButtonClass: 'google-bind-confirm-button'
       }
     )
 
-    if (!password) {
-      return
-    }
+    // 呼叫綁定 API
+    bindingGoogle.value = true
 
-    // 調用解除綁定 API
-    const response = await unlinkGoogleAccount({ password })
+    const response = await bindGoogleAccount({
+      googleId,
+      password
+    })
 
-    if (response.success) {
-      ElMessage.success(response.message || 'Google 帳號已解除連結')
+    // 後端回應格式: { success, code, message, data: { googleLinked } }
+    if (response.success && response.data) {
+      ElMessage.success('Google 帳號綁定成功！')
 
-      // 更新使用者資訊，移除 Google 綁定資料
+      // 更新使用者資訊到 store
       userStore.updateUserInfo({
-        ...userStore.userInfo,
-        google_id: null,
-        google_email: null
+        googleLinked: response.data.googleLinked
       })
 
-      // 重新獲取個人資料以確保資料同步
-      try {
-        const profileData = await getStudentProfile()
-        if (profileData.studentProfile) {
-          userStore.updateUserInfo({
-            id: profileData.studentProfile.userId || userStore.userInfo.id,
-            email: profileData.studentProfile.email,
-            nickname: profileData.studentProfile.nickname,
-            avatar: profileData.studentProfile.avatarUrl || userStore.userInfo.avatar,
-            google_id: profileData.studentProfile.googleId || null,
-            google_email: profileData.studentProfile.googleEmail || null
-          })
-        }
-      } catch (error) {
-        console.error('獲取個人資料失敗:', error)
-      }
+      // 關閉對話框
+      dialogVisible.value = false
+
+      // 重新載入頁面以刷新所有資料
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     } else {
-      throw new Error(response.message || '解除連結失敗')
+      throw new Error(response.message || '綁定失敗')
     }
 
   } catch (error) {
-    // 使用者取消或發生錯誤
-    if (error !== 'cancel' && error !== 'close') {
-      console.error('解除 Google 綁定錯誤:', error)
+    if (error === 'cancel') {
+      ElMessage.info('已取消綁定')
+    } else {
+      console.error('Google 綁定錯誤:', error)
+      const errorMessage = error.response?.data?.message || error.message || '綁定失敗，請檢查密碼是否正確'
+      ElMessage.error(errorMessage)
+    }
+    // 清除綁定流程標記（無論成功或失敗）
+    sessionStorage.removeItem('google_bind_flow')
+  } finally {
+    bindingGoogle.value = false
+  }
+}
+
+// Handle Unbind Google Account
+const handleUnbindGoogle = async () => {
+  try {
+    // Show confirmation dialog
+    await ElMessageBox.confirm(
+      '解除 Google 帳號連結後，您將無法使用 Google 快速登入。確定要繼續嗎？',
+      '解除 Google 連結',
+      {
+        confirmButtonText: '確定解除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    // Call API to unbind Google account
+    const response = await fetch('/api/auth/google/unbind', {
+      method: 'POST',
+      credentials: 'include'
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '解除連結失敗')
+    }
+
+    ElMessage.success('已成功解除 Google 帳號連結')
+
+    // Update user store to reflect the change
+    userStore.updateUserInfo({
+      google_id: null,
+      google_email: null
+    })
+
+    // Close dialog and refresh
+    dialogVisible.value = false
+
+    // Reload the page to refresh all data
+    window.location.reload()
+
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Unbind Google error:', error)
       ElMessage.error(error.message || '解除連結失敗，請稍後再試')
     }
   }
@@ -834,6 +843,46 @@ const handleDeleteAccount = async () => {
     }
   }
 }
+
+// 處理 OAuth 回調
+onMounted(() => {
+  // 🔍 診斷 log
+  console.log('🔍 [StudentProfileEditDialog] onMounted 觸發')
+  console.log('🔍 [StudentProfileEditDialog] dialogVisible:', dialogVisible.value)
+  console.log('🔍 [StudentProfileEditDialog] google_bind_flow:', sessionStorage.getItem('google_bind_flow'))
+  console.log('🔍 [StudentProfileEditDialog] route.path:', route.path)
+  console.log('🔍 [StudentProfileEditDialog] route.query:', JSON.stringify(route.query))
+
+  // 檢查是否為 Google 綁定回調（成功情況）
+  // 錯誤情況由 AuthCallback.vue 統一處理
+  const isBindFlow = sessionStorage.getItem('google_bind_flow')
+  const { googleId } = route.query
+
+  console.log('🔍 [StudentProfileEditDialog] isBindFlow:', isBindFlow)
+  console.log('🔍 [StudentProfileEditDialog] googleId:', googleId)
+
+  // 綁定流程：後端返回 googleId，前端需要呼叫 API 完成綁定
+  if (isBindFlow === 'true' && googleId) {
+    console.log('✅ [StudentProfileEditDialog] 檢測到綁定回調，準備彈出密碼對話框')
+
+    // 清除標記
+    sessionStorage.removeItem('google_bind_flow')
+    sessionStorage.removeItem('oauth_redirect')
+
+    // 清除 URL 參數（避免重新整理時重複處理）
+    router.replace({
+      path: route.path,
+      query: {}
+    })
+
+    // 彈出密碼確認對話框並呼叫 API
+    confirmBindWithPassword(googleId)
+  } else {
+    console.log('❌ [StudentProfileEditDialog] 未檢測到綁定流程或參數不完整')
+    if (!isBindFlow) console.log('   - google_bind_flow 不存在或不為 true')
+    if (!googleId) console.log('   - googleId 不存在')
+  }
+})
 </script>
 
 <style scoped>
@@ -1577,3 +1626,94 @@ const handleDeleteAccount = async () => {
   }
 }
 </style>
+
+
+/* Google Bind Password Dialog */
+.google-bind-password-dialog {
+  border-radius: var(--capy-radius-lg);
+  max-width: 500px;
+}
+
+.google-bind-password-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg);
+  border-bottom: 1px solid var(--capy-border-light);
+}
+
+.google-bind-password-dialog .el-message-box__title {
+  font-size: var(--capy-font-size-xl);
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-text-primary);
+}
+
+.google-bind-password-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg);
+}
+
+.google-bind-password-dialog .el-message-box__message {
+  font-size: var(--capy-font-size-base);
+  color: var(--capy-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--capy-spacing-md);
+}
+
+.google-bind-password-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-md);
+}
+
+.google-bind-password-dialog .el-input__wrapper {
+  border-radius: var(--capy-radius-sm);
+  box-shadow: 0 0 0 1px var(--capy-border-base) inset;
+  transition: all var(--capy-transition-base);
+}
+
+.google-bind-password-dialog .el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--capy-primary) inset;
+}
+
+.google-bind-password-dialog .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--capy-primary) inset;
+}
+
+.google-bind-password-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg);
+  border-top: 1px solid var(--capy-border-light);
+}
+
+.google-bind-password-dialog .el-button {
+  border-radius: var(--capy-radius-sm);
+  padding: 10px 20px;
+  font-weight: var(--capy-font-weight-medium);
+}
+
+.google-bind-password-dialog .el-button--default {
+  color: var(--capy-text-secondary);
+  border-color: var(--capy-border-base);
+}
+
+.google-bind-password-dialog .el-button--default:hover {
+  color: var(--capy-text-primary);
+  border-color: var(--capy-primary);
+  background-color: var(--el-color-primary-light-9);
+}
+
+.google-bind-password-dialog .el-button--primary {
+  background-color: var(--capy-primary);
+  border-color: var(--capy-primary);
+  color: white;
+}
+
+.google-bind-password-dialog .el-button--primary:hover {
+  background-color: var(--el-color-primary-light-1);
+  border-color: var(--el-color-primary-light-1);
+}
+
+.google-bind-password-dialog .el-button--primary:active {
+  background-color: var(--el-color-primary-dark-1);
+  border-color: var(--el-color-primary-dark-1);
+}
+
+.google-bind-password-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
+}

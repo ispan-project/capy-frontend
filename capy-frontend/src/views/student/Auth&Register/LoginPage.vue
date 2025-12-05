@@ -70,7 +70,17 @@
             <router-link to="/forgot-password" class="link">忘記密碼？</router-link>
           </div>
 
-          <button class="submit-button" @click="handleLogin">登入</button>
+          <button
+            class="submit-button"
+            @click="handleLogin"
+            :disabled="isLoggingIn"
+            :class="{ 'is-loading': isLoggingIn }"
+          >
+            <el-icon v-if="isLoggingIn" class="is-loading">
+              <Loading />
+            </el-icon>
+            <span>{{ isLoggingIn ? '登入中...' : '登入' }}</span>
+          </button>
           <button class="google-button" @click="handleGoogleLogin">
             <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -164,7 +174,8 @@
           </div>
 
           <!-- 密碼強度提示 -->
-          <div v-show="passwordStrengthMessage" class="password-hint">
+          <div v-show="passwordStrengthMessage"
+               :class="['password-hint', passwordHintClass]">
             <el-icon><InfoFilled /></el-icon>
             <span>{{ passwordStrengthMessage || '&nbsp;' }}</span>
           </div>
@@ -270,6 +281,9 @@ const registeredEmail = ref('');
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 
+// 登入載入狀態
+const isLoggingIn = ref(false);
+
 // 登入表單
 const loginForm = reactive({
   email: '',
@@ -297,12 +311,12 @@ const nicknameValidation = reactive({
 // 中文輸入法狀態
 const isComposing = ref(false);
 
-// 密碼強度提示
+// 密碼強度提示和驗證
 const passwordStrengthMessage = computed(() => {
   if (!registerForm.password) return '';
 
   if (registerForm.password.length < 8) {
-    return '密碼長度至少需要 8 個字元';
+    return '❌ 密碼長度至少需要 8 個字元';
   }
 
   // 檢查密碼強度（必要條件）
@@ -313,28 +327,42 @@ const passwordStrengthMessage = computed(() => {
   const hasUpperCase = /[A-Z]/.test(registerForm.password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(registerForm.password);
 
+  // 必須包含大小寫字母和數字
+  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
+  }
+
+  // 必須包含大小寫字母和數字
+  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
+  }
+
   // 收集缺少的必要條件
   const missingRequired = [];
   if (!hasLowerCase) missingRequired.push('小寫字母');
   if (!hasNumber) missingRequired.push('數字');
 
-  // 如果缺少必要條件
-  if (missingRequired.length > 0) {
-    return `密碼強度：弱（缺少必要條件：${missingRequired.join('、')}）`;
-  }
+  if (strength === 3) return '✓ 密碼強度：良好';
+  return '✓ 密碼強度：優秀';
+});
 
-  // 必要條件都滿足，檢查額外條件
-  const optional = [];
-  if (!hasUpperCase) optional.push('大寫字母');
-  if (!hasSpecial) optional.push('特殊符號');
+// 檢查密碼是否符合要求
+const isPasswordValid = computed(() => {
+  if (!registerForm.password || registerForm.password.length < 8) return false;
 
-  if (optional.length === 2) {
-    return `密碼強度：中等（建議加入：${optional.join('、')}）`;
-  }
-  if (optional.length === 1) {
-    return `密碼強度：良好（可再加入：${optional.join('、')}）`;
-  }
-  return '密碼強度：優秀';
+  const hasUpperCase = /[A-Z]/.test(registerForm.password);
+  const hasLowerCase = /[a-z]/.test(registerForm.password);
+  const hasNumber = /[0-9]/.test(registerForm.password);
+
+  return hasUpperCase && hasLowerCase && hasNumber;
+});
+
+// 密碼提示的樣式 class
+const passwordHintClass = computed(() => {
+  const message = passwordStrengthMessage.value;
+  if (message.startsWith('❌')) return 'hint-error';
+  if (message.startsWith('✓')) return 'hint-success';
+  return 'hint-info';
 });
 
 // 建立暱稱驗證器（處理請求競爭）
@@ -441,6 +469,14 @@ const handleLogin = async () => {
     return;
   }
 
+  // 防止重複點擊
+  if (isLoggingIn.value) {
+    return;
+  }
+
+  // 開始載入
+  isLoggingIn.value = true;
+
   try {
     // 呼叫登入 API（後端會自動設定 Cookie）
     const response = await login({
@@ -489,6 +525,8 @@ const handleLogin = async () => {
       if (error.status === 401) {
         ElMessage.error('登入失敗，請檢查您的帳號密碼');
       }
+      // 登入失敗時重置載入狀態
+      isLoggingIn.value = false;
       return;
     }
 
@@ -503,6 +541,9 @@ const handleLogin = async () => {
     } else {
       ElMessage.error(errorMessage || '登入失敗，請檢查您的帳號密碼');
     }
+
+    // 登入失敗時重置載入狀態
+    isLoggingIn.value = false;
   }
 };
 
@@ -1062,12 +1103,30 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.submit-button:hover {
+.submit-button:hover:not(:disabled) {
   background: var(--capy-primary-dark);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(84, 205, 242, 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submit-button.is-loading {
+  pointer-events: none;
+}
+
+.submit-button .is-loading {
+  animation: rotating 1.5s linear infinite;
 }
 
 /* API 測試連結 */
@@ -1103,13 +1162,27 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  background: #f0f9ff;
   border-radius: 8px;
   margin-bottom: 16px;
   font-size: 13px;
-  color: #0369a1;
   min-height: 45px;
   animation: slideDown 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.password-hint.hint-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.password-hint.hint-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.password-hint.hint-info {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 .password-hint .el-icon {

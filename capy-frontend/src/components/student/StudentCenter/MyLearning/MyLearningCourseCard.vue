@@ -2,16 +2,16 @@
   <div class="course-card" @click="handleCardClick">
     <!-- Thumbnail -->
     <div class="course-thumbnail">
-      <img :src="enrollment.course.cover_image_url" :alt="enrollment.course.title" />
+      <img :src="course.coverImageUrl" :alt="course.courseTitle" />
     </div>
 
     <!-- Course Info -->
     <div class="course-info">
       <!-- Title -->
-      <h3 class="course-title">{{ enrollment.course.title }}</h3>
+      <h3 class="course-title">{{ course.courseTitle }}</h3>
 
       <!-- Instructor -->
-      <p class="course-instructor">{{ enrollment.course.instructor_name }}</p>
+      <p class="course-instructor">{{ course.instructorName }}</p>
 
       <!-- Rating Section -->
       <div class="rating-section" @click.stop>
@@ -38,11 +38,11 @@
       <!-- Progress Bar -->
       <div class="progress-section">
         <el-progress
-          :percentage="enrollment.completion_percentage"
+          :percentage="completionPercentage"
           :stroke-width="6"
-          :status="enrollment.completion_percentage === 100 ? 'success' : ''"
+          :status="completionPercentage === 100 ? 'success' : ''"
         />
-        <span class="progress-text">{{ enrollment.completion_percentage }}%</span>
+        <span class="progress-text">{{ completionPercentage }}%</span>
       </div>
 
       <!-- CTA Button -->
@@ -63,7 +63,7 @@ import { computed } from 'vue'
 import { Star } from '@element-plus/icons-vue'
 
 const props = defineProps({
-  enrollment: {
+  course: {
     type: Object,
     required: true
   }
@@ -75,10 +75,17 @@ const emit = defineEmits(['open-rate-dialog', 'card-click'])
 const StarIcon = Star
 
 /**
+ * 完成百分比 - 使用後端欄位名稱
+ */
+const completionPercentage = computed(() => {
+  return Math.round(props.course.completionPercentage || 0)
+})
+
+/**
  * Check if course is already rated
  */
 const isRated = computed(() => {
-  return !!props.enrollment.my_review
+  return props.course.rating !== null && props.course.rating !== undefined
 })
 
 /**
@@ -86,7 +93,7 @@ const isRated = computed(() => {
  */
 const displayRating = computed({
   get() {
-    return props.enrollment.my_review?.rating || 0
+    return props.course.rating || 0
   },
   set(value) {
     // This will be handled by handleRatingClick
@@ -114,7 +121,7 @@ const ratingColors = computed(() => {
  * CTA Button Configuration
  */
 const ctaButtonText = computed(() => {
-  const percentage = props.enrollment.completion_percentage
+  const percentage = completionPercentage.value
   if (percentage === 0) {
     return '開始上課'
   } else if (percentage === 100) {
@@ -125,7 +132,7 @@ const ctaButtonText = computed(() => {
 })
 
 const ctaButtonType = computed(() => {
-  const percentage = props.enrollment.completion_percentage
+  const percentage = completionPercentage.value
   if (percentage === 100) {
     return 'success'
   }
@@ -133,7 +140,7 @@ const ctaButtonType = computed(() => {
 })
 
 const ctaButtonPlain = computed(() => {
-  const percentage = props.enrollment.completion_percentage
+  const percentage = completionPercentage.value
   return percentage === 0 || percentage === 100
 })
 
@@ -143,7 +150,7 @@ const ctaButtonPlain = computed(() => {
 const handleRatingClick = (value) => {
   if (!isRated.value && value > 0) {
     emit('open-rate-dialog', {
-      enrollment: props.enrollment,
+      course: props.course,
       initialRating: value
     })
   }
@@ -155,7 +162,7 @@ const handleRatingClick = (value) => {
 const handleRatingTextClick = () => {
   if (!isRated.value) {
     emit('open-rate-dialog', {
-      enrollment: props.enrollment,
+      course: props.course,
       initialRating: 0
     })
   }
@@ -165,14 +172,14 @@ const handleRatingTextClick = () => {
  * Handle CTA button click
  */
 const handleCtaClick = () => {
-  emit('card-click', props.enrollment.course.id)
+  emit('card-click', props.course.courseId)
 }
 
 /**
  * Handle card click (navigate to course)
  */
 const handleCardClick = () => {
-  emit('card-click', props.enrollment.course.id)
+  emit('card-click', props.course.courseId)
 }
 </script>
 

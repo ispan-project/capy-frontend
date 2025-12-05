@@ -32,15 +32,15 @@
       <div class="stats-section">
         <div class="stat-card">
           <div class="stat-label">進行中的課程</div>
-          <div class="stat-value">{{ stats.activeCourses }}</div>
+          <div class="stat-value">{{ stats.ownedCoursesCount }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">我的願望清單</div>
-          <div class="stat-value">{{ stats.hoursLearning }}</div>
+          <div class="stat-value">{{ stats.wishlistCount }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">已完成的課程</div>
-          <div class="stat-value">{{ stats.coursesCompleted }}</div>
+          <div class="stat-value">{{ stats.completedCoursesCount }}</div>
         </div>
       </div>
     <!-- Tab Navigation -->
@@ -69,7 +69,10 @@
       :current-user="{
         email: userStore.userInfo.email || '',
         nickname: userStore.userInfo.nickname || '',
-        avatarUrl: userStore.userInfo.avatar || ''
+        avatarUrl: userStore.userInfo.avatar || '',
+        google_id: userStore.userInfo.google_id || null,
+        google_email: userStore.userInfo.google_email || null,
+        googleLinked: userStore.userInfo.googleLinked ?? false
       }"
       @save="handleProfileSave"
     />
@@ -77,12 +80,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import StudentProfileEditDialog from '@/components/student/StudentCenter/StudentProfileEditDialog.vue'
+import { getStudentProfile } from '@/api/student/Studentcenter'
 
 const userStore = useUserStore()
+
+// ===== 除錯程式碼 =====
+console.log('=== StudentCenterLayout ===')
+console.log('userStore.userInfo:', userStore.userInfo)
+console.log('googleLinked:', userStore.userInfo.googleLinked)
+// ===== 除錯程式碼結束 =====
 
 const tabs = [
   { label: '我的課程', name: 'MyLearning' },
@@ -91,49 +101,63 @@ const tabs = [
   { label: '通知', name: 'Notifications' }
 ]
 
-
-// 移除本地 userProfile，直接使用 userStore
-
+// 統計資料 - 使用與後端相同的欄位名稱
 const stats = ref({
-  activeCourses: 12,
-  hoursLearning: 45,
-  coursesCompleted: 7
+  ownedCoursesCount: 0,
+  wishlistCount: 0,
+  completedCoursesCount: 0
+})
+
+// 載入統計資料
+const loadStats = async () => {
+  try {
+    const response = await getStudentProfile()
+    const profileData = response.studentProfile || response
+
+    // 更新統計資料 - 直接使用後端的欄位名稱
+    stats.value = {
+      ownedCoursesCount: profileData.ownedCoursesCount || 0,
+      wishlistCount: profileData.wishlistCount || 0,
+      completedCoursesCount: profileData.completedCoursesCount || 0
+    }
+  } catch (error) {
+    console.error('載入統計資料失敗:', error)
+  }
+}
+
+// 組件掛載時載入統計資料
+onMounted(() => {
+  loadStats()
 })
 
 // Profile Edit Dialog
 const profileDialogVisible = ref(false)
 
 const openProfileDialog = () => {
+  console.log('=== 打開個人資料對話框 ===')
+  console.log('userStore.userInfo:', userStore.userInfo)
+  console.log('googleLinked:', userStore.userInfo.googleLinked)
+  console.log('傳遞的 current-user:', {
+    email: userStore.userInfo.email || '',
+    nickname: userStore.userInfo.nickname || '',
+    avatarUrl: userStore.userInfo.avatar || '',
+    google_id: userStore.userInfo.google_id || null,
+    google_email: userStore.userInfo.google_email || null,
+    googleLinked: userStore.userInfo.googleLinked ?? false
+  })
   profileDialogVisible.value = true
 }
 
 const handleProfileSave = async (updatedData) => {
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch('/api/user/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      },
-      body: JSON.stringify({
-        nickname: updatedData.nickname,
-        avatar_url: updatedData.avatarUrl
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新失敗')
-    }
-
-    // Update user store
+    // 更新 user store（資料已在 Dialog 中更新）
     userStore.updateUserInfo({
       nickname: updatedData.nickname,
       avatar: updatedData.avatarUrl
     })
 
-    // Close dialog
-    profileDialogVisible.value = false
+    // 重新載入統計資料
+    await loadStats()
 
     // Show success message
     ElMessage.success('個人資料更新成功！')

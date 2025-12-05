@@ -13,6 +13,9 @@ interface UserInfo {
   avatar: string
   roles: string[]  // 例如: ['STUDENT', 'INSTRUCTOR', 'ADMIN']
   email?: string   // 選填：使用者電子郵件
+  google_id?: string | null  // 選填：Google 帳號 ID
+  google_email?: string | null  // 選填：Google 帳號電子郵件
+  googleLinked?: boolean  // 選填：是否已綁定 Google（後端提供）
 }
 
 /**
@@ -118,7 +121,10 @@ export const useUserStore = defineStore('user', () => {
           nickname: response.user.nickname,
           avatar: response.user.avatarUrl || '',
           roles: response.roles || [],
-          email: response.user.email
+          email: response.user.email,
+          google_id: response.user.google_id || null,
+          google_email: response.user.google_email || null,
+          googleLinked: response.user.googleLinked || false
         }
 
         console.log('使用者資訊初始化成功:', userInfo.value)

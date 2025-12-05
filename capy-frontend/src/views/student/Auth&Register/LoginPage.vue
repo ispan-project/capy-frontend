@@ -305,17 +305,35 @@ const passwordStrengthMessage = computed(() => {
     return '密碼長度至少需要 8 個字元';
   }
 
-  // 檢查密碼強度
-  const hasUpperCase = /[A-Z]/.test(registerForm.password);
+  // 檢查密碼強度（必要條件）
   const hasLowerCase = /[a-z]/.test(registerForm.password);
   const hasNumber = /[0-9]/.test(registerForm.password);
+
+  // 檢查額外條件（提升強度）
+  const hasUpperCase = /[A-Z]/.test(registerForm.password);
   const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(registerForm.password);
 
-  const strength = [hasUpperCase, hasLowerCase, hasNumber, hasSpecial].filter(Boolean).length;
+  // 收集缺少的必要條件
+  const missingRequired = [];
+  if (!hasLowerCase) missingRequired.push('小寫字母');
+  if (!hasNumber) missingRequired.push('數字');
 
-  if (strength <= 1) return '密碼強度：弱（需包含大小寫字母、數字）';
-  if (strength === 2) return '密碼強度：中等';
-  if (strength === 3) return '密碼強度：良好';
+  // 如果缺少必要條件
+  if (missingRequired.length > 0) {
+    return `密碼強度：弱（缺少必要條件：${missingRequired.join('、')}）`;
+  }
+
+  // 必要條件都滿足，檢查額外條件
+  const optional = [];
+  if (!hasUpperCase) optional.push('大寫字母');
+  if (!hasSpecial) optional.push('特殊符號');
+
+  if (optional.length === 2) {
+    return `密碼強度：中等（建議加入：${optional.join('、')}）`;
+  }
+  if (optional.length === 1) {
+    return `密碼強度：良好（可再加入：${optional.join('、')}）`;
+  }
   return '密碼強度：優秀';
 });
 
@@ -439,10 +457,23 @@ const handleLogin = async () => {
       nickname: user.nickname,
       avatar: user.avatarUrl || '',
       roles: roles || [user.role], // 使用 roles 陣列，或將單一 role 轉換為陣列
-      email: user.email
+      email: user.email,
+      googleLinked: user.googleLinked || false
     });
 
     ElMessage.success('登入成功！');
+
+    // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+    try {
+      await userStore.init();
+      console.log('Cookie 驗證成功，使用者已認證');
+    } catch (verifyError) {
+      console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+      // 即使驗證失敗也繼續，因為使用者資訊已存入 store
+    }
 
     // 檢查是否有原始目標路徑
     const redirectPath = route.query.redirect || '/';
@@ -502,6 +533,24 @@ const handleRegister = async () => {
     return;
   }
 
+  // 驗證密碼長度
+  if (registerForm.password.length < 8) {
+    ElMessage.error('密碼長度至少需要 8 個字元');
+    return;
+  }
+
+  // 檢查是否包含小寫字母
+  if (!/[a-z]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個小寫字母 (a-z)');
+    return;
+  }
+
+  // 檢查是否包含數字
+  if (!/[0-9]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個數字 (0-9)');
+    return;
+  }
+
   if (registerForm.password !== registerForm.confirmPassword) {
     ElMessage.error('兩次密碼輸入不一致');
     return;
@@ -550,10 +599,22 @@ const handleRegister = async () => {
           nickname: user.nickname,
           avatar: user.avatarUrl || '',
           roles: roles || [user.role],
-          email: user.email
+          email: user.email,
+          googleLinked: user.googleLinked || false
         });
 
         ElMessage.success('登入成功！');
+
+        // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+        try {
+          await userStore.init();
+          console.log('Cookie 驗證成功，使用者已認證');
+        } catch (verifyError) {
+          console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+        }
 
         // 跳轉到學生中心
         const redirectPath = route.query.redirect || '/';

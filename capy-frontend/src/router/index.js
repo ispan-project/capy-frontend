@@ -1,8 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { useUserStore } from "@/stores/user";
 import teacherRouter from "./teacherRouter";
 import adminRouter from "./adminRouter";
 import studentRouter from "./studentRouter";
-const routes = [...teacherRouter, ...adminRouter,...studentRouter];
+
+const routes = [...teacherRouter, ...adminRouter, ...studentRouter];
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
@@ -10,4 +13,101 @@ const router = createRouter({
     return { top: 0, behavior: "smooth" };
   },
 });
+
+/**
+ * 路由守衛 - 全域前置守衛
+ * 用於保護需要認證的路由
+ */
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore();
+
+  // 公開路由列表（不需要認證即可訪問）
+  const publicRoutes = [
+    'login',
+    'register',
+    'authCallback',
+    'forgotPassword',
+    'verifyEmail',
+    'resetPassword',
+    'home',
+    'courseExplore',
+    'courseDetail',
+    'teacherDetail',
+    'instructorLanding',
+    'about',
+    'contact',
+    'privacy',
+    'notFound'
+  ];
+
+  // 檢查是否為公開路由
+  const isPublicRoute = publicRoutes.includes(to.name);
+
+  // 如果用戶未初始化，先初始化用戶資訊
+  if (!userStore.userInfo.id) {
+    try {
+      await userStore.init();
+    } catch (error) {
+      console.error('初始化用戶資訊失敗:', error);
+    }
+  }
+
+  // 檢查路由是否需要認證
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+
+  if (requiresAuth) {
+    // 需要認證的路由
+    if (!userStore.isAuthenticated) {
+      // 未登入，重導向到登入頁面
+      console.log('未登入，重導向到登入頁面');
+      next({
+        name: 'login',
+        query: { redirect: to.fullPath } // 保存原始目標路徑
+      });
+    } else {
+      // 已登入，檢查角色權限（如果有設定）
+      const requiredRole = to.meta.role;
+      if (requiredRole) {
+        // 將角色統一轉換為大寫進行比較
+        const normalizedRequiredRole = requiredRole.toUpperCase();
+        const userRoles = userStore.userInfo.roles.map(role => role.toUpperCase());
+        const hasRole = userRoles.includes(normalizedRequiredRole);
+
+        console.log('角色檢查:', {
+          requiredRole: normalizedRequiredRole,
+          userRoles,
+          hasRole
+        });
+
+        if (hasRole) {
+          next();
+        } else {
+          // 沒有權限，重導向到首頁
+          console.log('沒有權限訪問該頁面');
+          next({ name: 'home' });
+        }
+      } else {
+        next();
+      }
+    }
+  } else {
+    // 不需要認證的路由
+    // 如果已登入且訪問登入頁面，重導向到首頁
+    if (userStore.isAuthenticated && to.name === 'login') {
+      next({ name: 'home' });
+    } else {
+      next();
+    }
+  }
+});
+
+/**
+ * 路由守衛 - 全域後置鉤子
+ * 用於頁面載入完成後的處理
+ */
+router.afterEach((to, from) => {
+  // 設置頁面標題
+  document.title = to.meta.title || 'Capy 線上學習平台';
+});
+
 export default router;

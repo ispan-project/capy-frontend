@@ -13,7 +13,7 @@
 
     <!-- Dropdown Menu Content -->
     <template #dropdown>
-      <div class="user-dropdown-menu">
+      <el-dropdown-menu class="user-dropdown-menu">
         <!-- Header Section: User Info -->
         <div class="user-dropdown-header">
           <el-avatar
@@ -29,45 +29,52 @@
         <!-- Menu Items -->
         <div class="user-dropdown-items">
           <!-- My Learning -->
-          <div class="dropdown-item" @click="handleNavigation('/student')">
-            <div class="item-icon">
-              <el-icon><VideoPlay /></el-icon>
+          <el-dropdown-item @click="handleNavigation('/student')">
+            <div class="dropdown-item">
+              <div class="item-icon">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+              <span class="item-text">我的學習</span>
             </div>
-            <span class="item-text">我的學習</span>
-          </div>
+          </el-dropdown-item>
 
           <!-- Orders / Receipts -->
-          <div class="dropdown-item" @click="handleNavigation('/student/orders')">
-            <div class="item-icon">
-              <el-icon><Tickets /></el-icon>
+          <el-dropdown-item @click="handleNavigation('/student/orders')">
+            <div class="dropdown-item">
+              <div class="item-icon">
+                <el-icon><Tickets /></el-icon>
+              </div>
+              <span class="item-text">訂單 / 收據</span>
             </div>
-            <span class="item-text">訂單 / 收據</span>
-          </div>
+          </el-dropdown-item>
 
           <!-- Role Switcher (Dynamic) -->
-          <div
+          <el-dropdown-item
             v-if="showRoleSwitcher"
-            class="dropdown-item role-switcher-item"
             @click="handleRoleSwitch"
           >
-            <div class="item-icon role-switcher-icon">
-              <el-icon><component :is="roleSwitcherIcon" /></el-icon>
+            <div class="dropdown-item role-switcher-item">
+              <div class="item-icon role-switcher-icon">
+                <el-icon><component :is="roleSwitcherIcon" /></el-icon>
+              </div>
+              <span class="item-text role-switcher-text">{{ roleSwitcherText }}</span>
             </div>
-            <span class="item-text role-switcher-text">{{ roleSwitcherText }}</span>
-          </div>
+          </el-dropdown-item>
 
           <!-- Divider -->
           <el-divider class="dropdown-divider" />
 
           <!-- Log Out -->
-          <div class="dropdown-item logout-item" @click="handleLogout">
-            <div class="item-icon">
-              <el-icon><SwitchButton /></el-icon>
+          <el-dropdown-item @click="handleLogout">
+            <div class="dropdown-item logout-item">
+              <div class="item-icon">
+                <el-icon><SwitchButton /></el-icon>
+              </div>
+              <span class="item-text">登出</span>
             </div>
-            <span class="item-text">登出</span>
-          </div>
+          </el-dropdown-item>
         </div>
-      </div>
+      </el-dropdown-menu>
     </template>
   </el-dropdown>
 </template>
@@ -102,19 +109,19 @@ const userEmail = computed(() => {
  * 角色切換器顯示邏輯
  */
 const showRoleSwitcher = computed(() => {
-  const roles = userStore.userInfo.roles || []
+  const roles = (userStore.userInfo.roles || []).map(role => role.toUpperCase())
   // 如果有 instructor 或 admin 角色，顯示切換器
-  return roles.includes('instructor') || roles.includes('admin')
+  return roles.includes('INSTRUCTOR') || roles.includes('ADMIN')
 })
 
 /**
  * 角色切換器文字
  */
 const roleSwitcherText = computed(() => {
-  const roles = userStore.userInfo.roles || []
-  if (roles.includes('admin')) {
+  const roles = (userStore.userInfo.roles || []).map(role => role.toUpperCase())
+  if (roles.includes('ADMIN')) {
     return '管理員儀表板'
-  } else if (roles.includes('instructor')) {
+  } else if (roles.includes('INSTRUCTOR')) {
     return '切換到講師視圖'
   }
   return '成為講師'
@@ -124,10 +131,10 @@ const roleSwitcherText = computed(() => {
  * 角色切換器圖示
  */
 const roleSwitcherIcon = computed(() => {
-  const roles = userStore.userInfo.roles || []
-  if (roles.includes('admin')) {
+  const roles = (userStore.userInfo.roles || []).map(role => role.toUpperCase())
+  if (roles.includes('ADMIN')) {
     return Monitor
-  } else if (roles.includes('instructor')) {
+  } else if (roles.includes('INSTRUCTOR')) {
     return Switch
   }
   return Switch
@@ -137,10 +144,10 @@ const roleSwitcherIcon = computed(() => {
  * 角色切換器連結
  */
 const roleSwitcherLink = computed(() => {
-  const roles = userStore.userInfo.roles || []
-  if (roles.includes('admin')) {
+  const roles = (userStore.userInfo.roles || []).map(role => role.toUpperCase())
+  if (roles.includes('ADMIN')) {
     return '/admin'
-  } else if (roles.includes('instructor')) {
+  } else if (roles.includes('INSTRUCTOR')) {
     return '/teacher/workspace'
   }
   return '/instructor/landing' // 成為講師的落地頁
@@ -188,12 +195,6 @@ const handleLogout = async () => {
   transform: scale(1.05);
 }
 
-/* Dropdown Menu Container */
-.user-dropdown-menu {
-  width: 260px;
-  padding: 0;
-}
-
 /* Header Section */
 .user-dropdown-header {
   display: flex;
@@ -238,12 +239,7 @@ const handleLogout = async () => {
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.dropdown-item:hover {
-  background-color: var(--el-fill-color-light);
+  width: 100%;
 }
 
 /* Icon with Background */
@@ -284,10 +280,6 @@ const handleLogout = async () => {
   font-weight: 600;
 }
 
-.role-switcher-item:hover .role-switcher-icon {
-  background-color: rgba(0, 191, 165, 0.15);
-}
-
 /* Logout Item Special Styling */
 .logout-item {
   margin-top: 4px; /* 在分隔線後增加間距 */
@@ -319,9 +311,19 @@ const handleLogout = async () => {
 
 .user-dropdown-popper .el-dropdown-menu {
   padding: 0;
+  width: 260px;
 }
 
 .user-dropdown-popper .el-dropdown-menu__item {
   padding: 0;
+  height: auto;
+}
+
+.user-dropdown-popper .el-dropdown-menu__item:hover {
+  background-color: var(--el-fill-color-light);
+}
+
+.user-dropdown-popper .el-dropdown-menu__item:hover .role-switcher-icon {
+  background-color: rgba(0, 191, 165, 0.15);
 }
 </style>

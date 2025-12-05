@@ -19,11 +19,30 @@
             <el-input
               v-model="newPassword"
               type="password"
-              placeholder="輸入新密碼（至少 8 個字元）"
+              placeholder="輸入新密碼"
               size="large"
               show-password
               :disabled="isLoading"
             />
+            <!-- 密碼要求說明 -->
+            <div class="password-requirements">
+              <div class="requirement-item" :class="{ 'met': newPassword.length >= 8 }">
+                <el-icon><Check v-if="newPassword.length >= 8" /><Close v-else /></el-icon>
+                <span>至少 8 個字元</span>
+              </div>
+              <div class="requirement-item" :class="{ 'met': /[a-z]/.test(newPassword) }">
+                <el-icon><Check v-if="/[a-z]/.test(newPassword)" /><Close v-else /></el-icon>
+                <span>包含小寫字母 (a-z)</span>
+              </div>
+              <div class="requirement-item" :class="{ 'met': /[0-9]/.test(newPassword) }">
+                <el-icon><Check v-if="/[0-9]/.test(newPassword)" /><Close v-else /></el-icon>
+                <span>包含數字 (0-9)</span>
+              </div>
+              <div class="requirement-item optional" :class="{ 'met': /[A-Z]/.test(newPassword) }">
+                <el-icon><Check v-if="/[A-Z]/.test(newPassword)" /><Close v-else /></el-icon>
+                <span>包含大寫字母 (選填，提升強度)</span>
+              </div>
+            </div>
           </div>
 
           <div class="form-group">
@@ -39,11 +58,6 @@
             />
           </div>
 
-          <!-- 密碼強度提示 -->
-          <div v-if="passwordStrengthMessage" class="password-hint">
-            <el-icon><InfoFilled /></el-icon>
-            <span>{{ passwordStrengthMessage }}</span>
-          </div>
 
           <el-button
             type="primary"
@@ -67,7 +81,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { resetPassword } from '@/api/oauth/oauth';
-import { InfoFilled } from '@element-plus/icons-vue';
+import { Check, Close } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
@@ -79,27 +93,6 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
 
-// 密碼強度提示
-const passwordStrengthMessage = computed(() => {
-  if (!newPassword.value) return '';
-
-  if (newPassword.value.length < 8) {
-    return '密碼長度至少需要 8 個字元';
-  }
-
-  // 檢查密碼強度
-  const hasUpperCase = /[A-Z]/.test(newPassword.value);
-  const hasLowerCase = /[a-z]/.test(newPassword.value);
-  const hasNumber = /[0-9]/.test(newPassword.value);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword.value);
-
-  const strength = [hasUpperCase, hasLowerCase, hasNumber, hasSpecial].filter(Boolean).length;
-
-  if (strength <= 1) return '密碼強度：弱（需包含大小寫字母、數字）';
-  if (strength === 2) return '密碼強度：中等';
-  if (strength === 3) return '密碼強度：良好';
-  return '密碼強度：優秀';
-});
 
 // 驗證密碼
 const validatePasswords = () => {
@@ -110,6 +103,18 @@ const validatePasswords = () => {
 
   if (newPassword.value.length < 8) {
     ElMessage.error('密碼長度至少需要 8 個字元');
+    return false;
+  }
+
+  // 檢查是否包含小寫字母
+  if (!/[a-z]/.test(newPassword.value)) {
+    ElMessage.error('密碼必須包含至少一個小寫字母 (a-z)');
+    return false;
+  }
+
+  // 檢查是否包含數字
+  if (!/[0-9]/.test(newPassword.value)) {
+    ElMessage.error('密碼必須包含至少一個數字 (0-9)');
     return false;
   }
 
@@ -280,34 +285,47 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-/* 密碼強度提示 */
-.password-hint {
+/* 密碼要求說明 */
+.password-requirements {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requirement-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
-  background: #f0f9ff;
-  border-radius: 8px;
-  margin-bottom: 24px;
   font-size: 13px;
-  color: #0369a1;
-  animation: slideDown 0.3s ease;
+  color: #666;
+  transition: all 0.3s ease;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.requirement-item.optional {
+  color: #999;
+  font-size: 12px;
 }
 
-.password-hint .el-icon {
+.requirement-item .el-icon {
   font-size: 16px;
+  color: #d1d5db;
   flex-shrink: 0;
+}
+
+.requirement-item.met {
+  color: #10b981;
+}
+
+.requirement-item.met .el-icon {
+  color: #10b981;
+}
+
+.requirement-item.optional.met {
+  color: #10b981;
 }
 
 /* 提交按鈕 */

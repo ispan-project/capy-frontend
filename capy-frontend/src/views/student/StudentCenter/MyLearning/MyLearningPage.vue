@@ -29,9 +29,9 @@
     <!-- Course List -->
     <div class="course-list">
       <MyLearningCourseCard
-        v-for="enrollment in filteredEnrollments"
-        :key="enrollment.id"
-        :enrollment="enrollment"
+        v-for="course in myLearningContent"
+        :key="course.progressId"
+        :course="course"
         @open-rate-dialog="handleOpenRateDialog"
         @card-click="goToCourse"
       />
@@ -39,17 +39,23 @@
 
     <!-- Empty State -->
     <el-empty
-      v-if="filteredEnrollments.length === 0"
-      description="No courses found"
+      v-if="myLearningContent.length === 0 && !loading"
+      description="尚無課程"
       :image-size="120"
     />
 
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-wrapper">
+      <el-icon class="is-loading"><Loading /></el-icon>
+      <span>載入中...</span>
+    </div>
+
     <!-- Pagination -->
-    <div v-if="filteredEnrollments.length > 0" class="pagination-wrapper">
+    <div v-if="totalElements > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
-        :total="filteredEnrollments.length"
+        :total="totalElements"
         layout="prev, pager, next"
         @current-change="handlePageChange"
       />
@@ -67,28 +73,33 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Filter } from '@element-plus/icons-vue'
+import { Filter, Loading } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import MyLearningCourseCard from '@/components/student/StudentCenter/MyLearning/MyLearningCourseCard.vue'
 import CourseRatingDialog from '@/components/student/StudentCenter/MyLearning/CourseRatingDialog.vue'
-import { enrollments } from '@/mockData'
+import { getStudentProfile } from '@/api/student/Studentcenter'
 
 const router = useRouter()
 
+// 狀態管理
 const filterStatus = ref('all')
 const currentPage = ref(1)
-const pageSize = ref(6)
+const pageSize = ref(5) // 與後端一致
+const loading = ref(false)
 
 // Rating dialog state
 const showRatingDialog = ref(false)
-const selectedEnrollmentId = ref(null)
+const selectedProgressId = ref(null)
 const selectedCourseInfo = ref(null)
 const initialRating = ref(0)
 const initialComment = ref('')
 
-// 使用統一的學習記錄資料
-const allEnrollments = ref(enrollments)
+// 使用與後端一致的資料結構
+const myLearningContent = ref([])
+const totalElements = ref(0)
+const totalPages = ref(0)
 
 /**
  * Current filter label for button display
@@ -103,45 +114,46 @@ const currentFilterLabel = computed(() => {
 })
 
 /**
- * Filtered enrollments based on current filter
- * TODO: Replace with API call that includes status parameter
+ * 載入我的學習資料
  */
-const filteredEnrollments = computed(() => {
-  let enrollments = allEnrollments.value
+const loadMyLearning = async () => {
+  loading.value = true
+  try {
+    const response = await getStudentProfile()
+    const myLearning = response.myLearning
 
-  if (filterStatus.value === 'in_progress') {
-    // Filter courses where completion_percentage < 100
-    enrollments = enrollments.filter(e => e.progress < 100)
-  } else if (filterStatus.value === 'completed') {
-    // Filter courses where completion_percentage = 100
-    enrollments = enrollments.filter(e => e.progress === 100)
+    // 使用後端的資料結構
+    myLearningContent.value = myLearning.content || []
+    totalElements.value = myLearning.totalElements || 0
+    totalPages.value = myLearning.totalPages || 0
+
+    console.log('我的學習資料:', myLearningContent.value)
+  } catch (error) {
+    console.error('載入我的學習資料失敗:', error)
+    ElMessage.error('載入課程失敗，請稍後再試')
+  } finally {
+    loading.value = false
   }
-
-  // TODO: Backend should handle sorting by last_watched_at DESC
-  // For now, sort by lastWatched if available
-  return enrollments.sort((a, b) => {
-    const dateA = a.lastWatched ? new Date(a.lastWatched) : new Date(0)
-    const dateB = b.lastWatched ? new Date(b.lastWatched) : new Date(0)
-    return dateB - dateA
-  })
-})
+}
 
 /**
  * Handle filter change
- * TODO: Call API with status parameter instead of client-side filtering
  */
 const handleFilterChange = (command) => {
   filterStatus.value = command
   currentPage.value = 1
-  // TODO: Implement API call
-  // fetchEnrollments(filterStatus.value)
+  // TODO: 實作篩選邏輯（可能需要後端支援）
+  // loadMyLearning()
 }
 
 /**
  * Handle page change
  */
-const handlePageChange = () => {
+const handlePageChange = (page) => {
+  currentPage.value = page
   window.scrollTo({ top: 0, behavior: 'smooth' })
+  // TODO: 實作分頁邏輯（需要後端支援分頁參數）
+  // loadMyLearning()
 }
 
 /**
@@ -154,11 +166,16 @@ const goToCourse = (courseId) => {
 /**
  * Handle open rating dialog
  */
-const handleOpenRateDialog = ({ enrollment, initialRating: rating }) => {
-  selectedEnrollmentId.value = enrollment.id
-  selectedCourseInfo.value = enrollment.course
-  initialRating.value = rating
-  initialComment.value = enrollment.my_review?.comment || ''
+const handleOpenRateDialog = ({ course, initialRating: rating }) => {
+  selectedProgressId.value = course.progressId
+  selectedCourseInfo.value = {
+    courseId: course.courseId,
+    courseTitle: course.courseTitle,
+    coverImageUrl: course.coverImageUrl,
+    instructorName: course.instructorName
+  }
+  initialRating.value = rating || course.rating || 0
+  initialComment.value = course.rateComment || ''
   showRatingDialog.value = true
 }
 
@@ -166,21 +183,26 @@ const handleOpenRateDialog = ({ enrollment, initialRating: rating }) => {
  * Handle review submitted
  */
 const handleReviewSubmitted = (reviewData) => {
-  // Find the enrollment and update its review
-  const enrollment = allEnrollments.value.find(e => e.id === selectedEnrollmentId.value)
-  if (enrollment) {
-    enrollment.my_review = {
-      rating: reviewData.rating,
-      comment: reviewData.comment
-    }
+  // 更新本地資料
+  const course = myLearningContent.value.find(c => c.progressId === selectedProgressId.value)
+  if (course) {
+    course.rating = reviewData.rating
+    course.rateComment = reviewData.comment
   }
 
   // Reset dialog state
-  selectedEnrollmentId.value = null
+  selectedProgressId.value = null
   selectedCourseInfo.value = null
   initialRating.value = 0
   initialComment.value = ''
+
+  ElMessage.success('評價已提交')
 }
+
+// 組件掛載時載入資料
+onMounted(() => {
+  loadMyLearning()
+})
 </script>
 
 <style scoped>
@@ -251,6 +273,26 @@ const handleReviewSubmitted = (reviewData) => {
   flex-direction: column;
   gap: 20px;
   margin-bottom: 32px;
+}
+
+/* Loading State */
+.loading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--capy-text-secondary);
+}
+
+.loading-wrapper .el-icon {
+  font-size: 32px;
+  color: var(--capy-primary);
+}
+
+.loading-wrapper span {
+  font-size: 14px;
 }
 
 /* Pagination */

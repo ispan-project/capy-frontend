@@ -10,8 +10,12 @@ const wishlistStore = useWishlistStore()
 
 onMounted(async () => {
   await userStore.init()
-  cartStore.loadFromStorage()
-  wishlistStore.loadFromStorage()
+
+  // 只有在已登入時才從 localStorage 載入購物車和願望清單
+  if (userStore.isAuthenticated) {
+    cartStore.loadFromStorage()
+    wishlistStore.loadFromStorage()
+  }
 })
 
 </script>

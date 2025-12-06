@@ -124,28 +124,80 @@ export const fetchMyLearning = (params = {}) => {
 /**
  * 更新學生 Profile
  *
+ * 使用 JSON 格式更新暱稱和頭像 URL
+ *
  * @param {Object} data - 要更新的資料
- * @param {string} [data.nickname] - 暱稱
- * @param {string} [data.avatarUrl] - 頭像 URL
+ *   - nickname（可選，文字）- 新暱稱
+ *   - avatarUrl（可選，文字）- 頭像 URL
  *
  * @returns {Promise<{
- *   userId: number,
- *   nickname: string,
- *   email: string,
- *   avatarUrl: string
+ *   success: boolean,
+ *   code: number,
+ *   message: string,
+ *   data: {
+ *     userId: number,
+ *     nickname: string,
+ *     email: string,
+ *     avatarUrl: string,
+ *     ownedCoursesCount: number,
+ *     wishlistCount: number,
+ *     completedCoursesCount: number,
+ *     googleLinked: boolean
+ *   },
+ *   path: string
  * }>}
  *
  * @example
- * const updated = await updateStudentProfile({
+ * // 只更新暱稱
+ * const result = await updateStudentProfile({
+ *   nickname: 'New Name'
+ * })
+ *
+ * @example
+ * // 更新暱稱和頭像 URL（需先上傳頭像取得 URL）
+ * const uploadResult = await uploadStudentAvatar(file)
+ * const result = await updateStudentProfile({
  *   nickname: 'New Name',
- *   avatarUrl: 'https://example.com/new-avatar.jpg'
+ *   avatarUrl: uploadResult.avatarUrl
  * })
  */
 export const updateStudentProfile = (data) => {
   return request({
-    url: '/student/center/profile',
+    url: '/student/profile/update',
     method: 'PUT',
     data
+  })
+}
+
+/**
+ * 上傳學生頭像
+ *
+ * 使用 multipart/form-data 上傳頭像檔案，返回 GCS URL
+ *
+ * @param {File} file - 頭像圖片檔案（僅接受 image/png, image/jpeg, image/jpg）
+ * @returns {Promise<{
+ *   avatarUrl: string
+ * }>}
+ *
+ * @example
+ * const file = document.querySelector('input[type="file"]').files[0]
+ * const result = await uploadStudentAvatar(file)
+ * console.log(result.avatarUrl) // 'https://storage.googleapis.com/...'
+ *
+ * // 然後更新 profile
+ * await updateStudentProfile({
+ *   nickname: 'New Name',
+ *   avatarUrl: result.avatarUrl
+ * })
+ */
+export const uploadStudentAvatar = (file) => {
+  const formData = new FormData()
+  formData.append('avatar', file)
+
+  return request({
+    url: '/student/profile/avatar',
+    method: 'POST',
+    data: formData
   })
 }
 
@@ -207,11 +259,70 @@ export const updateCourseRating = (progressId, data) => {
   })
 }
 
+/**
+ * 更新學生密碼
+ *
+ * @param {Object} data - 密碼資料
+ * @param {string} data.currentPassword - 目前密碼
+ * @param {string} data.newPassword - 新密碼
+ *
+ * @returns {Promise<{
+ *   success: boolean,
+ *   code: number,
+ *   message: string,
+ *   data: string,
+ *   path: string
+ * }>}
+ *
+ * @example
+ * const result = await updateStudentPassword({
+ *   currentPassword: 'oldPassword123',
+ *   newPassword: 'newPassword456'
+ * })
+ */
+export const updateStudentPassword = (data) => {
+  return request({
+    url: '/student/change-password',
+    method: 'POST',
+    data
+  })
+}
+
+/**
+ * 刪除學生帳號
+ *
+ * @param {Object} data - 刪除帳號資料
+ * @param {string} data.currentPassword - 目前密碼（用於確認身份）
+ *
+ * @returns {Promise<{
+ *   success: boolean,
+ *   code: number,
+ *   message: string,
+ *   data: string,
+ *   path: string
+ * }>}
+ *
+ * @example
+ * const result = await deleteStudentAccount({
+ *   currentPassword: 'myPassword123'
+ * })
+ */
+export const deleteStudentAccount = (data) => {
+  return request({
+    url: '/student/delete-account',
+    method: 'POST',
+    data
+  })
+}
+
 // 匯出所有 API 函數
 export default {
   fetchStudentProfile,
   fetchMyLearning,
   updateStudentProfile,
+  uploadStudentAvatar,
   submitCourseRating,
-  updateCourseRating
+  updateCourseRating,
+  updateStudentPassword,
+  deleteStudentAccount
 }

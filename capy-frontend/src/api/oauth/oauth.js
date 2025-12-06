@@ -21,7 +21,7 @@ export const login = ({ email, password }) => {
   }
 
   // 對應後端 API: POST /api/login
-  return instance.post("/student/login", cleanedParam);
+  return instance.post("/auth/login", cleanedParam);
 };
 
 /**
@@ -62,7 +62,7 @@ export const register = ({ email, password, nickname, googleId }) => {
     requestBody.googleId = cleanedParam.googleId;
   }
 
-  return instance.post("/student/register", requestBody);
+  return instance.post("/auth/register", requestBody);
 };
 
 /**
@@ -86,7 +86,7 @@ export const forgotPassword = (email) => {
     return Promise.reject(new Error('電子郵件格式不正確'));
   }
 
-  return instance.post("/student/forgotPassword", {
+  return instance.post("/auth/forgotPassword", {
     email: email.trim().toLowerCase()
   });
 };
@@ -103,7 +103,7 @@ export const resetPassword = ({ token, newPassword }) => {
     return Promise.reject(new Error(passwordValidation.message));
   }
 
-  return instance.post("/student/resetPassword", {
+  return instance.post("/auth/resetPassword", {
     token,
     newPassword  // 使用 camelCase 符合後端格式
   });

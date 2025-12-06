@@ -44,7 +44,7 @@ router.beforeEach(async (to, from, next) => {
   const isPublicRoute = publicRoutes.includes(to.name);
 
   // 如果用戶未初始化，先初始化用戶資訊
-  if (!userStore.userInfo.id) {
+  if (!userStore.userInfo.userId) {
     try {
       await userStore.init();
     } catch (error) {
@@ -68,6 +68,13 @@ router.beforeEach(async (to, from, next) => {
       // 已登入，檢查角色權限（如果有設定）
       const requiredRole = to.meta.role;
       if (requiredRole) {
+        // 檢查 roles 是否存在
+        if (!userStore.userInfo.roles || !Array.isArray(userStore.userInfo.roles)) {
+          console.log('使用者沒有角色資訊，允許訪問');
+          next();
+          return;
+        }
+
         // 將角色統一轉換為大寫進行比較
         const normalizedRequiredRole = requiredRole.toUpperCase();
         const userRoles = userStore.userInfo.roles.map(role => role.toUpperCase());

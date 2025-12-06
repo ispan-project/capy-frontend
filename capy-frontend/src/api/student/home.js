@@ -13,7 +13,7 @@ import instance from "../../utils/http.js";
  * @returns {Promise} 回傳包含所有首頁資料的物件
  */
 export const getHomePageData = () => {
-  return instance.get("/student/main");
+  return instance.get("/main/home");
 };
 
 /**
@@ -22,7 +22,7 @@ export const getHomePageData = () => {
  * @returns {Promise} 回傳包含所有首頁資料的物件
  */
 export const getMainPageData = () => {
-  return instance.get("/student/main");
+  return instance.get("/main/home");
 };
 
 /**

@@ -123,23 +123,7 @@ export const useUserStore = defineStore('user', () => {
     if (!userInfo.value.userId) {
       try {
         // 呼叫後端 API 驗證 Cookie 並獲取使用者資料
-        const response = await getUserData().catch((error: any) => {
-          // 靜默處理 401 錯誤（未登入是正常狀態）
-          // 檢查多種可能的錯誤結構
-          if (error.status === 401 ||
-              error.response?.status === 401 ||
-              error.handled === true ||
-              error.silent === true) {
-            return null
-          }
-          // 其他錯誤繼續拋出
-          throw error
-        })
-
-        // 如果沒有回應（401 未登入），直接返回
-        if (!response) {
-          return
-        }
+        const response = await getUserData()
 
         // 檢查回應資料是否有效
         // http.js 攔截器已經返回 response.data，所以 response 本身就是 data
@@ -163,8 +147,24 @@ export const useUserStore = defineStore('user', () => {
         wishlistQuantity.value = data.wishlistQuantity
         notifyQuantity.value = data.notifyQuantity
 
-        console.log('使用者資訊初始化成功:', userInfo.value)
+        console.log('✅ 使用者資訊初始化成功:', userInfo.value.nickname)
       } catch (error: any) {
+        // 靜默處理 401 錯誤（未登入狀態）
+        if (error.status === 401 ||
+            error.response?.status === 401 ||
+            error.handled === true) {
+          console.log('👤 訪客模式')
+          return
+        }
+
+        // 靜默處理 500 錯誤（伺服器錯誤也視為未登入）
+        if (error.status === 500 ||
+            error.response?.status === 500) {
+          console.log('👤 訪客模式（伺服器暫時無法回應）')
+          return
+        }
+
+        // 其他錯誤才顯示
         console.error('獲取使用者資訊失敗:', error)
 
         // 如果是資料格式錯誤，清除使用者資訊

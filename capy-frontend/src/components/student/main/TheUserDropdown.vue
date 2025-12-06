@@ -36,14 +36,16 @@
               </div>
               <span class="item-text">我的學習</span>
             </div>
+          </el-dropdown-item>
 
           <!-- Wishlist -->
-          <div class="dropdown-item" @click="handleNavigation('/student/wishlist')">
-            <div class="item-icon">
-              <el-icon><Star /></el-icon>
+          <el-dropdown-item @click="handleNavigation('/student/wishlist')">
+            <div class="dropdown-item">
+              <div class="item-icon">
+                <el-icon><Star /></el-icon>
+              </div>
+              <span class="item-text">願望清單</span>
             </div>
-            <span class="item-text">願望清單</span>
-          </div>
           </el-dropdown-item>
 
           <!-- Orders / Receipts -->
@@ -54,14 +56,16 @@
               </div>
               <span class="item-text">訂單 / 收據</span>
             </div>
+          </el-dropdown-item>
 
           <!-- Notifications -->
-          <div class="dropdown-item" @click="handleNavigation('/student/notifications')">
-            <div class="item-icon">
-              <el-icon><Bell /></el-icon>
+          <el-dropdown-item @click="handleNavigation('/student/notifications')">
+            <div class="dropdown-item">
+              <div class="item-icon">
+                <el-icon><Bell /></el-icon>
+              </div>
+              <span class="item-text">通知</span>
             </div>
-            <span class="item-text">通知</span>
-          </div>
           </el-dropdown-item>
 
           <!-- Role Switcher (Dynamic) -->

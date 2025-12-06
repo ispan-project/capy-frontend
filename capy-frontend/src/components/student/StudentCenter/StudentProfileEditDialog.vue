@@ -261,6 +261,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import StudentPasswordForm from './StudentPasswordForm.vue'
 import { bindGoogleAccount } from '@/api/oauth/oauth'
+import { fetchStudentProfile, updateStudentProfile, uploadStudentAvatar, updateStudentPassword, deleteStudentAccount } from '@/api/student/studentCenter.js'
 
 // Props
 const props = defineProps({
@@ -406,7 +407,7 @@ watch(
     if (isVisible) {
       try {
         // 獲取最新的個人資料
-        const response = await getStudentProfile()
+        const response = await fetchStudentProfile()
 
         console.log('獲取到的個人資料:', response)
 
@@ -466,38 +467,114 @@ watch(
   { immediate: true, deep: true }
 )
 
-// 處理頭像選擇（本地預覽）
-const handleAvatarChange = (file) => {
+/**
+ * 壓縮圖片到指定大小以下
+ * @param {File} file - 原始圖片檔案
+ * @param {number} maxSizeMB - 最大檔案大小（MB）
+ * @param {number} maxWidth - 最大寬度
+ * @param {number} maxHeight - 最大高度
+ * @returns {Promise<Blob>} 壓縮後的圖片 Blob
+ */
+const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (e) => {
+      const img = new Image()
+      img.src = e.target.result
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        // 計算縮放比例
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+
+        // 嘗試不同的品質設定來達到目標大小
+        let quality = 0.9
+        const tryCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              const sizeMB = blob.size / 1024 / 1024
+
+              if (sizeMB <= maxSizeMB || quality <= 0.1) {
+                resolve(blob)
+              } else {
+                // 如果還是太大，降低品質再試
+                quality -= 0.1
+                tryCompress()
+              }
+            },
+            file.type || 'image/jpeg',
+            quality
+          )
+        }
+
+        tryCompress()
+      }
+      img.onerror = reject
+    }
+    reader.onerror = reject
+  })
+}
+
+// 處理頭像選擇（本地預覽 + 壓縮）
+const handleAvatarChange = async (file) => {
   if (!file || !file.raw) return
 
   // 清理舊的預覽 URL
   cleanupPreview()
 
-  // 創建本地預覽 URL
-  previewAvatarUrl.value = URL.createObjectURL(file.raw)
-  pendingAvatarFile.value = file.raw
+  try {
+    // 壓縮圖片到 1MB 以下
+    const compressedBlob = await compressImage(file.raw, 1, 1024, 1024)
+
+    // 創建壓縮後的 File 物件
+    const compressedFile = new File(
+      [compressedBlob],
+      file.raw.name,
+      { type: file.raw.type || 'image/jpeg' }
+    )
+
+    // 創建本地預覽 URL
+    previewAvatarUrl.value = URL.createObjectURL(compressedBlob)
+    pendingAvatarFile.value = compressedFile
+
+    // 顯示壓縮資訊
+    const originalSizeMB = (file.raw.size / 1024 / 1024).toFixed(2)
+    const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2)
+    console.log(`圖片已壓縮：${originalSizeMB}MB → ${compressedSizeMB}MB`)
+
+    if (compressedFile.size < file.raw.size) {
+      ElMessage.success(`圖片已壓縮至 ${compressedSizeMB}MB`)
+    }
+  } catch (error) {
+    console.error('圖片壓縮失敗:', error)
+    ElMessage.error('圖片處理失敗，請重試')
+  }
 }
 
-// Avatar Upload Handler
-const handleAvatarUpload = async (options) => {
-  const { file } = options
-
-  uploading.value = true
-
-  try {
-    // 使用 API 函數上傳頭像（直接傳遞 file）
-    const data = await uploadStudentAvatar(file)
-
-    // Update avatar URL with the returned URL from GCS
-    formData.value.avatarUrl = data.url || data.avatarUrl
-
-    ElMessage.success('頭像上傳成功')
-  } catch (error) {
-    console.error('Avatar upload error:', error)
-    ElMessage.error(error.message || '頭像上傳失敗，請稍後再試')
-  } finally {
-    uploading.value = false
-  }
+// Avatar Upload Handler (整合到 updateStudentProfile 中)
+const handleAvatarUpload = async (file) => {
+  // 這個函數現在只是準備檔案，實際上傳在 handleSave 中進行
+  // 因為 updateStudentProfile API 已經包含頭像上傳功能
+  return file
 }
 
 // Before Avatar Upload Validation
@@ -719,37 +796,63 @@ const handleSave = async () => {
 
     isLoading.value = true
 
-    // 如果有待上傳的頭像，先上傳
+    // 準備更新資料
+    const updateData = {
+      nickname: formData.value.nickname
+    }
+
+    // 如果有待上傳的頭像，先上傳取得 URL
     if (pendingAvatarFile.value) {
-      await handleAvatarUpload({ file: pendingAvatarFile.value })
+      try {
+        ElMessage.info('正在上傳頭像...')
+
+        // 步驟 1：上傳頭像取得 URL
+        const uploadResult = await uploadStudentAvatar(pendingAvatarFile.value)
+
+        // uploadResult 已被攔截器解包，直接是 { avatarUrl }
+        if (uploadResult && uploadResult.avatarUrl) {
+          updateData.avatarUrl = uploadResult.avatarUrl
+          ElMessage.success('頭像上傳成功')
+        } else {
+          throw new Error('頭像上傳失敗：未取得 URL')
+        }
+      } catch (error) {
+        console.error('頭像上傳錯誤:', error)
+        ElMessage.error(error.message || '頭像上傳失敗，請稍後再試')
+        isLoading.value = false
+        return
+      }
+    } else if (formData.value.avatarUrl) {
+      // 如果沒有新頭像但有現有的 avatarUrl，保留它
+      updateData.avatarUrl = formData.value.avatarUrl
     }
 
-    // 使用 API 函數更新個人資料
-    const result = await updateStudentProfile({
-      nickname: formData.value.nickname,
-      avatarUrl: formData.value.avatarUrl
-    })
+    // 步驟 2：使用 JSON 格式更新 profile
+    const result = await updateStudentProfile(updateData)
 
-    // 更新 user store
-    if (result) {
+    // result 已經是 data 物件：{ userId, nickname, email, avatarUrl, ... }
+    if (result && result.userId) {
       userStore.updateUserInfo({
-        id: result.userId || result.id,
+        id: result.userId,
         nickname: result.nickname,
-        avatar: result.avatarUrl || result.avatar,
-        email: result.email
+        avatar: result.avatarUrl,
+        email: result.email,
+        googleLinked: result.googleLinked
       })
+
+      ElMessage.success('個人資料已更新')
+
+      // 清理預覽資源
+      cleanupPreview()
+
+      // 關閉對話框
+      dialogVisible.value = false
+
+      // Emit save event for parent component
+      emit('save', result)
+    } else {
+      throw new Error('更新失敗：未取得使用者資料')
     }
-
-    ElMessage.success('個人資料已更新')
-
-    // 清理預覽資源
-    cleanupPreview()
-
-    // 關閉對話框
-    dialogVisible.value = false
-
-    // Emit save event for parent component (optional)
-    emit('save', result)
 
   } catch (error) {
     console.error('Update profile error:', error)

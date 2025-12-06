@@ -15,7 +15,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import { bindGoogleAccount, getStudentProfile } from '@/api/student/Studentcenter'
+import { bindGoogleAccount } from '@/api/oauth/oauth'
+import { fetchStudentProfile } from '@/api/student/Studentcenter'
 
 const router = useRouter()
 const route = useRoute()

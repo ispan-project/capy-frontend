@@ -70,6 +70,13 @@ const fetchHomeData = async () => {
 }
 
 const fetchContinueLearningData = async () => {
+  // 只有在已登入時才呼叫 API
+  if (!userStore.isAuthenticated) {
+    console.log('未登入，跳過獲取繼續學習資料')
+    homeData.value.continueLearning = []
+    return
+  }
+
   try {
     const response = await getContinueLearningData()
 
@@ -84,17 +91,18 @@ const fetchContinueLearningData = async () => {
       homeData.value.continueLearning = []
     }
   } catch (error) {
-    console.log('獲取繼續學習資料失敗（可能未登入或無課程）:', error)
+    console.log('獲取繼續學習資料失敗:', error)
     // 設為空陣列，避免頁面崩潰
     homeData.value.continueLearning = []
-    // 不顯示錯誤訊息，因為未登入或沒有課程是正常情況
   }
 }
 // 組件掛載時獲取資料
 onMounted(async () => {
   await fetchHomeData()
-  // 嘗試獲取繼續學習資料（如果未登入會靜默失敗）
-  await fetchContinueLearningData()
+  // 只有在已登入時才獲取繼續學習資料
+  if (userStore.isAuthenticated) {
+    await fetchContinueLearningData()
+  }
 })
 
 // 監聽登入狀態變化，當用戶登入後重新獲取繼續學習資料

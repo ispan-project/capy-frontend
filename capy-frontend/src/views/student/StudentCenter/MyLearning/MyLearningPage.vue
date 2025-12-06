@@ -79,7 +79,7 @@ import { Filter, Loading } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import MyLearningCourseCard from '@/components/student/StudentCenter/MyLearning/MyLearningCourseCard.vue'
 import CourseRatingDialog from '@/components/student/StudentCenter/MyLearning/CourseRatingDialog.vue'
-import { getStudentProfile } from '@/api/student/Studentcenter'
+import { fetchStudentProfile } from '@/api/student/Studentcenter'
 
 const router = useRouter()
 
@@ -119,7 +119,7 @@ const currentFilterLabel = computed(() => {
 const loadMyLearning = async () => {
   loading.value = true
   try {
-    const response = await getStudentProfile()
+    const response = await fetchStudentProfile()
     const myLearning = response.myLearning
 
     // 使用後端的資料結構

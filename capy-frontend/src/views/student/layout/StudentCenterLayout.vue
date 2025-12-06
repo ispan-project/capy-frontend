@@ -7,8 +7,6 @@
         <p class="welcome-text">歡迎回來~ {{ userStore.userInfo.nickname || '訪客' }}!</p>
       </div>
 
-
-
       <!-- User Profile Card -->
       <div class="profile-section">
         <!-- Loading State -->
@@ -53,19 +51,19 @@
           <div class="stat-value">{{ stats.completedCoursesCount }}</div>
         </div>
       </div>
-    <!-- Tab Navigation -->
-    <div class="tab-navigation">
-      <router-link
-        v-for="tab in tabs"
-        :key="tab.name"
-        :to="{ name: tab.name }"
-        class="tab-item"
-        exact-active-class="active"
-      >
-        {{ tab.label }}
-      </router-link>
-    </div>
 
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <router-link
+          v-for="tab in tabs"
+          :key="tab.name"
+          :to="{ name: tab.name }"
+          class="tab-item"
+          exact-active-class="active"
+        >
+          {{ tab.label }}
+        </router-link>
+      </div>
 
       <!-- Router View for Tab Content -->
       <div class="tab-content">
@@ -76,22 +74,12 @@
     <!-- Profile Edit Dialog -->
     <StudentProfileEditDialog
       v-model:visible="profileDialogVisible"
-<<<<<<< HEAD
-      :current-user="{
-        email: userStore.userInfo.email || '',
-        nickname: userStore.userInfo.nickname || '',
-        avatarUrl: userStore.userInfo.avatar || '',
-        google_id: userStore.userInfo.google_id || null,
-        google_email: userStore.userInfo.google_email || null,
-        googleLinked: userStore.userInfo.googleLinked ?? false
-=======
       :user="{
         email: studentCenterStore.profile?.email || userStore.userInfo.email || '',
         nickname: studentCenterStore.profile?.nickname || userStore.userInfo.nickname || '',
         avatarUrl: studentCenterStore.profile?.avatarUrl || userStore.userInfo.avatar || '',
         googleLinked: studentCenterStore.profile?.googleLinked ?? (userStore.userInfo.google_id ? true : false),
         google_email: studentCenterStore.profile?.email || userStore.userInfo.google_email || null
->>>>>>> Ian/Student/UIUX
       }"
       @save="handleProfileSave"
     />
@@ -99,16 +87,12 @@
 </template>
 
 <script setup>
-<<<<<<< HEAD
-import { ref, onMounted } from 'vue'
-=======
 import { ref, computed, onMounted } from 'vue'
->>>>>>> Ian/Student/UIUX
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { useStudentCenterStore } from '@/stores/studentCenter'
 import StudentProfileEditDialog from '@/components/student/StudentCenter/StudentProfileEditDialog.vue'
-import { getStudentProfile } from '@/api/student/Studentcenter'
+import { fetchStudentProfile } from '@/api/student/Studentcenter'
 
 const userStore = useUserStore()
 const studentCenterStore = useStudentCenterStore()
@@ -126,7 +110,6 @@ const tabs = [
   { label: '通知', name: 'Notifications' }
 ]
 
-<<<<<<< HEAD
 // 統計資料 - 使用與後端相同的欄位名稱
 const stats = ref({
   ownedCoursesCount: 0,
@@ -137,7 +120,7 @@ const stats = ref({
 // 載入統計資料
 const loadStats = async () => {
   try {
-    const response = await getStudentProfile()
+    const response = await fetchStudentProfile()
     const profileData = response.studentProfile || response
 
     // 更新統計資料 - 直接使用後端的欄位名稱
@@ -151,36 +134,9 @@ const loadStats = async () => {
   }
 }
 
-// 組件掛載時載入統計資料
-onMounted(() => {
-  loadStats()
-})
-=======
-// 使用 computed 從 store 獲取統計資料
-const stats = computed(() => ({
-  activeCourses: studentCenterStore.inProgressCoursesCount,
-  hoursLearning: studentCenterStore.statistics.wishlistCount,
-  coursesCompleted: studentCenterStore.statistics.completedCoursesCount
-}))
->>>>>>> Ian/Student/UIUX
-
 // Profile Edit Dialog
 const profileDialogVisible = ref(false)
 
-<<<<<<< HEAD
-const openProfileDialog = () => {
-  console.log('=== 打開個人資料對話框 ===')
-  console.log('userStore.userInfo:', userStore.userInfo)
-  console.log('googleLinked:', userStore.userInfo.googleLinked)
-  console.log('傳遞的 current-user:', {
-    email: userStore.userInfo.email || '',
-    nickname: userStore.userInfo.nickname || '',
-    avatarUrl: userStore.userInfo.avatar || '',
-    google_id: userStore.userInfo.google_id || null,
-    google_email: userStore.userInfo.google_email || null,
-    googleLinked: userStore.userInfo.googleLinked ?? false
-  })
-=======
 const openProfileDialog = async () => {
   console.log('🔍 Opening dialog with profile:', studentCenterStore.profile)
   console.log('🔍 googleLinked value:', studentCenterStore.profile?.googleLinked)
@@ -196,15 +152,11 @@ const openProfileDialog = async () => {
     }
   }
 
->>>>>>> Ian/Student/UIUX
   profileDialogVisible.value = true
 }
 
 const handleProfileSave = async (updatedData) => {
   try {
-<<<<<<< HEAD
-    // 更新 user store（資料已在 Dialog 中更新）
-=======
     // 使用新的 API 更新 profile
     await studentCenterStore.updateProfile({
       nickname: updatedData.nickname,
@@ -212,7 +164,6 @@ const handleProfileSave = async (updatedData) => {
     })
 
     // 同步更新 userStore
->>>>>>> Ian/Student/UIUX
     userStore.updateUserInfo({
       nickname: updatedData.nickname,
       avatar: updatedData.avatarUrl
@@ -235,6 +186,8 @@ onMounted(async () => {
   try {
     // 使用 store 載入 profile（帶快取）
     await studentCenterStore.loadProfile()
+    // 載入統計資料
+    await loadStats()
   } catch (error) {
     console.error('載入 Profile 失敗:', error)
     ElMessage.error('載入個人資料失敗，請稍後再試')

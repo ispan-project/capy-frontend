@@ -48,9 +48,25 @@ instance.interceptors.response.use(
       }
 
       // 公開頁面列表（不需要重導向到登入頁）
-      const publicPages = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/oauth-callback'];
+      // 包含所有不需要登入就能訪問的頁面
+      const publicPages = [
+        '/',                    // 主頁
+        '/login',               // 登入頁
+        '/register',            // 註冊頁
+        '/forgot-password',     // 忘記密碼
+        '/reset-password',      // 重設密碼
+        '/verify-email',        // 驗證信箱
+        '/oauth-callback',      // OAuth 回調
+        '/explore',             // 課程探索
+        '/courses/',            // 課程詳情（包含所有課程 ID）
+        '/teacherdetail/',      // 老師詳情（包含所有老師 ID）
+        '/instructor/landing',  // 講師介紹頁
+        '/about',               // 關於我們
+        '/contact',             // 聯絡我們
+        '/privacy'              // 隱私政策
+      ];
       const currentPath = window.location.pathname;
-      const isPublicPage = publicPages.some(page => currentPath.includes(page));
+      const isPublicPage = publicPages.some(page => currentPath.startsWith(page) || currentPath === page);
 
       // 如果不是公開頁面，則導向登入頁
       if (!isPublicPage) {

@@ -175,73 +175,22 @@ const handleSelect = (item) => {
   }
 }
 
-// ==================== 初始化模擬資料 ====================
-
-/**
- * 初始化購物車模擬資料（僅用於測試）
- */
-const initMockCartData = () => {
-  // 如果購物車已有資料，不重複初始化
-  if (cartStore.itemCount > 0) {
-    return
-  }
-
-  // 模擬課程資料
-  const mockCourses = [
-    {
-      id: 1,
-      title: 'Vue 3 完整開發指南：從入門到精通',
-      instructor: '張小明',
-      price: 1200,
-      cover_image_url: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=400'
-    },
-    {
-      id: 2,
-      title: 'TypeScript 實戰開發：打造型別安全的應用程式',
-      instructor: '李美華',
-      price: 1500,
-      cover_image_url: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400'
-    },
-    {
-      id: 3,
-      title: 'Pinia 狀態管理完全攻略',
-      instructor: '王大偉',
-      price: 800,
-      cover_image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400'
-    }
-  ]
-
-  // 將模擬課程加入購物車
-  mockCourses.forEach(course => {
-    cartStore.addItem(course)
-  })
-
-  console.log('✅ 已載入模擬購物車資料')
-}
+// ==================== 初始化資料 ====================
 
 // 元件掛載時初始化
 onMounted(async () => {
-  // 初始化使用者資訊（會從 API 獲取購物車、願望清單、通知數量）
-  await userStore.init()
+  // 注意：userStore.init() 已在 App.vue 和 router 中呼叫，這裡不需要重複呼叫
 
-  // 先從 localStorage 載入
-  cartStore.loadFromStorage()
+  // 只有在已登入時才載入願望清單模擬資料和通知
+  if (userStore.isAuthenticated) {
+    // 如果願望清單為空，載入模擬資料（僅用於開發測試）
+    if (wishlistStore.isEmpty && import.meta.env.DEV) {
+      initMockWishlistData()
+    }
 
-  // 如果沒有資料，則載入模擬資料
-  if (cartStore.isEmpty) {
-    initMockCartData()
+    // 載入通知資料
+    notificationStore.fetchNotifications()
   }
-
-  // 載入願望清單資料
-  wishlistStore.loadFromStorage()
-
-  // 如果願望清單為空，載入模擬資料
-  if (wishlistStore.isEmpty) {
-    initMockWishlistData()
-  }
-
-  // 載入通知資料
-  notificationStore.fetchNotifications()
 })
 
 /**

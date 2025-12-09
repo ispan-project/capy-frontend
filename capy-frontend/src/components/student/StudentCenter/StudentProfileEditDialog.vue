@@ -31,14 +31,20 @@
               :show-file-list="false"
               :http-request="handleAvatarUpload"
               :before-upload="beforeAvatarUpload"
+              :auto-upload="false"
+              :on-change="handleAvatarChange"
               accept="image/*"
             >
               <div class="avatar-container">
-                <img v-if="formData.avatarUrl" :src="formData.avatarUrl" class="avatar" />
+                <img
+                  v-if="previewAvatarUrl || formData.avatarUrl"
+                  :src="previewAvatarUrl || formData.avatarUrl"
+                  class="avatar"
+                />
                 <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
                 <div class="avatar-overlay">
                   <el-icon class="overlay-icon"><Camera /></el-icon>
-                  <span class="overlay-text">更換照片</span>
+                  <span class="overlay-text">更換頭像</span>
                 </div>
               </div>
             </el-upload>
@@ -58,6 +64,7 @@
                 v-model="formData.email"
                 disabled
                 placeholder="電子郵件"
+                class="disabled-email-input"
               >
                 <template #prefix>
                   <el-icon><Message /></el-icon>
@@ -76,6 +83,9 @@
                   <el-icon><User /></el-icon>
                 </template>
               </el-input>
+              <div class="nickname-format-hint">
+                僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白
+              </div>
             </el-form-item>
           </el-form>
         </div>
@@ -107,9 +117,6 @@
                     <el-icon><CircleClose /></el-icon>
                     <span>未連結</span>
                   </div>
-                  <div v-if="isGoogleBound && googleEmail" class="binding-email">
-                    {{ googleEmail }}
-                  </div>
                 </div>
               </div>
               <div class="binding-action">
@@ -118,15 +125,17 @@
                   type="default"
                   plain
                   @click="handleBindGoogle"
+                  :loading="bindingGoogle"
+                  :disabled="bindingGoogle"
                   class="bind-button"
                 >
-                  連結 Google 帳號
+                  {{ bindingGoogle ? '綁定中...' : '連結 Google 帳號' }}
                 </el-button>
                 <el-button
                   v-else
-                  type="info"
+                  type="danger"
                   plain
-                  disabled
+                  @click="handleUnbindGoogle"
                   class="unbind-button"
                 >
                   解除連結
@@ -198,13 +207,13 @@
     <template #footer>
       <!-- Settings View Footer -->
       <div v-if="currentView === 'settings' && activeTab === 'profile'" class="dialog-footer">
-        <el-button @click="handleCancel" size="large">
+        <el-button @click="handleCancel" size="large" :disabled="isLoading">
           取消
         </el-button>
         <el-button
           type="primary"
           @click="handleSave"
-          :loading="saving"
+          :loading="isLoading"
           size="large"
           class="save-button"
         >
@@ -232,8 +241,12 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, h } from 'vue'
+import { ref, watch, computed, h, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElInput } from 'element-plus'
+
+// ===== 除錯程式碼開始 =====
+console.log('=== StudentProfileEditDialog 載入 ===')
+// ===== 除錯程式碼結束 =====
 import {
   Plus,
   Camera,
@@ -247,9 +260,12 @@ import {
   Delete,
   WarningFilled
 } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { validateNicknameFormat } from '@/utils/usernameValidator'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import StudentPasswordForm from './StudentPasswordForm.vue'
+import { bindGoogleAccount } from '@/api/oauth/oauth'
+import { fetchStudentProfile, updateStudentProfile, uploadStudentAvatar, changeStudentPassword, deleteStudentAccount, unlinkGoogleAccount } from '@/api/student/studentCenter.js'
 
 // Props
 const props = defineProps({
@@ -263,7 +279,7 @@ const props = defineProps({
       email: '',
       nickname: '',
       avatarUrl: '',
-      google_id: null,
+      googleLinked: false,
       google_email: null
     })
   },
@@ -280,15 +296,20 @@ const emit = defineEmits(['update:visible', 'save'])
 // Refs
 const formRef = ref(null)
 const passwordFormRef = ref(null)
-const saving = ref(false)
+const isLoading = ref(false)
 const uploading = ref(false)
 const updatingPassword = ref(false)
 const activeTab = ref('profile')
 const currentView = ref('settings') // 'settings' | 'password_change'
 const deletingAccount = ref(false)
+const previewAvatarUrl = ref('') // 本地預覽 URL
+const pendingAvatarFile = ref(null) // 待上傳的檔案
+const bindingGoogle = ref(false) // Google 綁定載入狀態
+const pendingGoogleBind = ref(null) // 儲存待綁定的 Google 資訊
 
 // Router and Store
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // Form Data
@@ -299,16 +320,24 @@ const formData = ref({
 })
 
 // Computed - Use 'user' prop or fallback to 'currentUser' for backward compatibility
-const currentUserData = computed(() => props.user || props.currentUser || {})
+const currentUserData = computed(() => {
+  const userData = props.user || props.currentUser || {}
+  console.log('🔍 Dialog currentUserData:', userData)
+  return userData
+})
 
 // Computed - Check if Google account is bound
 const isGoogleBound = computed(() => {
-  return !!currentUserData.value.google_id
+  const result = currentUserData.value.googleLinked === true
+  console.log('🔍 isGoogleBound:', result, 'googleLinked:', currentUserData.value.googleLinked)
+  return result
 })
 
 // Computed - Get Google email if available
 const googleEmail = computed(() => {
-  return currentUserData.value.google_email || null
+  const email = currentUserData.value.google_email || currentUserData.value.email || null
+  console.log('🔍 googleEmail:', email)
+  return email
 })
 
 // Computed - Modal Title
@@ -325,69 +354,247 @@ const dialogVisible = computed({
     if (!val) {
       currentView.value = 'settings'
       activeTab.value = 'profile'
+      // 清理預覽
+      cleanupPreview()
     }
   }
 })
+
+// 清理預覽資源
+const cleanupPreview = () => {
+  if (previewAvatarUrl.value) {
+    URL.revokeObjectURL(previewAvatarUrl.value)
+    previewAvatarUrl.value = ''
+  }
+  pendingAvatarFile.value = null
+}
+
+// 暱稱格式驗證
+const validateNicknameFormatRule = (rule, value, callback) => {
+  if (!value) {
+    return callback()
+  }
+
+  // 使用統一的格式驗證函式
+  const formatValidation = validateNicknameFormat(value)
+  if (!formatValidation.valid) {
+    return callback(new Error(formatValidation.message))
+  }
+
+  callback()
+}
+
+// 暱稱唯一性驗證
+const validateNicknameUnique = async (rule, value, callback) => {
+  if (!value) {
+    return callback()
+  }
+
+  // 如果暱稱沒有改變，跳過驗證
+  if (value === currentUserData.value.nickname) {
+    return callback()
+  }
+
+  try {
+    // TODO: 實作暱稱檢查 API
+    // import { checkNicknameAvailability } from '@/api/student/Studentcenter'
+    // const response = await checkNicknameAvailability(value)
+    // if (!response.available) {
+    //   return callback(new Error('此暱稱已被使用'))
+    // }
+
+    callback()
+  } catch (error) {
+    console.error('Nickname validation error:', error)
+    callback()
+  }
+}
 
 // Form Validation Rules
 const rules = {
   nickname: [
     { required: true, message: '請輸入暱稱', trigger: 'blur' },
-    { min: 2, max: 20, message: '暱稱長度應在 2 到 20 個字元之間', trigger: 'blur' }
+    { min: 2, max: 20, message: '暱稱長度應在 2 到 20 個字元之間', trigger: 'blur' },
+    { validator: validateNicknameFormatRule, trigger: 'blur' },
+    { validator: validateNicknameUnique, trigger: 'blur' }
   ]
 }
+
+// Watch for dialog visibility to fetch fresh profile data
+watch(
+  () => props.visible,
+  async (isVisible) => {
+    if (isVisible) {
+      try {
+        // 獲取最新的個人資料
+        const response = await fetchStudentProfile()
+
+        console.log('獲取到的個人資料:', response)
+
+        // 從 studentProfile 物件中提取資料
+        const profileData = response.studentProfile || response
+
+        // 更新 formData
+        formData.value = {
+          email: profileData.email || currentUserData.value.email || '',
+          nickname: profileData.nickname || currentUserData.value.nickname || '',
+          avatarUrl: profileData.avatarUrl || currentUserData.value.avatarUrl || currentUserData.value.avatar || ''
+        }
+
+        console.log('設定後的 formData:', formData.value)
+
+        // 同時更新 userStore 以確保資料一致（包含 googleLinked）
+        if (profileData.email) {
+          userStore.updateUserInfo({
+            id: profileData.userId || userStore.userInfo.id,
+            email: profileData.email,
+            nickname: profileData.nickname,
+            avatar: profileData.avatarUrl || userStore.userInfo.avatar,
+            googleLinked: profileData.googleLinked ?? userStore.userInfo.googleLinked,
+            google_id: profileData.googleId || userStore.userInfo.google_id,
+            google_email: profileData.googleEmail || userStore.userInfo.google_email
+          })
+        }
+      } catch (error) {
+        console.error('獲取個人資料失敗:', error)
+        // 如果獲取失敗，使用現有資料
+        formData.value = {
+          email: currentUserData.value.email || '',
+          nickname: currentUserData.value.nickname || '',
+          avatarUrl: currentUserData.value.avatarUrl || currentUserData.value.avatar || ''
+        }
+      }
+      // 清理舊的預覽
+      cleanupPreview()
+    }
+  }
+)
 
 // Watch for prop changes to update form data
 watch(
   () => currentUserData.value,
   (newUser) => {
-    if (newUser) {
+    if (newUser && !props.visible) {
       formData.value = {
         email: newUser.email || '',
         nickname: newUser.nickname || '',
         avatarUrl: newUser.avatarUrl || newUser.avatar || ''
       }
+      // 清理舊的預覽
+      cleanupPreview()
     }
   },
   { immediate: true, deep: true }
 )
 
-// Avatar Upload Handler
-const handleAvatarUpload = async (options) => {
-  const { file } = options
+/**
+ * 壓縮圖片到指定大小以下
+ * @param {File} file - 原始圖片檔案
+ * @param {number} maxSizeMB - 最大檔案大小（MB）
+ * @param {number} maxWidth - 最大寬度
+ * @param {number} maxHeight - 最大高度
+ * @returns {Promise<Blob>} 壓縮後的圖片 Blob
+ */
+const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (e) => {
+      const img = new Image()
+      img.src = e.target.result
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
 
-  uploading.value = true
+        // 計算縮放比例
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+
+        // 嘗試不同的品質設定來達到目標大小
+        let quality = 0.9
+        const tryCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              const sizeMB = blob.size / 1024 / 1024
+
+              if (sizeMB <= maxSizeMB || quality <= 0.1) {
+                resolve(blob)
+              } else {
+                // 如果還是太大，降低品質再試
+                quality -= 0.1
+                tryCompress()
+              }
+            },
+            file.type || 'image/jpeg',
+            quality
+          )
+        }
+
+        tryCompress()
+      }
+      img.onerror = reject
+    }
+    reader.onerror = reject
+  })
+}
+
+// 處理頭像選擇（本地預覽 + 壓縮）
+const handleAvatarChange = async (file) => {
+  if (!file || !file.raw) return
+
+  // 清理舊的預覽 URL
+  cleanupPreview()
 
   try {
-    // Create FormData for file upload
-    const formDataUpload = new FormData()
-    formDataUpload.append('file', file)
+    // 壓縮圖片到 1MB 以下
+    const compressedBlob = await compressImage(file.raw, 1, 1024, 1024)
 
-    // TODO: Replace with actual API endpoint
-    // This should upload to your backend which then uploads to GCS
-    // 使用 Cookie 認證，不需要手動添加 Authorization header
-    const response = await fetch('/api/upload/avatar', {
-      method: 'POST',
-      credentials: 'include', // 確保發送 Cookie
-      body: formDataUpload
-    })
+    // 創建壓縮後的 File 物件
+    const compressedFile = new File(
+      [compressedBlob],
+      file.raw.name,
+      { type: file.raw.type || 'image/jpeg' }
+    )
 
-    if (!response.ok) {
-      throw new Error('上傳失敗')
+    // 創建本地預覽 URL
+    previewAvatarUrl.value = URL.createObjectURL(compressedBlob)
+    pendingAvatarFile.value = compressedFile
+
+    // 顯示壓縮資訊
+    const originalSizeMB = (file.raw.size / 1024 / 1024).toFixed(2)
+    const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2)
+    console.log(`圖片已壓縮：${originalSizeMB}MB → ${compressedSizeMB}MB`)
+
+    if (compressedFile.size < file.raw.size) {
+      ElMessage.success(`圖片已壓縮至 ${compressedSizeMB}MB`)
     }
-
-    const data = await response.json()
-
-    // Update avatar URL with the returned URL from GCS
-    formData.value.avatarUrl = data.url
-
-    ElMessage.success('頭像上傳成功')
   } catch (error) {
-    console.error('Avatar upload error:', error)
-    ElMessage.error('頭像上傳失敗，請稍後再試')
-  } finally {
-    uploading.value = false
+    console.error('圖片壓縮失敗:', error)
+    ElMessage.error('圖片處理失敗，請重試')
   }
+}
+
+// Avatar Upload Handler (整合到 updateStudentProfile 中)
+const handleAvatarUpload = async (file) => {
+  // 這個函數現在只是準備檔案，實際上傳在 handleSave 中進行
+  // 因為 updateStudentProfile API 已經包含頭像上傳功能
+  return file
 }
 
 // Before Avatar Upload Validation
@@ -406,17 +613,191 @@ const beforeAvatarUpload = (file) => {
   return true
 }
 
-// Handle Bind Google Account
+// Handle Bind Google Account - 第一階段：導向 OAuth
 const handleBindGoogle = () => {
-  // Redirect to backend OAuth endpoint for Google binding
-  const bindUrl = '/api/auth/google/bind'
   ElMessage.info('正在跳轉至 Google 授權頁面...')
 
-  // Store current page URL for redirect back after binding
+  // 標記為綁定流程（用於回調時識別）
+  sessionStorage.setItem('google_bind_flow', 'true')
   sessionStorage.setItem('oauth_redirect', window.location.pathname)
 
-  // Redirect to Google OAuth
-  window.location.href = bindUrl
+  // 重導向到後端的 Google OAuth 綁定端點
+  // 加上 bind=true 參數讓後端識別這是綁定流程
+  window.location.href = 'http://localhost:8080/api/oauth2/authorization/google?bind=true'
+}
+
+// Handle Bind Google Account - 第二階段：密碼確認
+const confirmBindWithPassword = async (googleId) => {
+  try {
+    // 彈出密碼輸入對話框
+    const { value: password } = await ElMessageBox.prompt(
+      '為了安全起見，請輸入您的帳號密碼以確認綁定 Google 帳號',
+      '確認密碼',
+      {
+        confirmButtonText: '確認綁定',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputPlaceholder: '請輸入密碼',
+        inputValidator: (value) => {
+          if (!value) {
+            return '請輸入密碼'
+          }
+          if (value.length < 8) {
+            return '密碼長度至少 8 個字元'
+          }
+          return true
+        },
+        inputErrorMessage: '密碼格式不正確',
+        customClass: 'google-bind-password-dialog',
+        confirmButtonClass: 'google-bind-confirm-button'
+      }
+    )
+
+    // 呼叫綁定 API
+    bindingGoogle.value = true
+
+    const response = await bindGoogleAccount({
+      googleId,
+      password
+    })
+
+    // http.js 攔截器已經解包 response.data，所以 response 本身就是 data
+    // 檢查回應是否有效
+    if (response && (response.googleLinked !== undefined || response.success)) {
+      ElMessage.success('Google 帳號綁定成功！')
+
+      // 更新使用者資訊到 store
+      userStore.updateUserInfo({
+        googleLinked: response.googleLinked ?? true
+      })
+
+      // 關閉對話框
+      dialogVisible.value = false
+
+      // 重新載入頁面以刷新所有資料
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
+    } else {
+      throw new Error('綁定失敗：回應格式不正確')
+    }
+
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('已取消綁定')
+    } else {
+      console.error('Google 綁定錯誤:', error)
+      const errorMessage = error.response?.data?.message || error.message || '綁定失敗，請檢查密碼是否正確'
+      ElMessage.error(errorMessage)
+    }
+    // 清除綁定流程標記（無論成功或失敗）
+    sessionStorage.removeItem('google_bind_flow')
+  } finally {
+    bindingGoogle.value = false
+  }
+}
+
+// Handle Unbind Google Account
+const handleUnbindGoogle = async () => {
+  try {
+    // 第一步：顯示確認對話框
+    await ElMessageBox.confirm(
+      '解除 Google 帳號連結後，您將無法使用 Google 快速登入。確定要繼續嗎？',
+      '解除 Google 連結',
+      {
+        confirmButtonText: '確定解除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        customClass: 'google-unbind-confirm-dialog'
+      }
+    )
+
+    // 第二步：要求輸入密碼確認
+    const { value: password } = await ElMessageBox.prompt(
+      '為了安全起見，請輸入您的帳號密碼以確認解除 Google 帳號連結',
+      '確認密碼',
+      {
+        confirmButtonText: '確認解除',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputPlaceholder: '請輸入密碼',
+        inputValidator: (value) => {
+          if (!value) {
+            return '請輸入密碼'
+          }
+          if (value.length < 8) {
+            return '密碼長度至少 8 個字元'
+          }
+          return true
+        },
+        inputErrorMessage: '密碼格式不正確',
+        customClass: 'google-unbind-password-dialog'
+      }
+    )
+
+    // 第三步：呼叫解綁定 API
+    bindingGoogle.value = true
+
+    await unlinkGoogleAccount({
+      password
+    })
+
+    ElMessage.success('已成功解除 Google 帳號連結')
+
+    // 更新使用者資訊到 store
+    userStore.updateUserInfo({
+      googleLinked: false,
+      google_id: null,
+      google_email: null
+    })
+
+    // 關閉對話框
+    dialogVisible.value = false
+
+    // 重新載入頁面以刷新所有資料
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
+
+  } catch (error) {
+    if (error === 'cancel') {
+      ElMessage.info('已取消解除連結')
+    } else {
+      console.error('解除 Google 連結錯誤:', error)
+
+      // 處理不同的錯誤狀態
+      let errorMessage = '解除連結失敗，請稍後再試'
+
+      if (error.response) {
+        const status = error.response.status
+        const responseData = error.response.data
+
+        if (status === 401) {
+          // 密碼錯誤或登入過期
+          if (responseData?.message?.includes('password')) {
+            errorMessage = '密碼錯誤，請重新輸入'
+          } else {
+            errorMessage = '登入已過期，請重新登入'
+            // 導向登入頁
+            setTimeout(() => {
+              window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+            }, 1500)
+          }
+        } else if (status === 409) {
+          // 未綁定 Google 帳號
+          errorMessage = '您尚未綁定 Google 帳號'
+        } else if (responseData?.message) {
+          errorMessage = responseData.message
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      ElMessage.error(errorMessage)
+    }
+  } finally {
+    bindingGoogle.value = false
+  }
 }
 
 // Handle Change Password
@@ -444,32 +825,57 @@ const handleUpdatePassword = async () => {
     // Get form data
     const passwordData = passwordFormRef.value.getFormData()
 
-    // TODO: Replace with actual API call
-    // This should call your backend API to update the password
-    // 使用 Cookie 認證，不需要手動添加 Authorization header
-    const response = await fetch('/api/user/password', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include', // 確保發送 Cookie
-      body: JSON.stringify(passwordData)
-    })
+    // 使用新的 API 函數變更密碼
+    await changeStudentPassword(passwordData)
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || '密碼更新失敗')
-    }
-
-    ElMessage.success('密碼更新成功')
+    ElMessage.success('密碼變更成功！建議您重新登入以確保安全。')
 
     // Reset form and go back to settings
     passwordFormRef.value.resetForm()
     currentView.value = 'settings'
 
+    // 關閉對話框
+    dialogVisible.value = false
+
   } catch (error) {
-    console.error('Password update error:', error)
-    ElMessage.error(error.message || '密碼更新失敗，請稍後再試')
+    console.error('Password change error:', error)
+
+    // 處理不同的錯誤狀態
+    let errorMessage = '密碼變更失敗，請稍後再試'
+
+    if (error.response) {
+      const status = error.response.status
+      const responseData = error.response.data
+
+      if (status === 400) {
+        // 根據後端錯誤訊息顯示對應提示
+        const message = responseData?.message || ''
+
+        if (message.includes('current password incorrect')) {
+          errorMessage = '當前密碼錯誤，請重新輸入'
+        } else if (message.includes('must be different from current password')) {
+          errorMessage = '新密碼不能與當前密碼相同，請設定不同的密碼'
+        } else if (message.includes('password') || message.includes('Password')) {
+          // 其他密碼相關錯誤（如格式不符）
+          errorMessage = responseData.message || '密碼格式不符合要求：需8-64碼，包含大小寫字母和數字，可使用特殊字元'
+        } else if (responseData?.message) {
+          errorMessage = responseData.message
+        } else {
+          errorMessage = '密碼格式不符合要求：需8-64碼，包含大小寫字母和數字，可使用特殊字元'
+        }
+      } else if (status === 401 || status === 403) {
+        // 未登入或 Token 失效
+        errorMessage = '登入已過期，請重新登入'
+        // 導向登入頁
+        setTimeout(() => {
+          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        }, 1500)
+      }
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+
+    ElMessage.error(errorMessage)
   } finally {
     updatingPassword.value = false
   }
@@ -489,6 +895,8 @@ const handleCancel = () => {
   // Reset to profile tab and settings view
   activeTab.value = 'profile'
   currentView.value = 'settings'
+  // 清理預覽
+  cleanupPreview()
 }
 
 // Handle Save
@@ -499,90 +907,147 @@ const handleSave = async () => {
     // Validate form
     await formRef.value.validate()
 
-    saving.value = true
+    // 防止重複提交
+    if (isLoading.value) return
 
-    // Emit save event with updated data
-    emit('save', {
-      nickname: formData.value.nickname,
-      avatarUrl: formData.value.avatarUrl
-    })
+    isLoading.value = true
 
-    // Note: The parent component should handle the actual API call
-    // and close the dialog after successful save
+    // 準備更新資料
+    const updateData = {
+      nickname: formData.value.nickname
+    }
+
+    // 如果有待上傳的頭像，先上傳取得 URL
+    if (pendingAvatarFile.value) {
+      try {
+        ElMessage.info('正在上傳頭像...')
+
+        // 步驟 1：上傳頭像取得 URL
+        const uploadResult = await uploadStudentAvatar(pendingAvatarFile.value)
+
+        // uploadResult 已被攔截器解包，直接是 { avatarUrl }
+        if (uploadResult && uploadResult.avatarUrl) {
+          updateData.avatarUrl = uploadResult.avatarUrl
+          ElMessage.success('頭像上傳成功')
+        } else {
+          throw new Error('頭像上傳失敗：未取得 URL')
+        }
+      } catch (error) {
+        console.error('頭像上傳錯誤:', error)
+        ElMessage.error(error.message || '頭像上傳失敗，請稍後再試')
+        isLoading.value = false
+        return
+      }
+    } else if (formData.value.avatarUrl) {
+      // 如果沒有新頭像但有現有的 avatarUrl，保留它
+      updateData.avatarUrl = formData.value.avatarUrl
+    }
+
+    // 步驟 2：使用 JSON 格式更新 profile
+    const result = await updateStudentProfile(updateData)
+
+    // result 已經是 data 物件：{ userId, nickname, email, avatarUrl, ... }
+    if (result && result.userId) {
+      userStore.updateUserInfo({
+        id: result.userId,
+        nickname: result.nickname,
+        avatar: result.avatarUrl,
+        email: result.email,
+        googleLinked: result.googleLinked
+      })
+
+      ElMessage.success('個人資料已更新')
+
+      // 清理預覽資源
+      cleanupPreview()
+
+      // 關閉對話框
+      dialogVisible.value = false
+
+      // Emit save event for parent component
+      emit('save', result)
+    } else {
+      throw new Error('更新失敗：未取得使用者資料')
+    }
+
   } catch (error) {
-    console.error('Form validation failed:', error)
+    console.error('Update profile error:', error)
+    ElMessage.error(error.message || '更新失敗，請稍後再試')
   } finally {
-    saving.value = false
+    isLoading.value = false
   }
 }
 
 // Handle Delete Account
 const handleDeleteAccount = async () => {
   try {
-    // Show confirmation dialog with input validation
-    await ElMessageBox({
-      title: '刪除帳號？',
-      message: h('div', { class: 'delete-account-content' }, [
-        h('div', { class: 'delete-warning' }, [
-          h('p', [h('strong', '您確定要刪除您的帳號嗎？')]),
-          h('p', { class: 'warning-highlight' }, '您將永久失去所有已購買課程的存取權限。')
-        ]),
-        h('div', { class: 'delete-input-section' }, [
-          h('p', { class: 'input-label' }, [
-            '請輸入 ',
-            h('strong', 'DELETE'),
-            ' 以確認：'
-          ]),
-          h(ElInput, {
-            modelValue: '',
-            placeholder: '輸入 DELETE',
-            class: 'delete-confirm-input',
-            'onUpdate:modelValue': (val) => {
-              // Store the input value for validation
-              if (window.__deleteConfirmValue !== undefined) {
-                window.__deleteConfirmValue = val
-              }
-            },
-            onMounted: () => {
-              window.__deleteConfirmValue = ''
-            }
-          })
-        ])
-      ]),
-      confirmButtonText: '確認刪除',
-      cancelButtonText: '取消',
-      type: 'error',
-      showClose: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: false,
-      customClass: 'delete-account-dialog',
-      beforeClose: (action, instance, done) => {
-        if (action === 'confirm') {
-          const inputValue = window.__deleteConfirmValue?.trim()
-          if (inputValue !== 'DELETE') {
-            ElMessage.error('請輸入 DELETE 以確認刪除')
-            return false
-          }
-        }
-        done()
+    // 第一步：確認刪除意圖
+    await ElMessageBox.confirm(
+      '您確定要刪除您的帳號嗎？您將永久失去所有已購買課程的存取權限。',
+      '刪除帳號？',
+      {
+        confirmButtonText: '下一步',
+        cancelButtonText: '取消',
+        type: 'error',
+        customClass: 'delete-account-confirm-dialog'
       }
-    })
+    )
 
-    // If confirmed, proceed with deletion
+    // 第二步：要求輸入 DELETE 確認
+    const { value: deleteConfirm } = await ElMessageBox.prompt(
+      '此操作無法復原。請輸入 DELETE 以確認刪除：',
+      '確認刪除',
+      {
+        confirmButtonText: '下一步',
+        cancelButtonText: '取消',
+        inputPlaceholder: '輸入 DELETE',
+        inputPattern: /^DELETE$/,
+        inputErrorMessage: '請輸入 DELETE（全大寫）',
+        customClass: 'delete-account-input-dialog'
+      }
+    )
+
+    if (deleteConfirm?.trim() !== 'DELETE') {
+      ElMessage.error('輸入錯誤，已取消刪除')
+      return
+    }
+
+    // 第三步：要求輸入當前密碼確認
+    const { value: password } = await ElMessageBox.prompt(
+      '為了安全起見，請輸入您的帳號密碼以確認刪除帳號',
+      '確認密碼',
+      {
+        confirmButtonText: '確認刪除',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputPlaceholder: '請輸入密碼',
+        inputValidator: (value) => {
+          if (!value) {
+            return '請輸入密碼'
+          }
+          if (value.length < 8) {
+            return '密碼長度至少 8 個字元'
+          }
+          return true
+        },
+        inputErrorMessage: '密碼格式不正確',
+        customClass: 'delete-account-password-dialog'
+      }
+    )
+
+    if (!password) {
+      ElMessage.error('未輸入密碼，已取消刪除')
+      return
+    }
+
+    // 第四步：呼叫 API 刪除帳號
     deletingAccount.value = true
 
     try {
-      // Call API to delete account (soft delete)
-      // 使用 Cookie 認證，不需要手動添加 Authorization header
-      const response = await fetch('/api/user', {
-        method: 'DELETE',
-        credentials: 'include' // 確保發送 Cookie
+      // 使用 API 函數刪除帳號，傳入當前密碼
+      await deleteStudentAccount({
+        currentPassword: password
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || '刪除帳號失敗')
-      }
 
       ElMessage.success('帳號已刪除')
 
@@ -597,7 +1062,29 @@ const handleDeleteAccount = async () => {
 
     } catch (error) {
       console.error('Delete account error:', error)
-      ElMessage.error(error.message || '刪除帳號失敗，請稍後再試')
+
+      // 處理不同的錯誤狀態
+      let errorMessage = '刪除帳號失敗，請稍後再試'
+
+      if (error.response) {
+        const status = error.response.status
+        const responseData = error.response.data
+
+        if (status === 401 || status === 400) {
+          // 密碼錯誤
+          if (responseData?.message?.includes('password')) {
+            errorMessage = '密碼錯誤，請重新嘗試'
+          } else {
+            errorMessage = '驗證失敗，請重新登入後再試'
+          }
+        } else if (responseData?.message) {
+          errorMessage = responseData.message
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      ElMessage.error(errorMessage)
     } finally {
       deletingAccount.value = false
     }
@@ -609,6 +1096,46 @@ const handleDeleteAccount = async () => {
     }
   }
 }
+
+// 處理 OAuth 回調
+onMounted(() => {
+  // 🔍 診斷 log
+  console.log('🔍 [StudentProfileEditDialog] onMounted 觸發')
+  console.log('🔍 [StudentProfileEditDialog] dialogVisible:', dialogVisible.value)
+  console.log('🔍 [StudentProfileEditDialog] google_bind_flow:', sessionStorage.getItem('google_bind_flow'))
+  console.log('🔍 [StudentProfileEditDialog] route.path:', route.path)
+  console.log('🔍 [StudentProfileEditDialog] route.query:', JSON.stringify(route.query))
+
+  // 檢查是否為 Google 綁定回調（成功情況）
+  // 錯誤情況由 AuthCallback.vue 統一處理
+  const isBindFlow = sessionStorage.getItem('google_bind_flow')
+  const { googleId } = route.query
+
+  console.log('🔍 [StudentProfileEditDialog] isBindFlow:', isBindFlow)
+  console.log('🔍 [StudentProfileEditDialog] googleId:', googleId)
+
+  // 綁定流程：後端返回 googleId，前端需要呼叫 API 完成綁定
+  if (isBindFlow === 'true' && googleId) {
+    console.log('✅ [StudentProfileEditDialog] 檢測到綁定回調，準備彈出密碼對話框')
+
+    // 清除標記
+    sessionStorage.removeItem('google_bind_flow')
+    sessionStorage.removeItem('oauth_redirect')
+
+    // 清除 URL 參數（避免重新整理時重複處理）
+    router.replace({
+      path: route.path,
+      query: {}
+    })
+
+    // 彈出密碼確認對話框並呼叫 API
+    confirmBindWithPassword(googleId)
+  } else {
+    console.log('❌ [StudentProfileEditDialog] 未檢測到綁定流程或參數不完整')
+    if (!isBindFlow) console.log('   - google_bind_flow 不存在或不為 true')
+    if (!googleId) console.log('   - googleId 不存在')
+  }
+})
 </script>
 
 <style scoped>
@@ -637,6 +1164,11 @@ const handleDeleteAccount = async () => {
 
 .profile-tabs :deep(.el-tabs__header) {
   margin-bottom: 0;
+  padding: 0 var(--capy-spacing-lg);
+}
+
+.profile-tabs :deep(.el-tabs__nav-wrap) {
+  padding: 0;
 }
 
 .profile-tabs :deep(.el-tabs__nav-wrap::after) {
@@ -648,7 +1180,9 @@ const handleDeleteAccount = async () => {
   font-size: var(--capy-font-size-base);
   font-weight: var(--capy-font-weight-medium);
   color: var(--capy-text-secondary);
-  padding: var(--capy-spacing-md) var(--capy-spacing-lg);
+  padding: var(--capy-spacing-md) var(--capy-spacing-md);
+  height: 48px;
+  line-height: 48px;
 }
 
 .profile-tabs :deep(.el-tabs__item.is-active) {
@@ -657,6 +1191,7 @@ const handleDeleteAccount = async () => {
 
 .profile-tabs :deep(.el-tabs__active-bar) {
   background-color: var(--capy-primary);
+  height: 2px;
 }
 
 .tab-content {
@@ -716,7 +1251,7 @@ const handleDeleteAccount = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -757,13 +1292,30 @@ const handleDeleteAccount = async () => {
   color: var(--capy-text-primary);
 }
 
-.profile-form :deep(.el-input.is-disabled .el-input__wrapper) {
+/* 改善 Email 輸入框的可讀性 */
+.disabled-email-input :deep(.el-input__wrapper) {
   background-color: var(--capy-bg-base);
   cursor: not-allowed;
 }
 
+.disabled-email-input :deep(.el-input__inner) {
+  color: var(--el-text-color-regular) !important;
+  -webkit-text-fill-color: var(--el-text-color-regular) !important;
+}
+
 .profile-form :deep(.el-input__prefix) {
   color: var(--capy-text-secondary);
+}
+
+/* 暱稱格式提示 */
+.nickname-format-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--capy-text-secondary);
+  padding: 6px 12px;
+  background: var(--capy-bg-base);
+  border-radius: var(--capy-radius-sm);
+  line-height: 1.4;
 }
 
 /* Footer */
@@ -879,7 +1431,13 @@ const handleDeleteAccount = async () => {
 }
 
 .binding-action .unbind-button {
-  cursor: not-allowed;
+  color: var(--capy-danger);
+  border-color: var(--capy-danger);
+}
+
+.binding-action .unbind-button:hover {
+  background-color: var(--capy-danger);
+  color: white;
 }
 
 .security-hint {
@@ -1097,109 +1655,561 @@ const handleDeleteAccount = async () => {
 </style>
 
 <style>
-/* Global styles for delete account dialog */
-.delete-account-dialog {
-  border-radius: var(--capy-radius-lg);
-  max-width: 500px;
+/* Delete Account Confirm Dialog - 第一步確認 */
+.delete-account-confirm-dialog {
+  max-width: 420px;
+  min-width: 380px;
 }
 
-.delete-account-dialog .el-message-box__header {
+.delete-account-confirm-dialog .el-message-box__header {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl) var(--capy-spacing-md);
+}
+
+.delete-account-confirm-dialog .el-message-box__title {
+  font-size: 20px;
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-danger);
+}
+
+.delete-account-confirm-dialog .el-message-box__content {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl);
+}
+
+.delete-account-confirm-dialog .el-message-box__message {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--capy-text-primary);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-xl) var(--capy-spacing-xl);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: var(--capy-font-size-base);
+  min-width: 100px;
+  border-radius: var(--capy-radius-base);
+  font-weight: var(--capy-font-weight-medium);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: white !important;
+  transition: all var(--capy-transition-fast);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+  box-shadow: var(--capy-shadow-sm);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+  transform: translateY(1px);
+}
+
+/* Delete Account Input Dialog - 第二步輸入 DELETE */
+.delete-account-input-dialog {
+  max-width: 420px;
+  min-width: 380px;
+  --el-color-primary: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-input {
+  --el-input-focus-border-color: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg) var(--capy-spacing-sm);
+}
+
+.delete-account-input-dialog .el-message-box__title {
+  font-size: 18px;
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg);
+}
+
+.delete-account-input-dialog .el-message-box__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--capy-text-primary);
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.delete-account-input-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-xs);
+}
+
+.delete-account-input-dialog .el-input__inner {
+  font-family: monospace;
+  font-size: var(--capy-font-size-base);
+  text-transform: uppercase;
+}
+
+.delete-account-input-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg) var(--capy-spacing-lg);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-account-input-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.delete-account-input-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: var(--capy-text-inverse) !important;
+  font-weight: 500;
+}
+
+.delete-account-input-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+}
+
+.delete-account-input-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+}
+
+.delete-account-input-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
+}
+
+/* Delete Account Password Dialog - 第三步輸入密碼 */
+.delete-account-password-dialog {
+  max-width: 420px;
+  min-width: 380px;
+  --el-color-primary: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-input {
+  --el-input-focus-border-color: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg) var(--capy-spacing-sm);
+}
+
+.delete-account-password-dialog .el-message-box__title {
+  font-size: 18px;
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg);
+}
+
+.delete-account-password-dialog .el-message-box__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--capy-text-primary);
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.delete-account-password-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-xs);
+}
+
+.delete-account-password-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg) var(--capy-spacing-lg);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: var(--capy-text-inverse) !important;
+  font-weight: 500;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+}
+
+.delete-account-password-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
+}
+
+/* Google Bind Password Prompt Styles */
+.google-bind-password-prompt {
+  border-radius: var(--capy-radius-lg);
+  max-width: 450px;
+}
+
+.google-bind-password-prompt .el-message-box__header {
   padding: var(--capy-spacing-lg);
   border-bottom: 1px solid var(--capy-border-light);
 }
 
-.delete-account-dialog .el-message-box__title {
-  font-size: var(--capy-font-size-xl);
+.google-bind-password-prompt .el-message-box__title {
+  font-size: var(--capy-font-size-lg);
   font-weight: var(--capy-font-weight-semibold);
-  color: var(--capy-danger);
+  color: var(--capy-text-primary);
 }
 
-.delete-account-dialog .el-message-box__content {
+.google-bind-password-prompt .el-message-box__content {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-lg);
+}
+
+.google-bind-password-prompt .el-message-box__message {
+  font-size: var(--capy-font-size-base);
+  color: var(--capy-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--capy-spacing-lg);
+}
+
+.google-bind-password-prompt .el-message-box__input {
+  padding-top: var(--capy-spacing-md);
+}
+
+.google-bind-password-prompt .el-input__wrapper {
+  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
+  border-radius: var(--capy-radius-sm);
+  box-shadow: 0 0 0 1px var(--capy-border-base) inset;
+  transition: all var(--capy-transition-base);
+}
+
+.google-bind-password-prompt .el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--capy-primary) inset;
+}
+
+.google-bind-password-prompt .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--capy-primary) inset;
+}
+
+.google-bind-password-prompt .el-input__inner {
+  font-size: var(--capy-font-size-base);
+  color: var(--capy-text-primary);
+}
+
+.google-bind-password-prompt .el-input__inner::placeholder {
+  color: var(--capy-text-placeholder);
+}
+
+.google-bind-password-prompt .el-message-box__errormsg {
+  font-size: var(--capy-font-size-sm);
+  color: var(--capy-danger);
+  margin-top: var(--capy-spacing-xs);
+  padding-left: var(--capy-spacing-xs);
+}
+
+.google-bind-password-prompt .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg);
+  border-top: 1px solid var(--capy-border-light);
+  display: flex;
+  gap: var(--capy-spacing-sm);
+  justify-content: flex-end;
+}
+
+.google-bind-password-prompt .el-button {
+  padding: var(--capy-spacing-sm) var(--capy-spacing-lg);
+  font-size: var(--capy-font-size-base);
+  font-weight: var(--capy-font-weight-medium);
+  border-radius: var(--capy-radius-sm);
+  transition: all var(--capy-transition-base);
+}
+
+.google-bind-password-prompt .el-button--default {
+  color: var(--capy-text-secondary);
+  border-color: var(--capy-border-base);
+}
+
+.google-bind-password-prompt .el-button--default:hover {
+  color: var(--capy-text-primary);
+  border-color: var(--capy-border-dark);
+  background-color: var(--capy-bg-base);
+}
+
+.google-bind-password-prompt .el-button--primary {
+  background-color: var(--capy-primary);
+  border-color: var(--capy-primary);
+  color: white;
+}
+
+.google-bind-password-prompt .el-button--primary:hover {
+  background-color: var(--el-color-primary-light-1);
+  border-color: var(--el-color-primary-light-1);
+}
+
+.google-bind-password-prompt .el-button--primary:active {
+  background-color: var(--el-color-primary-dark-1);
+  border-color: var(--el-color-primary-dark-1);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .google-bind-password-prompt {
+    max-width: 90%;
+    margin: 0 auto;
+  }
+
+  .google-bind-password-prompt .el-message-box__header,
+  .google-bind-password-prompt .el-message-box__content,
+  .google-bind-password-prompt .el-message-box__btns {
+    padding-left: var(--capy-spacing-md);
+    padding-right: var(--capy-spacing-md);
+  }
+
+  .google-bind-password-prompt .el-message-box__btns {
+    flex-direction: column;
+  }
+
+  .google-bind-password-prompt .el-button {
+    width: 100%;
+  }
+}
+
+/* Google Unbind Confirm Dialog - 使用主色 */
+.google-unbind-confirm-dialog {
+  max-width: 420px;
+  min-width: 380px;
+
+}
+
+.google-unbind-confirm-dialog .el-message-box__header {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl) var(--capy-spacing-md);
+}
+
+.google-unbind-confirm-dialog .el-message-box__title {
+  font-size: 20px;
+  font-weight: var(--capy-font-weight-semibold);
+}
+
+.google-unbind-confirm-dialog .el-message-box__content {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl);
+}
+
+.google-unbind-confirm-dialog .el-message-box__message {
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--capy-text-primary);
+}
+
+/* Dialog 底部按鈕區塊 */
+.google-unbind-confirm-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-xl) var(--capy-spacing-xl);
+  gap: 12px; /* 使用具體數值或 var(--capy-spacing-md) */
+  display: flex;
+  justify-content: flex-end; /* 確保按鈕靠右，符合一般對話框習慣 */
+}
+
+.google-unbind-confirm-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px; /* 稍微縮小一點 Padding，讓比例更協調 */
+  font-size: var(--capy-font-size-base); /* 14px，保持系統一致 */
+  min-width: 100px;
+  border-radius: var(--capy-radius-base); /* 確保圓角一致 */
+  font-weight: var(--capy-font-weight-medium); /* 500 */
+}
+
+.google-unbind-confirm-dialog .el-message-box__btns .el-button--primary {
+  /* 這裡雖是 primary class，但我們視覺上把它變成 Danger */
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: white !important;
+  transition: all var(--capy-transition-fast); /* 加入過渡動畫 */
+}
+
+.google-unbind-confirm-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+  box-shadow: var(--capy-shadow-sm); /* 增加一點點懸浮感 */
+}
+
+.google-unbind-confirm-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+  transform: translateY(1px); /* 增加按壓感 */
+}
+
+/* Google Unbind Password Dialog - 使用主色 */
+.google-unbind-password-dialog {
+  max-width: 420px;
+  min-width: 380px;
+  --el-color-primary: var(--capy-danger); /* 💡 關鍵技巧：局部覆寫變數 */
+}
+
+/* 讓 Input 框 Focus 時也變成紅色，與按鈕呼應 */
+.google-unbind-password-dialog .el-input {
+  --el-input-focus-border-color: var(--capy-danger);
+}
+
+.google-unbind-password-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg) var(--capy-spacing-sm);
+}
+
+.google-unbind-password-dialog .el-message-box__title {
+  font-size: 18px;
+  font-weight: var(--capy-font-weight-semibold);
+}
+
+.google-unbind-password-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg);
+}
+
+.google-unbind-password-dialog .el-message-box__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--capy-text-primary);
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.google-unbind-password-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-xs);
+}
+
+.google-unbind-password-dialog .el-message-box__btns {
+ padding: var(--capy-spacing-md) var(--capy-spacing-lg) var(--capy-spacing-lg);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end; /* 確保按鈕靠右 */
+}
+
+.google-unbind-password-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.google-unbind-password-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important; /* #F56C6C */
+  border-color: var(--capy-danger) !important;
+  color: var(--capy-text-inverse) !important;
+  font-weight: 500;
+}
+
+.google-unbind-password-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+}
+
+.google-unbind-password-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+}
+</style>
+
+
+/* Google Bind Password Dialog */
+.google-bind-password-dialog {
+  border-radius: var(--capy-radius-lg);
+  max-width: 500px;
+}
+
+.google-bind-password-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg);
+  border-bottom: 1px solid var(--capy-border-light);
+}
+
+.google-bind-password-dialog .el-message-box__title {
+  font-size: var(--capy-font-size-xl);
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-text-primary);
+}
+
+.google-bind-password-dialog .el-message-box__content {
   padding: var(--capy-spacing-lg);
 }
 
-.delete-account-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-lg);
-}
-
-.delete-warning {
-  display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-sm);
-}
-
-.delete-warning p {
-  margin: 0;
+.google-bind-password-dialog .el-message-box__message {
   font-size: var(--capy-font-size-base);
-  color: var(--capy-text-primary);
-  line-height: 1.6;
-}
-
-.delete-warning .warning-highlight {
-  color: var(--capy-danger);
-  font-weight: var(--capy-font-weight-semibold);
-  background-color: #FEF0F0;
-  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
-  border-radius: var(--capy-radius-sm);
-  border-left: 3px solid var(--capy-danger);
-}
-
-.delete-input-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-sm);
-}
-
-.input-label {
-  margin: 0;
-  font-size: var(--capy-font-size-sm);
   color: var(--capy-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--capy-spacing-md);
 }
 
-.input-label strong {
-  color: var(--capy-danger);
-  font-family: monospace;
-  font-size: var(--capy-font-size-base);
+.google-bind-password-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-md);
 }
 
-.delete-confirm-input {
-  width: 100%;
-  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
-  border: 2px solid var(--capy-border-base);
+.google-bind-password-dialog .el-input__wrapper {
   border-radius: var(--capy-radius-sm);
-  font-size: var(--capy-font-size-base);
-  font-family: monospace;
-  transition: border-color var(--capy-transition-base);
+  box-shadow: 0 0 0 1px var(--capy-border-base) inset;
+  transition: all var(--capy-transition-base);
 }
 
-.delete-confirm-input:focus {
-  outline: none;
-  border-color: var(--capy-danger);
+.google-bind-password-dialog .el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--capy-primary) inset;
 }
 
-.delete-account-dialog .el-message-box__btns {
+.google-bind-password-dialog .el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px var(--capy-primary) inset;
+}
+
+.google-bind-password-dialog .el-message-box__btns {
   padding: var(--capy-spacing-md) var(--capy-spacing-lg);
   border-top: 1px solid var(--capy-border-light);
 }
 
-.delete-account-dialog .el-button--primary {
-  background-color: var(--capy-danger);
-  border-color: var(--capy-danger);
+.google-bind-password-dialog .el-button {
+  border-radius: var(--capy-radius-sm);
+  padding: 10px 20px;
+  font-weight: var(--capy-font-weight-medium);
 }
 
-.delete-account-dialog .el-button--primary:hover {
-  background-color: #F56C6C;
-  border-color: #F56C6C;
+.google-bind-password-dialog .el-button--default {
+  color: var(--capy-text-secondary);
+  border-color: var(--capy-border-base);
 }
 
-.delete-account-dialog .el-button--primary:active {
-  background-color: #DD6161;
-  border-color: #DD6161;
+.google-bind-password-dialog .el-button--default:hover {
+  color: var(--capy-text-primary);
+  border-color: var(--capy-primary);
+  background-color: var(--el-color-primary-light-9);
 }
 
-.delete-account-dialog .el-message-box__input {
-  display: none;
+.google-bind-password-dialog .el-button--primary {
+  background-color: var(--capy-primary);
+  border-color: var(--capy-primary);
+  color: white;
 }
-</style>
+
+.google-bind-password-dialog .el-button--primary:hover {
+  background-color: var(--el-color-primary-light-1);
+  border-color: var(--el-color-primary-light-1);
+}
+
+.google-bind-password-dialog .el-button--primary:active {
+  background-color: var(--el-color-primary-dark-1);
+  border-color: var(--el-color-primary-dark-1);
+}
+
+.google-bind-password-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
+}

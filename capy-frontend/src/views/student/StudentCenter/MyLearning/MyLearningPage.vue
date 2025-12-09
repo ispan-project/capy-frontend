@@ -2,25 +2,23 @@
   <div class="my-learning-page">
     <!-- Header -->
     <div class="page-header">
-      <h1 class="page-title">My Learning(Course)</h1>
+      <h1 class="page-title">我的課程</h1>
       <div class="header-actions">
-        <el-button class="filter-btn" :icon="Filter" circle />
-        <el-button class="search-btn" :icon="Search" circle />
         <el-dropdown @command="handleFilterChange" trigger="click">
-          <el-button type="success" class="sort-btn">
-            <el-icon class="sort-icon"><DCaret /></el-icon>
-            Sort
+          <el-button type="primary" class="filter-status-btn">
+            <el-icon class="filter-icon"><Filter /></el-icon>
+            {{ currentFilterLabel }}
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="all" :class="{ active: currentFilter === 'all' }">
-                All
+              <el-dropdown-item command="all" :class="{ active: filterStatus === 'all' }">
+                全部狀態
               </el-dropdown-item>
-              <el-dropdown-item command="ongoing" :class="{ active: currentFilter === 'ongoing' }">
+              <el-dropdown-item command="ongoing" :class="{ active: filterStatus === 'ongoing' }">
                 進行中
               </el-dropdown-item>
-              <el-dropdown-item command="completed" :class="{ active: currentFilter === 'completed' }">
-                已結束
+              <el-dropdown-item command="completed" :class="{ active: filterStatus === 'completed' }">
+                已完課
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -31,9 +29,9 @@
     <!-- Course List -->
     <div class="course-list">
       <MyLearningCourseCard
-        v-for="enrollment in filteredEnrollments"
-        :key="enrollment.id"
-        :enrollment="enrollment"
+        v-for="course in myLearningContent"
+        :key="course.progressId"
+        :course="course"
         @open-rate-dialog="handleOpenRateDialog"
         @card-click="goToCourse"
       />
@@ -41,17 +39,23 @@
 
     <!-- Empty State -->
     <el-empty
-      v-if="filteredEnrollments.length === 0"
-      description="No courses found"
+      v-if="myLearningContent.length === 0 && !loading"
+      description="尚無課程"
       :image-size="120"
     />
 
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-wrapper">
+      <el-icon class="is-loading"><Loading /></el-icon>
+      <span>載入中...</span>
+    </div>
+
     <!-- Pagination -->
-    <div v-if="filteredEnrollments.length > 0" class="pagination-wrapper">
+    <div v-if="totalElements > 0" class="pagination-wrapper">
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="pageSize"
-        :total="filteredEnrollments.length"
+        :total="totalElements"
         layout="prev, pager, next"
         @current-change="handlePageChange"
       />
@@ -69,96 +73,146 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Filter, Search, DCaret } from '@element-plus/icons-vue'
+import { Filter, Loading } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { useStudentCenterStore } from '@/stores/studentCenter'
 import MyLearningCourseCard from '@/components/student/StudentCenter/MyLearning/MyLearningCourseCard.vue'
 import CourseRatingDialog from '@/components/student/StudentCenter/MyLearning/CourseRatingDialog.vue'
-import { enrollments } from '@/mockData'
 
 const router = useRouter()
+const studentCenterStore = useStudentCenterStore()
 
-const currentFilter = ref('all')
+// 狀態管理
+const filterStatus = ref('all')
 const currentPage = ref(1)
-const pageSize = ref(6)
+const pageSize = ref(10)
+const sortBy = ref('lastWatch,desc')
 
 // Rating dialog state
 const showRatingDialog = ref(false)
-const selectedEnrollmentId = ref(null)
+const selectedProgressId = ref(null)
 const selectedCourseInfo = ref(null)
 const initialRating = ref(0)
 const initialComment = ref('')
 
-// 使用統一的學習記錄資料
-const allEnrollments = ref(enrollments)
+/**
+ * 從 store 獲取資料
+ */
+const myLearningContent = computed(() => studentCenterStore.myLearning.content)
+const totalElements = computed(() => studentCenterStore.myLearning.totalElements)
+const totalPages = computed(() => studentCenterStore.myLearning.totalPages)
+const loading = computed(() => studentCenterStore.myLearningLoading)
 
 /**
- * Filtered enrollments based on current filter
+ * Current filter label for button display
  */
-const filteredEnrollments = computed(() => {
-  let enrollments = allEnrollments.value
-
-  if (currentFilter.value === 'ongoing') {
-    enrollments = enrollments.filter(e => e.status === 'ongoing')
-  } else if (currentFilter.value === 'completed') {
-    enrollments = enrollments.filter(e => e.status === 'completed')
+const currentFilterLabel = computed(() => {
+  const labels = {
+    all: '全部狀態',
+    ongoing: '進行中',
+    completed: '已完課'
   }
-
-  return enrollments
+  return labels[filterStatus.value] || '全部狀態'
 })
+
+/**
+ * 載入我的學習資料
+ */
+const loadMyLearning = async () => {
+  try {
+    await studentCenterStore.loadMyLearning({
+      page: currentPage.value - 1, // 後端從 0 開始
+      size: pageSize.value,
+      status: filterStatus.value,
+      sort: sortBy.value
+    })
+  } catch (error) {
+    console.error('載入我的學習資料失敗:', error)
+    ElMessage.error('載入課程失敗，請稍後再試')
+  }
+}
 
 /**
  * Handle filter change
  */
 const handleFilterChange = (command) => {
-  currentFilter.value = command
+  filterStatus.value = command
   currentPage.value = 1
+  loadMyLearning()
 }
 
 /**
  * Handle page change
  */
-const handlePageChange = () => {
+const handlePageChange = (page) => {
+  currentPage.value = page
   window.scrollTo({ top: 0, behavior: 'smooth' })
+  loadMyLearning()
 }
 
 /**
  * Navigate to course learning page
  */
 const goToCourse = (courseId) => {
-  router.push(`/course/${courseId}`)
+  router.push(`/courses/${courseId}`)
 }
 
 /**
  * Handle open rating dialog
  */
-const handleOpenRateDialog = ({ enrollment, initialRating: rating }) => {
-  selectedEnrollmentId.value = enrollment.id
-  selectedCourseInfo.value = enrollment.course
-  initialRating.value = rating
-  initialComment.value = enrollment.my_review?.comment || ''
+const handleOpenRateDialog = ({ course, initialRating: rating }) => {
+  selectedProgressId.value = course.progressId
+  selectedCourseInfo.value = {
+    courseId: course.courseId,
+    courseTitle: course.courseTitle,
+    coverImageUrl: course.coverImageUrl,
+    instructorName: course.instructorName
+  }
+  initialRating.value = rating || course.rating || 0
+  initialComment.value = course.rateComment || ''
   showRatingDialog.value = true
 }
 
 /**
  * Handle review submitted
  */
-const handleReviewSubmitted = (reviewData) => {
-  // Find the enrollment and update its review
-  const enrollment = allEnrollments.value.find(e => e.id === selectedEnrollmentId.value)
-  if (enrollment) {
-    enrollment.my_review = {
-      rating: reviewData.rating,
-      comment: reviewData.comment
-    }
-  }
+const handleReviewSubmitted = async (reviewData) => {
+  try {
+    // 判斷是新增還是更新評分
+    const course = myLearningContent.value.find(c => c.progressId === selectedProgressId.value)
+    const isUpdate = course && course.rating !== null && course.rating !== undefined
 
-  // Reset dialog state
-  selectedEnrollmentId.value = null
-  selectedCourseInfo.value = null
-  initialRating.value = 0
-  initialComment.value = ''
+    if (isUpdate) {
+      await studentCenterStore.updateRating(selectedProgressId.value, {
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      })
+    } else {
+      await studentCenterStore.submitRating(selectedProgressId.value, {
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      })
+    }
+
+    // Reset dialog state
+    selectedProgressId.value = null
+    selectedCourseInfo.value = null
+    initialRating.value = 0
+    initialComment.value = ''
+
+    ElMessage.success(isUpdate ? '評價已更新' : '評價已提交')
+  } catch (error) {
+    console.error('提交評價失敗:', error)
+    ElMessage.error('提交評價失敗，請稍後再試')
+  }
 }
+
+// 組件掛載時載入資料
+onMounted(() => {
+  loadMyLearning()
+})
 </script>
 
 <style scoped>
@@ -187,22 +241,7 @@ const handleReviewSubmitted = (reviewData) => {
   align-items: center;
 }
 
-.filter-btn,
-.search-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #e0e0e0;
-  background: white;
-  color: #666;
-}
-
-.filter-btn:hover,
-.search-btn:hover {
-  border-color: var(--capy-primary);
-  color: var(--capy-primary);
-}
-
-.sort-btn {
+.filter-status-btn {
   padding: 10px 20px;
   height: 40px;
   background: var(--capy-primary);
@@ -210,17 +249,17 @@ const handleReviewSubmitted = (reviewData) => {
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
-.sort-btn:hover,
-.sort-btn:focus {
+.filter-status-btn:hover,
+.filter-status-btn:focus {
   background: var(--capy-primary-dark);
   border-color: var(--capy-primary-dark);
 }
 
-.sort-icon {
-  font-size: 14px;
+.filter-icon {
+  font-size: 16px;
 }
 
 /* Dropdown Menu */
@@ -244,6 +283,26 @@ const handleReviewSubmitted = (reviewData) => {
   flex-direction: column;
   gap: 20px;
   margin-bottom: 32px;
+}
+
+/* Loading State */
+.loading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--capy-text-secondary);
+}
+
+.loading-wrapper .el-icon {
+  font-size: 32px;
+  color: var(--capy-primary);
+}
+
+.loading-wrapper span {
+  font-size: 14px;
 }
 
 /* Pagination */
@@ -302,13 +361,7 @@ const handleReviewSubmitted = (reviewData) => {
     font-size: 20px;
   }
 
-  .filter-btn,
-  .search-btn {
-    width: 36px;
-    height: 36px;
-  }
-
-  .sort-btn {
+  .filter-status-btn {
     padding: 8px 16px;
     height: 36px;
     font-size: 14px;

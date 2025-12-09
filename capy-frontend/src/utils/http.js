@@ -41,11 +41,7 @@ instance.interceptors.response.use(
       // Cookie 由後端管理，前端不需要手動清除
 
       // 特殊處理：如果是 /student/verify 端點的 401，這是正常的未登入狀態
-<<<<<<< HEAD
       const isVerifyEndpoint = error.config?.url?.includes("/student/verify");
-=======
-      const isVerifyEndpoint = error.config?.url?.includes('/student/verify');
->>>>>>> main
 
       if (isVerifyEndpoint) {
         // 這是正常的未登入狀態，完全靜默處理（不記錄任何訊息）
@@ -58,17 +54,6 @@ instance.interceptors.response.use(
       }
 
       // 公開頁面列表（不需要重導向到登入頁）
-<<<<<<< HEAD
-      const publicPages = [
-        "/login",
-        "/forgot-password",
-        "/reset-password",
-        "/verify-email",
-        "/oauth-callback",
-      ];
-      const currentPath = window.location.pathname;
-      const isPublicPage = publicPages.some((page) => currentPath.includes(page));
-=======
       // 包含所有不需要登入就能訪問的頁面
       const publicPages = [
         '/',                    // 主頁
@@ -88,7 +73,6 @@ instance.interceptors.response.use(
       ];
       const currentPath = window.location.pathname;
       const isPublicPage = publicPages.some(page => currentPath.startsWith(page) || currentPath === page);
->>>>>>> main
 
       // 如果不是公開頁面，則導向登入頁
       if (!isPublicPage) {

@@ -39,15 +39,9 @@ const studentRoutes = [
       // ====================================
       // 老師詳情頁面
       {
-<<<<<<< HEAD
         path: "teacherdetail/:id",
         name: "teacherDetail",
         component: () => import("@/views/student/TeacherDetail/teacherDetail.vue"),
-=======
-        path: 'teacherdetail/:id',
-        name: 'teacherDetail',
-        component: () => import('@/views/student/TeacherDetail/teacherDetail.vue')
->>>>>>> main
       },
       // 成為講師申請頁面
       {
@@ -61,26 +55,6 @@ const studentRoutes = [
         name: "instructorLanding",
         component: () => import("@/views/student/instructorApply/InstructorLanding.vue"),
       },
-<<<<<<< HEAD
-
-      // ====================================
-      // 購物車與結帳路由
-      // ====================================
-      {
-        path: "checkout",
-        name: "checkout",
-        component: () => import("@/views/student/Checkout/Checkout.vue"),
-        meta: { requiresAuth: true },
-      },
-      {
-        path: "checkout/success",
-        name: "checkoutSuccess",
-        component: () => import("@/views/student/Checkout/Success.vue"),
-        meta: { requiresAuth: true },
-      },
-
-=======
->>>>>>> main
       // ====================================
       // 其他頁面路由
       // ====================================
@@ -120,15 +94,9 @@ const studentRoutes = [
         children: [
           // 我的學習
           {
-<<<<<<< HEAD
             path: "my-learning",
             name: "MyLearning",
             component: () => import("@/views/student/StudentCenter/MyLearning/MyLearningPage.vue"),
-=======
-            path: '',
-            name: 'MyLearning',
-            component: () => import('@/views/student/StudentCenter/MyLearning/MyLearningPage.vue')
->>>>>>> main
           },
           // 願望清單
           {
@@ -144,30 +112,14 @@ const studentRoutes = [
           },
           // 通知中心
           {
-<<<<<<< HEAD
             path: "notifications",
             name: "Notifications",
             component: () =>
               import("@/views/student/StudentCenter/Notifications/NotificationsPage.vue"),
           },
-          // 重設密碼
-          {
-            path: "reset-password",
-            name: "ResetPassword",
-            component: () => import("@/views/student/StudentCenter/Profile/ResetPassword.vue"),
-          },
         ],
       },
     ],
-=======
-            path: 'notifications',
-            name: 'Notifications',
-            component: () => import('@/views/student/StudentCenter/Notifications/NotificationsPage.vue')
-          }
-        ]
-      }
-    ]
->>>>>>> main
   },
   // ====================================
   // 購物車路由 (Checkout)
@@ -189,7 +141,6 @@ const studentRoutes = [
     children: [
       // 課程學習頁面 - 使用 courseId 和 lessonId
       {
-<<<<<<< HEAD
         path: "course/:id",
         name: "courseLearning",
         component: () => import("@/views/student/CourseLearning/CourseLearningPage.vue"),
@@ -203,14 +154,6 @@ const studentRoutes = [
         meta: { requiresAuth: true },
       },
     ],
-=======
-        path: 'courses/:courseId/lessons/:lessonId',
-        name: 'CourseLearning',
-        component: () => import('@/views/student/CourseLearning/CourseLearningPage.vue'),
-        meta: { requiresAuth: true }
-      }
-    ]
->>>>>>> main
   },
   // ====================================
   // 認證相關路由 (獨立頁面，無佈局)
@@ -221,20 +164,9 @@ const studentRoutes = [
     component: () => import("@/views/student/Auth&Register/LoginPage.vue"),
   },
   {
-<<<<<<< HEAD
     path: "/oauth-callback",
     name: "authCallback",
     component: () => import("@/views/student/Auth&Register/AuthCallback.vue"),
-=======
-    path: '/register',
-    name: 'register',
-    component: () => import('@/views/student/Auth&Register/LoginPage.vue')
-  },
-  {
-    path: '/oauth-callback',
-    name: 'authCallback',
-    component: () => import('@/views/student/Auth&Register/AuthCallback.vue')
->>>>>>> main
   },
   {
     path: "/forgot-password",

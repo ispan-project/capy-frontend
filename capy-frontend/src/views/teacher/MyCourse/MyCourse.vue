@@ -5,7 +5,7 @@ const courseList = ref([]);
 const fetchCourseList = async () => {
   try {
     courseList.value = await getCourseList();
-    console.log(courseList.value);
+    // console.log(courseList.value);
   } catch (err) {
     console.log(err);
   }

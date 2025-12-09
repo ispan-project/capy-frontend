@@ -63,7 +63,10 @@ instance.interceptors.response.use(
       if (!isPublicPage) {
         console.log("認證已過期，導向登入頁");
         ElMessage.error("555");
-        router.push({ name: "login", query: { redirect: window.location.pathname } });
+        router.push({
+          name: "login",
+          query: { redirect: window.location.pathname + window.location.search },
+        });
         // window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
       }
 

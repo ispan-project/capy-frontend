@@ -1,6 +1,8 @@
 import useCourseSwitch from "@/hooks/useCourseSwitch";
+import { useCourseStore } from "@/stores/course";
 
 const { switchCourseStatus } = useCourseSwitch();
+
 export default [
   {
     path: "/teacher",
@@ -23,6 +25,10 @@ export default [
         name: "editcoursedetail",
         component: () => import("@/views/teacher/CourseDetail/EditCourseDetail.vue"),
         beforeEnter: (to, from, next) => {
+          const courseStore = useCourseStore();
+          courseStore.setCurrentCourseId(to.params.courseId);
+
+          courseStore.fetchCourseOverview();
           if (to.query.status !== "draft") {
             next({
               name: "coursedetail",
@@ -48,6 +54,11 @@ export default [
         path: "createcourse",
         name: "createcourse",
         component: () => import("@/views/teacher/CreateCourse/CreateCourse.vue"),
+        beforeEnter: (to, from, next) => {
+          const courseStore = useCourseStore();
+          courseStore.setCurrentCourseId(null);
+          next();
+        },
       },
 
       {

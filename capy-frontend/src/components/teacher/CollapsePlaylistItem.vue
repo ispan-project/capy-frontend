@@ -1,6 +1,74 @@
 <script setup>
 import { VueDraggable as Draggable } from "vue-draggable-plus";
+import TextInputDialog from "../common/TextInputDialog.vue";
+import { useLesson } from "@/composable/useLesson";
+import { useCourseStore } from "@/stores/course";
+import AlertDialog from "../common/AlertDialog.vue";
+import LessonFormDialog from "./LessonFormDialog.vue";
+import { getVideoUrl } from "@/api/teacher/video";
+import { createLesson } from "@/api/teacher/course";
 
+const props = defineProps({
+  sectionInfo: {
+    type: Object,
+    required: true,
+  },
+});
+const courseStore = useCourseStore();
+const { deleteSection, updateSection } = useLesson(props.sectionInfo);
+const sectionTitle = ref(props.sectionInfo.title);
+const showSectionEditDialog = ref(false);
+const handleEditSection = async (val) => {
+  await updateSection(val);
+};
+const showSectionDeleteDialog = ref(false);
+const handleDeleteSection = async () => {
+  await deleteSection();
+};
+//lesson
+const lessonDialogRef = ref(null);
+const isEditLesson = ref(false);
+const currentLesson = ref(null);
+const showLessonDialog = ref(false);
+const lessonVideoUrl = ref(null);
+const handleCreateLesson = () => {
+  isEditLesson.value = false;
+  // currentLesson.value =
+  showLessonDialog.value = true;
+  // form.value = {
+  //   name: "",
+  //   isFree: false,
+  //   cate: "",
+  // };
+};
+const handleEditLesson = async (lessonInfo) => {
+  isEditLesson.value = true;
+  currentLesson.value = lessonInfo;
+  const res = await getVideoUrl(lessonInfo.lessonId);
+  lessonVideoUrl.value = res.signedUrl;
+  lessonDialogRef.value.open();
+};
+const handleSaveLesson = async (data) => {
+  data.request.courseId = courseStore.currentCourseId;
+  data.request.sectionId = props.sectionInfo.sectionId;
+  if (!isEditLesson.value) {
+    // data.request.lessonId=1
+    data.request.displayOrder = props.sectionInfo.lessons.length + 1;
+  }
+  console.log(data);
+  const fd = new FormData();
+  fd.append(
+    "uploadRequest",
+    new Blob([JSON.stringify(data.request)], { type: "application/json" })
+  );
+  fd.append("attachments", data.fileList);
+  console.log(fd);
+  if (!isEditLesson.value) {
+    const res = await createLesson(fd);
+    console.log(res);
+  }
+};
+/////////////////////////
 const tableData = ref([
   {
     date: "2016-05-03",
@@ -21,37 +89,23 @@ const tableData = ref([
     address: "No. 189, Grove St, Los Angeles",
   },
 ]);
-const props = defineProps({
-  chapterinfo: {
-    type: Object,
-    required: true,
-  },
-});
-const isEdit = ref(false);
-const modelMode = computed(() => {
-  return isEdit.value ? "編輯單元影片" : "添加單元影片";
-});
-const dialogFormVisible = ref(false);
-const editChapterDialog = ref(false);
-const editChapter = () => {
-  editChapterDialog.value = true;
-};
-const deleteChapter = () => {
-  if (props.chapterinfo?.lesson_info.length > 0) {
-    ElMessage.error("該章節尚有單元影片");
-    return;
-  }
-  //刪除api
-};
-const addLessonVid = () => {
-  isEdit.value = false;
-  dialogFormVisible.value = true;
-  form.value = {
-    name: "",
-    isFree: false,
-    cate: "",
-  };
-};
+
+// const modelMode = computed(() => {
+//   return isEdit.value ? "編輯單元影片" : "添加單元影片";
+// });
+// const dialogFormVisible = ref(false);
+// const editChapterDialog = ref(false);
+// const editChapter = () => {
+//   editChapterDialog.value = true;
+// };
+// const deleteChapter = () => {
+//   if (props.sectionInfo?.lessons.length > 0) {
+//     ElMessage.error("該章節尚有單元影片");
+//     return;
+//   }
+//   //刪除api
+// };
+
 const editLessonVid = (lesson) => {
   isEdit.value = true;
   dialogFormVisible.value = true;
@@ -78,8 +132,31 @@ const form = ref({
 });
 </script>
 <template>
+  <TextInputDialog
+    @confirm="handleEditSection"
+    v-model:visible="showSectionEditDialog"
+    v-model:inputValue="sectionTitle"
+    title="編輯章節名稱"
+    placeholder="輸入章節名稱"
+  />
+  <AlertDialog
+    @confirm="handleDeleteSection"
+    v-model:visible="showSectionDeleteDialog"
+    title="刪除章節"
+    alert-text="確定要刪除"
+    :highlight="props.sectionInfo.title"
+  />
   <!-- //添加單元影片dialog form -->
-  <el-dialog center v-model="dialogFormVisible" :title="modelMode" width="500">
+  <LessonFormDialog
+    :sectionInfo="props.sectionInfo"
+    :videoUrl="lessonVideoUrl"
+    @confirm="handleSaveLesson"
+    ref="lessonDialogRef"
+    v-model:visible="showLessonDialog"
+    :isEdit="isEditLesson"
+    :lessonInfo="currentLesson"
+  />
+  <!-- <el-dialog center v-model="dialogFormVisible" :title="modelMode" width="600">
     <el-form :model="form" label-position="top" size="large" class="dialogForm">
       <el-form-item label="單元影片標題 :">
         <el-input style="width: 80%" v-model="form.lesson_name" autocomplete="off" />
@@ -123,8 +200,7 @@ const form = ref({
         <el-button type="primary" @click="dialogFormVisible = false"> 保存更新 </el-button>
       </div>
     </template>
-  </el-dialog>
-  <el-dialog center v-model="editChapterDialog"> 555 </el-dialog>
+  </el-dialog> -->
   <el-collapse-item>
     <template #icon="{ isActive }">
       <el-icon size="large" v-show="isActive"><ArrowDownBold /></el-icon>
@@ -133,22 +209,22 @@ const form = ref({
     <template #title>
       <div style="display: flex; align-items: center; gap: 12px">
         <p style="font-size: 20px; padding: 5px 0; padding-left: 20px">
-          {{ chapterinfo.chapter_name
-          }}<span style="font-size: 14px">
-            | 共{{ chapterinfo?.lesson_info.length }}單元 時長:992分鐘</span
+          {{ sectionInfo?.title
+          }}<span v-if="sectionInfo.lessons?.length > 0" style="font-size: 14px">
+            | 共{{ sectionInfo?.lessons?.length }}單元 時長:992分鐘</span
           >
         </p>
         <div>
-          <el-button @click.stop="editChapter">編輯</el-button
-          ><el-button @click.stop="deleteChapter" type="info">刪除</el-button>
+          <el-button @click.stop="showSectionEditDialog = true">編輯</el-button
+          ><el-button @click.stop="showSectionDeleteDialog = true" type="info">刪除</el-button>
         </div>
       </div>
     </template>
     <div>
-      <el-button plain class="upload-btn" @click="addLessonVid">
+      <el-button plain class="upload-btn" @click="handleCreateLesson">
         <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
       >
-      <ul class="course-playlist">
+      <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
         <Draggable v-model="tableData">
           <li v-for="(lesson, index) in chapterinfo?.lesson_info" :key="lesson.lessonid">
             <span
@@ -158,7 +234,9 @@ const form = ref({
             >
             <div>
               {{ lesson.duration_time }}
-              <el-button style="margin-left: 8px" @click="editLessonVid(lesson)">編輯 </el-button>
+              <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"
+                >編輯
+              </el-button>
               <el-button type="info" @click="deleteLessonVid(lesson)">刪除 </el-button>
             </div>
           </li>

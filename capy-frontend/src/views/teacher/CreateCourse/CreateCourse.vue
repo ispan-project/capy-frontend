@@ -3,17 +3,28 @@ import CourseDetailForm from "@/components/teacher/CourseDetailForm.vue";
 import CourseAttachment from "@/components/teacher/CourseAttachment.vue";
 import CoursePlaylist from "@/components/teacher/CoursePlaylist.vue";
 const stepComponentList = [CourseDetailForm, CoursePlaylist, CourseAttachment];
-import { usecreateCourseStore } from "@/stores/createCourse";
-const createCourseStore = usecreateCourseStore();
-console.log(createCourseStore.currentStep);
+// import { usecreateCourseStore } from "@/stores/createCourse";
+// const createCourseStore = usecreateCourseStore();
+// console.log(createCourseStore.currentStep);
 // const activeStep = ref(0);
 // const currentStep = shallowRef(CourseDetailForm);
-const activeStepCom = computed(() => stepComponentList[createCourseStore.currentStep]);
-const goNextStep = () => {
+const activeStep = ref(0);
+const activeStepCom = computed(() => stepComponentList[activeStep.value]);
+const activeComRef = ref(null);
+const goNextStep = async () => {
   if (activeStep.value === 2) {
     return;
   }
-  activeStep.value++;
+  try {
+    if (activeComRef.value.next) {
+      await activeComRef.value.next();
+      activeStep.value++;
+    }
+  } catch (e) {
+    // console.log(e.message);
+    ElMessage.error(e.message);
+  }
+
   // currentStep.value = stepComponentList[activeStep.value];
 };
 const goPreviousStep = () => {
@@ -35,7 +46,7 @@ const saveAndPublish = () => {
     <div class="step-bar">
       <el-steps
         style="width: 90%"
-        :active="createCourseStore.currentStep"
+        :active="activeStep"
         align-center
         finish-status="wait"
         process-status="finish"
@@ -47,33 +58,19 @@ const saveAndPublish = () => {
     </div>
     <div class="step-component">
       <keep-alive>
-        <component :is="activeStepCom" />
+        <component ref="activeComRef" :is="activeStepCom" />
       </keep-alive>
     </div>
 
     <div class="step-switch-btn-group">
-      <el-button size="large" v-show="createCourseStore.currentStep > 0" @click="goPreviousStep"
-        >上一步</el-button
-      >
-      <el-button
-        size="large"
-        v-show="createCourseStore.currentStep !== 2"
-        type="primary"
-        @click="goNextStep"
+      <el-button size="large" v-show="activeStep > 0" @click="goPreviousStep">上一步</el-button>
+      <el-button size="large" v-show="activeStep !== 2" type="primary" @click="goNextStep"
         >下一步</el-button
       >
-      <el-button
-        size="large"
-        v-show="createCourseStore.currentStep === 2"
-        type="info"
-        @click="saveToDraft"
+      <el-button size="large" v-show="activeStep === 2" type="info" @click="saveToDraft"
         >暫存為草稿</el-button
       >
-      <el-button
-        size="large"
-        v-show="createCourseStore.currentStep === 2"
-        type="primary"
-        @click="saveAndPublish"
+      <el-button size="large" v-show="activeStep === 2" type="primary" @click="saveAndPublish"
         >立即申請上架</el-button
       >
     </div>

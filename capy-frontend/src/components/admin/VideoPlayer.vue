@@ -4,7 +4,7 @@ import "shaka-player/dist/controls.css"; // required styling for Shaka controls
 import VideoPlayer from "@llamohank/custom-shaka-player";
 import samplevideo from "@/assets/sample.mp4";
 const videoPlayerRef = ref(null);
-let videoWidth = computed(() => videoPlayerRef.value?.videoWidth);
+// let videoWidth = computed(() => videoPlayerRef.value?.videoWidth);
 let videoHeight = computed(() => videoPlayerRef.value?.videoHeight);
 let videoDuration = computed(() => videoPlayerRef.value?.duration);
 let player = null;
@@ -14,11 +14,11 @@ onMounted(async () => {
 });
 
 const play = async (src) => {
-  await player.play(samplevideo);
+  // await player.play(samplevideo);
+  await player.play(src);
   videoDuration = videoPlayerRef.value.duration;
-  videoWidth = videoPlayerRef.value.videoWidth;
+  // videoWidth = videoPlayerRef.value.videoWidth;
   videoHeight = videoPlayerRef.value.videoHeight;
-  // await player.play(src);
 };
 const init = async () => {
   player = new VideoPlayer(videoPlayerRef.value, videoPlayerRef.value.parentElement, {
@@ -37,7 +37,7 @@ defineExpose({
   destroy,
   init,
   play,
-  videoWidth,
+  // videoWidth,
   videoHeight,
   videoDuration,
 });
@@ -56,5 +56,8 @@ defineExpose({
   height: auto;
   margin: 12px 0;
   margin-left: -12px;
+}
+:deep(#shaka-player-ui-time-container) {
+  align-items: center;
 }
 </style>

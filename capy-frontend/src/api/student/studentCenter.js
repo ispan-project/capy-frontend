@@ -341,11 +341,7 @@ export const changeStudentPassword = (data) => {
 export const deleteStudentAccount = (data) => {
   return request({
     url: '/student/delete-account',
-<<<<<<< HEAD
     method: 'DELETE',
-=======
-    method: 'POST',
->>>>>>> 0f1ea055d15a2888cbf7dc0bc3a49dbf4ffe8568
     data
   })
 }

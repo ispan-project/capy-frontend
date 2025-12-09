@@ -84,6 +84,10 @@
             <el-icon><CircleCheck v-if="requirements.number" /><CircleClose v-else /></el-icon>
             包含數字
           </li>
+          <li :class="{ valid: requirements.specialChar }">
+            <el-icon><CircleCheck v-if="requirements.specialChar" /><CircleClose v-else /></el-icon>
+            包含特殊符號
+          </li>
         </ul>
         <div class="password-hint">
           可使用字母、數字及特殊字元 !@#$%^&*()_+-={}[]:;"'&lt;&gt;,.?/
@@ -115,7 +119,8 @@ const requirements = computed(() => ({
   length: passwordForm.newPassword.length >= 8 && passwordForm.newPassword.length <= 64,
   uppercase: /[A-Z]/.test(passwordForm.newPassword),
   lowercase: /[a-z]/.test(passwordForm.newPassword),
-  number: /[0-9]/.test(passwordForm.newPassword)
+  number: /[0-9]/.test(passwordForm.newPassword),
+  specialChar: /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(passwordForm.newPassword)
 }))
 
 // Password Strength
@@ -124,17 +129,18 @@ const passwordStrength = computed(() => {
   if (!password) return { level: 'none', percentage: 0, text: '' }
 
   let score = 0
-  if (requirements.value.length) score += 25
-  if (requirements.value.uppercase) score += 25
-  if (requirements.value.lowercase) score += 25
-  if (requirements.value.number) score += 25
+  if (requirements.value.length) score += 20
+  if (requirements.value.uppercase) score += 20
+  if (requirements.value.lowercase) score += 20
+  if (requirements.value.number) score += 20
+  if (requirements.value.specialChar) score += 20
 
-  if (score <= 25) {
-    return { level: 'weak', percentage: 25, text: '弱' }
-  } else if (score <= 50) {
-    return { level: 'fair', percentage: 50, text: '普通' }
-  } else if (score <= 75) {
-    return { level: 'good', percentage: 75, text: '良好' }
+  if (score <= 40) {
+    return { level: 'weak', percentage: 40, text: '弱' }
+  } else if (score <= 60) {
+    return { level: 'fair', percentage: 60, text: '普通' }
+  } else if (score <= 80) {
+    return { level: 'good', percentage: 80, text: '良好' }
   } else {
     return { level: 'strong', percentage: 100, text: '強' }
   }
@@ -160,6 +166,8 @@ const validateNewPassword = (rule, value, callback) => {
     callback(new Error('密碼長度不能超過 64 個字元'))
   } else if (!requirements.value.uppercase || !requirements.value.lowercase || !requirements.value.number) {
     callback(new Error('密碼必須包含大小寫字母和數字'))
+  } else if (!requirements.value.specialChar) {
+    callback(new Error('密碼必須包含至少一個特殊符號'))
   } else {
     // 驗證是否只包含允許的字元（字母、數字、特殊字元）
     const allowedCharsRegex = /^[A-Za-z\d!@#$%^&*()_+\-={}[\]:;"'<>,.?/]+$/

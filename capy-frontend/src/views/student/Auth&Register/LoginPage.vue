@@ -323,29 +323,21 @@ const passwordStrengthMessage = computed(() => {
   }
 
   // 檢查密碼強度（必要條件）
+  const hasUpperCase = /[A-Z]/.test(registerForm.password);
   const hasLowerCase = /[a-z]/.test(registerForm.password);
   const hasNumber = /[0-9]/.test(registerForm.password);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password);
 
-  // 檢查額外條件（提升強度）
-  const hasUpperCase = /[A-Z]/.test(registerForm.password);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(registerForm.password);
-
-  // 必須包含大小寫字母和數字
-  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
+  // 必須包含大小寫字母、數字和特殊符號
+  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecial) {
+    const missing = [];
+    if (!hasUpperCase) missing.push('大寫字母');
+    if (!hasLowerCase) missing.push('小寫字母');
+    if (!hasNumber) missing.push('數字');
+    if (!hasSpecial) missing.push('特殊符號');
+    return `❌ 密碼必須包含${missing.join('、')}`;
   }
 
-  // 必須包含大小寫字母和數字
-  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
-  }
-
-  // 收集缺少的必要條件
-  const missingRequired = [];
-  if (!hasLowerCase) missingRequired.push('小寫字母');
-  if (!hasNumber) missingRequired.push('數字');
-
-  if (strength === 3) return '✓ 密碼強度：良好';
   return '✓ 密碼強度：優秀';
 });
 
@@ -356,8 +348,9 @@ const isPasswordValid = computed(() => {
   const hasUpperCase = /[A-Z]/.test(registerForm.password);
   const hasLowerCase = /[a-z]/.test(registerForm.password);
   const hasNumber = /[0-9]/.test(registerForm.password);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password);
 
-  return hasUpperCase && hasLowerCase && hasNumber;
+  return hasUpperCase && hasLowerCase && hasNumber && hasSpecial;
 });
 
 // 密碼提示的樣式 class
@@ -583,6 +576,12 @@ const handleRegister = async () => {
     return;
   }
 
+  // 檢查是否包含大寫字母
+  if (!/[A-Z]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個大寫字母 (A-Z)');
+    return;
+  }
+
   // 檢查是否包含小寫字母
   if (!/[a-z]/.test(registerForm.password)) {
     ElMessage.error('密碼必須包含至少一個小寫字母 (a-z)');
@@ -592,6 +591,12 @@ const handleRegister = async () => {
   // 檢查是否包含數字
   if (!/[0-9]/.test(registerForm.password)) {
     ElMessage.error('密碼必須包含至少一個數字 (0-9)');
+    return;
+  }
+
+  // 檢查是否包含特殊符號
+  if (!/[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個特殊符號 (!@#$%^&*()_+-={}[]:;"\'<>,.?/)');
     return;
   }
 

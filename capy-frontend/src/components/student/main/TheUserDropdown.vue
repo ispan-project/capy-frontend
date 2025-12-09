@@ -29,7 +29,7 @@
         <!-- Menu Items -->
         <div class="user-dropdown-items">
           <!-- My Learning -->
-          <el-dropdown-item @click="handleNavigation('/student')">
+          <el-dropdown-item @click="handleNavigation('/student/my-learning')">
             <div class="dropdown-item">
               <div class="item-icon">
                 <el-icon><VideoPlay /></el-icon>

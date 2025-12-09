@@ -26,21 +26,25 @@
             />
             <!-- 密碼要求說明 -->
             <div class="password-requirements">
-              <div class="requirement-item" :class="{ 'met': newPassword.length >= 8 }">
-                <el-icon><Check v-if="newPassword.length >= 8" /><Close v-else /></el-icon>
+              <div class="requirement-item" :class="{ 'met': passwordRequirements.length }">
+                <el-icon><Check v-if="passwordRequirements.length" /><Close v-else /></el-icon>
                 <span>至少 8 個字元</span>
               </div>
-              <div class="requirement-item" :class="{ 'met': /[a-z]/.test(newPassword) }">
-                <el-icon><Check v-if="/[a-z]/.test(newPassword)" /><Close v-else /></el-icon>
+              <div class="requirement-item" :class="{ 'met': passwordRequirements.uppercase }">
+                <el-icon><Check v-if="passwordRequirements.uppercase" /><Close v-else /></el-icon>
+                <span>包含大寫字母 (A-Z)</span>
+              </div>
+              <div class="requirement-item" :class="{ 'met': passwordRequirements.lowercase }">
+                <el-icon><Check v-if="passwordRequirements.lowercase" /><Close v-else /></el-icon>
                 <span>包含小寫字母 (a-z)</span>
               </div>
-              <div class="requirement-item" :class="{ 'met': /[0-9]/.test(newPassword) }">
-                <el-icon><Check v-if="/[0-9]/.test(newPassword)" /><Close v-else /></el-icon>
+              <div class="requirement-item" :class="{ 'met': passwordRequirements.number }">
+                <el-icon><Check v-if="passwordRequirements.number" /><Close v-else /></el-icon>
                 <span>包含數字 (0-9)</span>
               </div>
-              <div class="requirement-item optional" :class="{ 'met': /[A-Z]/.test(newPassword) }">
-                <el-icon><Check v-if="/[A-Z]/.test(newPassword)" /><Close v-else /></el-icon>
-                <span>包含大寫字母 (選填，提升強度)</span>
+              <div class="requirement-item" :class="{ 'met': passwordRequirements.special }">
+                <el-icon><Check v-if="passwordRequirements.special" /><Close v-else /></el-icon>
+                <span>包含特殊符號</span>
               </div>
             </div>
           </div>
@@ -99,6 +103,15 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
 
+// 密碼要求檢查
+const passwordRequirements = computed(() => ({
+  length: newPassword.value.length >= 8,
+  uppercase: /[A-Z]/.test(newPassword.value),
+  lowercase: /[a-z]/.test(newPassword.value),
+  number: /[0-9]/.test(newPassword.value),
+  special: /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(newPassword.value)
+}));
+
 // 密碼強度提示和驗證
 const passwordStrengthMessage = computed(() => {
   if (!newPassword.value) return '';
@@ -111,16 +124,18 @@ const passwordStrengthMessage = computed(() => {
   const hasUpperCase = /[A-Z]/.test(newPassword.value);
   const hasLowerCase = /[a-z]/.test(newPassword.value);
   const hasNumber = /[0-9]/.test(newPassword.value);
-  const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword.value);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(newPassword.value);
 
-  // 必須包含大小寫字母和數字
-  if (!hasUpperCase || !hasLowerCase || !hasNumber) {
-    return '❌ 密碼必須包含大寫字母、小寫字母和數字';
+  // 必須包含大小寫字母、數字和特殊符號
+  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecial) {
+    const missing = [];
+    if (!hasUpperCase) missing.push('大寫字母');
+    if (!hasLowerCase) missing.push('小寫字母');
+    if (!hasNumber) missing.push('數字');
+    if (!hasSpecial) missing.push('特殊符號');
+    return `❌ 密碼必須包含${missing.join('、')}`;
   }
 
-  const strength = [hasUpperCase, hasLowerCase, hasNumber, hasSpecial].filter(Boolean).length;
-
-  if (strength === 3) return '✓ 密碼強度：良好';
   return '✓ 密碼強度：優秀';
 });
 
@@ -131,8 +146,9 @@ const isPasswordValid = computed(() => {
   const hasUpperCase = /[A-Z]/.test(newPassword.value);
   const hasLowerCase = /[a-z]/.test(newPassword.value);
   const hasNumber = /[0-9]/.test(newPassword.value);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(newPassword.value);
 
-  return hasUpperCase && hasLowerCase && hasNumber;
+  return hasUpperCase && hasLowerCase && hasNumber && hasSpecial;
 });
 
 // 密碼提示的樣式 class
@@ -157,7 +173,7 @@ const validatePasswords = () => {
 
   // 檢查密碼是否符合強制要求
   if (!isPasswordValid.value) {
-    ElMessage.error('密碼必須包含大寫字母、小寫字母和數字');
+    ElMessage.error('密碼必須包含大寫字母、小寫字母、數字和特殊符號');
     return false;
   }
 

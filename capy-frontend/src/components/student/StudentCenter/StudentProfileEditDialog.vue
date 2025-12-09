@@ -981,61 +981,73 @@ const handleSave = async () => {
 // Handle Delete Account
 const handleDeleteAccount = async () => {
   try {
-    // Show confirmation dialog with input validation
-    await ElMessageBox({
-      title: '刪除帳號？',
-      message: h('div', { class: 'delete-account-content' }, [
-        h('div', { class: 'delete-warning' }, [
-          h('p', [h('strong', '您確定要刪除您的帳號嗎？')]),
-          h('p', { class: 'warning-highlight' }, '您將永久失去所有已購買課程的存取權限。')
-        ]),
-        h('div', { class: 'delete-input-section' }, [
-          h('p', { class: 'input-label' }, [
-            '請輸入 ',
-            h('strong', 'DELETE'),
-            ' 以確認：'
-          ]),
-          h(ElInput, {
-            modelValue: '',
-            placeholder: '輸入 DELETE',
-            class: 'delete-confirm-input',
-            'onUpdate:modelValue': (val) => {
-              // Store the input value for validation
-              if (window.__deleteConfirmValue !== undefined) {
-                window.__deleteConfirmValue = val
-              }
-            },
-            onMounted: () => {
-              window.__deleteConfirmValue = ''
-            }
-          })
-        ])
-      ]),
-      confirmButtonText: '確認刪除',
-      cancelButtonText: '取消',
-      type: 'error',
-      showClose: true,
-      closeOnClickModal: false,
-      closeOnPressEscape: false,
-      customClass: 'delete-account-dialog',
-      beforeClose: (action, instance, done) => {
-        if (action === 'confirm') {
-          const inputValue = window.__deleteConfirmValue?.trim()
-          if (inputValue !== 'DELETE') {
-            ElMessage.error('請輸入 DELETE 以確認刪除')
-            return false
-          }
-        }
-        done()
+    // 第一步：確認刪除意圖
+    await ElMessageBox.confirm(
+      '您確定要刪除您的帳號嗎？您將永久失去所有已購買課程的存取權限。',
+      '刪除帳號？',
+      {
+        confirmButtonText: '下一步',
+        cancelButtonText: '取消',
+        type: 'error',
+        customClass: 'delete-account-confirm-dialog'
       }
-    })
+    )
 
-    // If confirmed, proceed with deletion
+    // 第二步：要求輸入 DELETE 確認
+    const { value: deleteConfirm } = await ElMessageBox.prompt(
+      '此操作無法復原。請輸入 DELETE 以確認刪除：',
+      '確認刪除',
+      {
+        confirmButtonText: '下一步',
+        cancelButtonText: '取消',
+        inputPlaceholder: '輸入 DELETE',
+        inputPattern: /^DELETE$/,
+        inputErrorMessage: '請輸入 DELETE（全大寫）',
+        customClass: 'delete-account-input-dialog'
+      }
+    )
+
+    if (deleteConfirm?.trim() !== 'DELETE') {
+      ElMessage.error('輸入錯誤，已取消刪除')
+      return
+    }
+
+    // 第三步：要求輸入當前密碼確認
+    const { value: password } = await ElMessageBox.prompt(
+      '為了安全起見，請輸入您的帳號密碼以確認刪除帳號',
+      '確認密碼',
+      {
+        confirmButtonText: '確認刪除',
+        cancelButtonText: '取消',
+        inputType: 'password',
+        inputPlaceholder: '請輸入密碼',
+        inputValidator: (value) => {
+          if (!value) {
+            return '請輸入密碼'
+          }
+          if (value.length < 8) {
+            return '密碼長度至少 8 個字元'
+          }
+          return true
+        },
+        inputErrorMessage: '密碼格式不正確',
+        customClass: 'delete-account-password-dialog'
+      }
+    )
+
+    if (!password) {
+      ElMessage.error('未輸入密碼，已取消刪除')
+      return
+    }
+
+    // 第四步：呼叫 API 刪除帳號
     deletingAccount.value = true
 
     try {
-      // 使用 API 函數刪除帳號
-      await deleteStudentAccount()
+      // 使用 API 函數刪除帳號，傳入當前密碼
+      await deleteStudentAccount({
+        currentPassword: password
+      })
 
       ElMessage.success('帳號已刪除')
 
@@ -1050,7 +1062,29 @@ const handleDeleteAccount = async () => {
 
     } catch (error) {
       console.error('Delete account error:', error)
-      ElMessage.error(error.message || '刪除帳號失敗，請稍後再試')
+
+      // 處理不同的錯誤狀態
+      let errorMessage = '刪除帳號失敗，請稍後再試'
+
+      if (error.response) {
+        const status = error.response.status
+        const responseData = error.response.data
+
+        if (status === 401 || status === 400) {
+          // 密碼錯誤
+          if (responseData?.message?.includes('password')) {
+            errorMessage = '密碼錯誤，請重新嘗試'
+          } else {
+            errorMessage = '驗證失敗，請重新登入後再試'
+          }
+        } else if (responseData?.message) {
+          errorMessage = responseData.message
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
+      ElMessage.error(errorMessage)
     } finally {
       deletingAccount.value = false
     }
@@ -1621,110 +1655,214 @@ onMounted(() => {
 </style>
 
 <style>
-/* Global styles for delete account dialog */
-.delete-account-dialog {
-  border-radius: var(--capy-radius-lg);
-  max-width: 500px;
+/* Delete Account Confirm Dialog - 第一步確認 */
+.delete-account-confirm-dialog {
+  max-width: 420px;
+  min-width: 380px;
 }
 
-.delete-account-dialog .el-message-box__header {
-  padding: var(--capy-spacing-lg);
-  border-bottom: 1px solid var(--capy-border-light);
+.delete-account-confirm-dialog .el-message-box__header {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl) var(--capy-spacing-md);
 }
 
-.delete-account-dialog .el-message-box__title {
-  font-size: var(--capy-font-size-xl);
+.delete-account-confirm-dialog .el-message-box__title {
+  font-size: 20px;
   font-weight: var(--capy-font-weight-semibold);
   color: var(--capy-danger);
 }
 
-.delete-account-dialog .el-message-box__content {
-  padding: var(--capy-spacing-lg);
+.delete-account-confirm-dialog .el-message-box__content {
+  padding: var(--capy-spacing-xl) var(--capy-spacing-xl);
 }
 
-.delete-account-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-lg);
-}
-
-.delete-warning {
-  display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-sm);
-}
-
-.delete-warning p {
-  margin: 0;
-  font-size: var(--capy-font-size-base);
+.delete-account-confirm-dialog .el-message-box__message {
+  font-size: 16px;
+  line-height: 1.8;
   color: var(--capy-text-primary);
-  line-height: 1.6;
 }
 
-.delete-warning .warning-highlight {
-  color: var(--capy-danger);
-  font-weight: var(--capy-font-weight-semibold);
-  background-color: #FEF0F0;
-  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
-  border-radius: var(--capy-radius-sm);
-  border-left: 3px solid var(--capy-danger);
-}
-
-.delete-input-section {
+.delete-account-confirm-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-xl) var(--capy-spacing-xl);
+  gap: 12px;
   display: flex;
-  flex-direction: column;
-  gap: var(--capy-spacing-sm);
+  justify-content: flex-end;
 }
 
-.input-label {
-  margin: 0;
-  font-size: var(--capy-font-size-sm);
-  color: var(--capy-text-secondary);
+.delete-account-confirm-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: var(--capy-font-size-base);
+  min-width: 100px;
+  border-radius: var(--capy-radius-base);
+  font-weight: var(--capy-font-weight-medium);
 }
 
-.input-label strong {
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: white !important;
+  transition: all var(--capy-transition-fast);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+  box-shadow: var(--capy-shadow-sm);
+}
+
+.delete-account-confirm-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+  transform: translateY(1px);
+}
+
+/* Delete Account Input Dialog - 第二步輸入 DELETE */
+.delete-account-input-dialog {
+  max-width: 420px;
+  min-width: 380px;
+  --el-color-primary: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-input {
+  --el-input-focus-border-color: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg) var(--capy-spacing-sm);
+}
+
+.delete-account-input-dialog .el-message-box__title {
+  font-size: 18px;
+  font-weight: var(--capy-font-weight-semibold);
   color: var(--capy-danger);
+}
+
+.delete-account-input-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg);
+}
+
+.delete-account-input-dialog .el-message-box__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--capy-text-primary);
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.delete-account-input-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-xs);
+}
+
+.delete-account-input-dialog .el-input__inner {
   font-family: monospace;
   font-size: var(--capy-font-size-base);
+  text-transform: uppercase;
 }
 
-.delete-confirm-input {
-  width: 100%;
-  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
-  border: 2px solid var(--capy-border-base);
-  border-radius: var(--capy-radius-sm);
-  font-size: var(--capy-font-size-base);
-  font-family: monospace;
-  transition: border-color var(--capy-transition-base);
+.delete-account-input-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg) var(--capy-spacing-lg);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.delete-confirm-input:focus {
-  outline: none;
-  border-color: var(--capy-danger);
+.delete-account-input-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: 14px;
+  min-width: 100px;
 }
 
-.delete-account-dialog .el-message-box__btns {
-  padding: var(--capy-spacing-md) var(--capy-spacing-lg);
-  border-top: 1px solid var(--capy-border-light);
+.delete-account-input-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: var(--capy-text-inverse) !important;
+  font-weight: 500;
 }
 
-.delete-account-dialog .el-button--primary {
-  background-color: var(--capy-danger);
-  border-color: var(--capy-danger);
+.delete-account-input-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
 }
 
-.delete-account-dialog .el-button--primary:hover {
-  background-color: #F56C6C;
-  border-color: #F56C6C;
+.delete-account-input-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
 }
 
-.delete-account-dialog .el-button--primary:active {
-  background-color: #DD6161;
-  border-color: #DD6161;
+.delete-account-input-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
 }
 
-.delete-account-dialog .el-message-box__input {
-  display: none;
+/* Delete Account Password Dialog - 第三步輸入密碼 */
+.delete-account-password-dialog {
+  max-width: 420px;
+  min-width: 380px;
+  --el-color-primary: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-input {
+  --el-input-focus-border-color: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-message-box__header {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg) var(--capy-spacing-sm);
+}
+
+.delete-account-password-dialog .el-message-box__title {
+  font-size: 18px;
+  font-weight: var(--capy-font-weight-semibold);
+  color: var(--capy-danger);
+}
+
+.delete-account-password-dialog .el-message-box__content {
+  padding: var(--capy-spacing-lg) var(--capy-spacing-lg);
+}
+
+.delete-account-password-dialog .el-message-box__message {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--capy-text-primary);
+  margin-bottom: var(--capy-spacing-sm);
+}
+
+.delete-account-password-dialog .el-message-box__input {
+  margin-top: var(--capy-spacing-xs);
+}
+
+.delete-account-password-dialog .el-message-box__btns {
+  padding: var(--capy-spacing-md) var(--capy-spacing-lg) var(--capy-spacing-lg);
+  gap: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button {
+  padding: 10px 24px;
+  font-size: 14px;
+  min-width: 100px;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary {
+  background-color: var(--capy-danger) !important;
+  border-color: var(--capy-danger) !important;
+  color: var(--capy-text-inverse) !important;
+  font-weight: 500;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary:hover {
+  background-color: var(--el-color-danger-light-3) !important;
+  border-color: var(--el-color-danger-light-3) !important;
+}
+
+.delete-account-password-dialog .el-message-box__btns .el-button--primary:active {
+  background-color: var(--el-color-danger-dark-2) !important;
+  border-color: var(--el-color-danger-dark-2) !important;
+}
+
+.delete-account-password-dialog .el-message-box__errormsg {
+  color: var(--capy-danger);
+  font-size: var(--capy-font-size-sm);
+  margin-top: var(--capy-spacing-xs);
 }
 
 /* Google Bind Password Prompt Styles */

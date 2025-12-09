@@ -341,7 +341,7 @@ export const changeStudentPassword = (data) => {
 export const deleteStudentAccount = (data) => {
   return request({
     url: '/student/delete-account',
-    method: 'POST',
+    method: 'DELETE',
     data
   })
 }

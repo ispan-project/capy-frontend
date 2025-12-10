@@ -38,7 +38,7 @@ defineExpose({
     <div class="dialog-body">
       <p style="margin-bottom: 36px">
         確認{{ currentUserdetail.isActive ? "禁用用戶" : "恢復用戶" }}
-        <span class="username">{{ currentUserdetail?.username }}</span
+        <span class="username">{{ currentUserdetail?.nickname }}</span
         >?
       </p>
       <el-input

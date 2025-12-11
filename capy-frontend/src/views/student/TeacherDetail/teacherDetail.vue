@@ -1,17 +1,81 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import api from '@/utils/http';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import TrustBar from '@/components/student/Home/TrustBar.vue';
 import { User, Reading } from '@element-plus/icons-vue';
 
-// --- 路由參數 ---
-const route = useRoute();
+// --- 路由 ---
 const router = useRouter();
-const instructorId = ref(Number(route.params.id) || null);
 
-// --- 教師資料 ---
-const teacher = ref(null);
+// --- 模擬教師資料 ---
+const teacher = ref({
+  instructorName: '張教授',
+  avatarUrl: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+  bio: '擁有 15 年教學經驗的資深講師，專注於前端開發與使用者體驗設計。曾任職於多家知名科技公司，致力於培養新一代的開發人才。教學風格深入淺出，善於將複雜的概念用簡單的方式呈現。',
+  totalStudents: 12500,
+  totalCourses: 8,
+  courses: {
+    content: [
+      {
+        id: 1,
+        title: 'Vue.js 完整開發指南 - 從入門到精通',
+        coverImageUrl: 'https://picsum.photos/400/250?random=1',
+        averageRating: 4.8,
+        reviewCount: 1234
+      },
+      {
+        id: 2,
+        title: 'React 實戰開發：打造現代化網頁應用',
+        coverImageUrl: 'https://picsum.photos/400/250?random=2',
+        averageRating: 4.7,
+        reviewCount: 987
+      },
+      {
+        id: 3,
+        title: 'JavaScript 進階技巧與設計模式',
+        coverImageUrl: 'https://picsum.photos/400/250?random=3',
+        averageRating: 4.9,
+        reviewCount: 1567
+      },
+      {
+        id: 4,
+        title: 'TypeScript 完全指南',
+        coverImageUrl: 'https://picsum.photos/400/250?random=4',
+        averageRating: 4.6,
+        reviewCount: 876
+      },
+      {
+        id: 5,
+        title: 'CSS 動畫與特效設計',
+        coverImageUrl: 'https://picsum.photos/400/250?random=5',
+        averageRating: 4.8,
+        reviewCount: 654
+      },
+      {
+        id: 6,
+        title: 'Node.js 後端開發實戰',
+        coverImageUrl: 'https://picsum.photos/400/250?random=6',
+        averageRating: 4.7,
+        reviewCount: 543
+      },
+      {
+        id: 7,
+        title: 'Web 效能優化完全指南',
+        coverImageUrl: 'https://picsum.photos/400/250?random=7',
+        averageRating: 4.9,
+        reviewCount: 432
+      },
+      {
+        id: 8,
+        title: '響應式網頁設計實務',
+        coverImageUrl: 'https://picsum.photos/400/250?random=8',
+        averageRating: 4.8,
+        reviewCount: 765
+      }
+    ],
+    totalElements: 8
+  }
+});
 
 // --- 分頁 ---
 const currentPage = ref(1);
@@ -38,24 +102,9 @@ const displayRating = rating => {
   return num.toFixed(1);
 };
 
-// --- 取得老師資料 ---
-const fetchTeacher = async (id, page = 0) => {
-  if (!id) return;
-  try {
-    const res = await api.get(`/explore/instructor/${id}`, {
-      params: { page, size: pageSize, sort: 'popular' }
-    });
-    teacher.value = res;
-  } catch (err) {
-    console.error('取得老師資料失敗', err);
-  }
-};
-
-
 // --- 分頁切換 ---
 const handlePageChange = page => {
   currentPage.value = page;
-  fetchTeacher(instructorId.value, page - 1); // 後端分頁從 0 開始
   scrollToCourses();
 };
 
@@ -71,22 +120,6 @@ const goToCourse = courseId => {
   if (!courseId) return;
   router.push({ name: 'courseDetail', params: { id: courseId } });
 };
-
-// --- 初始取得老師資料 ---
-onMounted(() => {
-  fetchTeacher(instructorId.value, currentPage.value - 1);
-});
-
-// --- 路由變更時重新抓取 ---
-watch(
-  () => route.params.id,
-  newId => {
-    const parsedId = Number(newId);
-    instructorId.value = Number.isNaN(parsedId) ? null : parsedId;
-    currentPage.value = 1;
-    fetchTeacher(instructorId.value, 0);
-  }
-);
 
 </script>
 
@@ -219,7 +252,7 @@ watch(
   --capy-radius-lg: 16px;
   --capy-radius-md: 12px;
   --capy-transition-base: 0.3s cubic-bezier(0.25, 0.8, 0.5, 1);
-  
+
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
   color: var(--capy-text-primary);
   background-color: #f9fbfd; /* 頁面背景微灰，凸顯卡片 */
@@ -410,10 +443,10 @@ watch(
   }
   .profile-right { text-align: center; }
   .profile-header { justify-content: center; }
-  .teacher-stats { 
-    width: 100%; 
-    justify-content: space-around; 
-    padding: 15px; 
+  .teacher-stats {
+    width: 100%;
+    justify-content: space-around;
+    padding: 15px;
     gap: 10px;
   }
   .stat-item { flex-direction: column; gap: 6px; }
@@ -446,7 +479,7 @@ watch(
 
 .course-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); 
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
 }
 
@@ -522,7 +555,7 @@ watch(
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 44px; 
+  height: 44px;
 }
 
 .teacher-sub {
@@ -570,7 +603,7 @@ watch(
 }
 
 :deep(.el-pagination) {
-  justify-content: center; 
+  justify-content: center;
   gap: 8px;
   --el-pagination-button-bg-color: var(--capy-bg-surface);
   --el-pagination-hover-color: var(--capy-primary);

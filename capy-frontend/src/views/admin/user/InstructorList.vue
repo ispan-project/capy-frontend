@@ -123,7 +123,7 @@ onMounted(() => {
     >
       <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
-          <span class="admin-index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+          <span class="admin-index">#{{ row.index }}</span>
         </template>
       </el-table-column>
 

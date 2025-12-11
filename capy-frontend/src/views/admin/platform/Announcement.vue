@@ -151,18 +151,18 @@ onMounted(() => {
     <!-- //公告詳情 -->
     <el-dialog v-model="dialogVisible" center title="公告詳情" width="500">
       <template #header>
-        <h4 class="dialog-heading">公告詳情</h4>
+        <h4 class="admin-dialog-heading">公告詳情</h4>
       </template>
-      <div class="dialog-body">
+      <div class="admin-dialog-body">
         <p>
           {{ currentAnnouncement?.content }}
         </p>
-        <p><span class="detail-label">發布人:</span>{{ currentAnnouncement?.senderNickname }}</p>
+        <p><span class="admin-detail-label">發布人:</span>{{ currentAnnouncement?.senderNickname }}</p>
         <p>
-          <span class="detail-label">發布時間:</span>
+          <span class="admin-detail-label">發布時間:</span>
           <span style="font-style: italic; font-size: 16px">{{ formatDate(currentAnnouncement?.createdAt) }}</span>
         </p>
-        <p><span class="detail-label">可見對象:</span>{{ formatTargetAudience(currentAnnouncement?.targetAudience) }}</p>
+        <p><span class="admin-detail-label">可見對象:</span>{{ formatTargetAudience(currentAnnouncement?.targetAudience) }}</p>
       </div>
     </el-dialog>
     <!-- //發布公告 -->
@@ -305,28 +305,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.dialog-body {
-  padding: 20px;
-  font-size: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.detail-label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #6B7280;
-  margin-right: 10px;
-}
-
-.dialog-heading {
-  text-align: center;
-  padding: 12px 0;
-  font-weight: 600;
-  font-size: 18px;
-  color: #1F2937;
-}
+/* Uses shared admin-dialog-* classes from admin-dashboard.css */
 
 .checkout {
   font-size: 12px;

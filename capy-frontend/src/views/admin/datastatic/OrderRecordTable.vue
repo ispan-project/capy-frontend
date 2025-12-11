@@ -156,7 +156,7 @@ watch(
       >
         <el-table-column label="序號" width="80">
           <template #default="{ row }">
-            <span class="admin-index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+            <span class="admin-index">#{{ row.index }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="transactionId" label="交易編號" />

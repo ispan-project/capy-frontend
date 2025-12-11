@@ -1,20 +1,22 @@
 /**
  * 課程學習頁面假資料
- * 包含課程結構、FAQ 等模擬資料
+ * 包含課程結構（章節與單元）、FAQ 等模擬資料
  */
 
 /**
  * 課程資料結構
+ * - chapters: 章節列表
+ * - lessons: 各章節下的單元列表
  */
 const coursesData = {
   'course-001': {
     courseId: 'course-001',
     courseTitle: 'Vue 3 完整開發指南',
-    chapters: [
+    chapters: [  // 章節列表
       {
         id: 'chapter-1',
         title: '第一章：Vue 3 基礎入門',
-        lessons: [
+        lessons: [  // 該章節下的單元列表
           {
             id: 'lesson-1-1',
             title: '1-1 Vue 3 簡介與特性',
@@ -382,11 +384,11 @@ export default {
     onMounted(() => {
       console.log('元件已掛載')
     })
-    
+
     onUpdated(() => {
       console.log('元件已更新')
     })
-    
+
     onUnmounted(() => {
       console.log('元件即將卸載')
     })
@@ -479,8 +481,8 @@ export function getAllCourses() {
   return Object.values(coursesData).map(course => ({
     id: course.courseId,
     title: course.courseTitle,
-    chaptersCount: course.chapters.length,
-    lessonsCount: course.chapters.reduce((total, chapter) => total + chapter.lessons.length, 0)
+    chaptersCount: course.chapters.length,  // 章節數量
+    lessonsCount: course.chapters.reduce((total, chapter) => total + chapter.lessons.length, 0)  // 總單元數量
   }))
 }
 
@@ -499,7 +501,7 @@ export function getLessonById(courseId, lessonId) {
     if (lesson) {
       return {
         ...lesson,
-        chapterTitle: chapter.title
+        chapterTitle: chapter.title  // 所屬章節標題
       }
     }
   }
@@ -550,9 +552,9 @@ export const exploreCourses = [
   {
     id: 1,
     title: 'Database Design and Management with SQL',
-    instructor: 'Ava Mitchell',
-    cover_image_url: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400',
-    rating: 4.8,
+    instructorName: 'Ava Mitchell',
+    coverImageUrl: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400',
+    averageRating: 4.8,
     reviewCount: 2341,
     price: 1299,
     category: 'Information Technology',
@@ -561,9 +563,9 @@ export const exploreCourses = [
   {
     id: 2,
     title: 'IT Project Management: Agile and Scrum Methodologies',
-    instructor: 'Liam Foster',
-    cover_image_url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400',
-    rating: 4.6,
+    instructorName: 'Liam Foster',
+    coverImageUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400',
+    averageRating: 4.6,
     reviewCount: 1876,
     price: 1599,
     category: 'Information Technology',
@@ -572,9 +574,9 @@ export const exploreCourses = [
   {
     id: 3,
     title: 'DevOps Fundamentals: Automating Your Infrastructure',
-    instructor: 'Isabella Reed',
-    cover_image_url: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=400',
-    rating: 4.9,
+    instructorName: 'Isabella Reed',
+    coverImageUrl: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=400',
+    averageRating: 4.9,
     reviewCount: 3124,
     price: 1899,
     category: 'Information Technology',
@@ -583,9 +585,9 @@ export const exploreCourses = [
   {
     id: 4,
     title: 'Mobile App Development with Flutter',
-    instructor: 'Jackson Cole',
-    cover_image_url: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400',
-    rating: 4.7,
+    instructorName: 'Jackson Cole',
+    coverImageUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400',
+    averageRating: 4.7,
     reviewCount: 2567,
     price: 1799,
     category: 'Information Technology',
@@ -594,9 +596,9 @@ export const exploreCourses = [
   {
     id: 5,
     title: 'Artificial Intelligence and Deep Learning',
-    instructor: 'Mia Hughes',
-    cover_image_url: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400',
-    rating: 4.9,
+    instructorName: 'Mia Hughes',
+    coverImageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400',
+    averageRating: 4.9,
     reviewCount: 4532,
     price: 2299,
     category: 'Information Technology',
@@ -605,9 +607,9 @@ export const exploreCourses = [
   {
     id: 6,
     title: 'Cloud Security: Best Practices',
-    instructor: 'Lucas Bennett',
-    cover_image_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400',
-    rating: 4.5,
+    instructorName: 'Lucas Bennett',
+    coverImageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400',
+    averageRating: 4.5,
     reviewCount: 1923,
     price: 1499,
     category: 'Information Technology',
@@ -616,9 +618,9 @@ export const exploreCourses = [
   {
     id: 7,
     title: 'Ethical Hacking and Penetration Testing',
-    instructor: 'Chloe Parker',
-    cover_image_url: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400',
-    rating: 4.8,
+    instructorName: 'Chloe Parker',
+    coverImageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400',
+    averageRating: 4.8,
     reviewCount: 2891,
     price: 1999,
     category: 'Information Technology',
@@ -627,9 +629,9 @@ export const exploreCourses = [
   {
     id: 8,
     title: 'Mastering Digital Photography',
-    instructor: 'Emily Carter',
-    cover_image_url: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400',
-    rating: 4.8,
+    instructorName: 'Emily Carter',
+    coverImageUrl: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400',
+    averageRating: 4.8,
     reviewCount: 1234,
     price: 2399,
     category: 'Design',
@@ -638,9 +640,9 @@ export const exploreCourses = [
   {
     id: 9,
     title: 'Advanced Spanish Language Course',
-    instructor: 'Javier Rodriguez',
-    cover_image_url: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400',
-    rating: 4.9,
+    instructorName: 'Javier Rodriguez',
+    coverImageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400',
+    averageRating: 4.9,
     reviewCount: 856,
     price: 1799,
     category: 'Language',
@@ -649,9 +651,9 @@ export const exploreCourses = [
   {
     id: 10,
     title: 'Introduction to Data Science',
-    instructor: 'Dr. Anya Sharma',
-    cover_image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-    rating: 4.7,
+    instructorName: 'Dr. Anya Sharma',
+    coverImageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
+    averageRating: 4.7,
     reviewCount: 2341,
     price: 2699,
     category: 'Information Technology',
@@ -660,9 +662,9 @@ export const exploreCourses = [
   {
     id: 11,
     title: 'Creative Writing Workshop',
-    instructor: 'Ethan Blake',
-    cover_image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400',
-    rating: 4.6,
+    instructorName: 'Ethan Blake',
+    coverImageUrl: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400',
+    averageRating: 4.6,
     reviewCount: 678,
     price: 1499,
     category: 'Writing',
@@ -671,9 +673,9 @@ export const exploreCourses = [
   {
     id: 12,
     title: 'Fundamentals of Graphic Design',
-    instructor: 'Olivia Chen',
-    cover_image_url: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400',
-    rating: 4.8,
+    instructorName: 'Olivia Chen',
+    coverImageUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400',
+    averageRating: 4.8,
     reviewCount: 1567,
     price: 2099,
     category: 'Design',
@@ -682,9 +684,9 @@ export const exploreCourses = [
   {
     id: 13,
     title: 'The Art of Public Speaking',
-    instructor: 'Marcus Reed',
-    cover_image_url: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400',
-    rating: 4.7,
+    instructorName: 'Marcus Reed',
+    coverImageUrl: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400',
+    averageRating: 4.7,
     reviewCount: 934,
     price: 1649,
     category: 'Communication',
@@ -693,9 +695,9 @@ export const exploreCourses = [
   {
     id: 14,
     title: 'Web Development Bootcamp',
-    instructor: 'Sophia Lee',
-    cover_image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400',
-    rating: 4.9,
+    instructorName: 'Sophia Lee',
+    coverImageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400',
+    averageRating: 4.9,
     reviewCount: 3421,
     price: 2999,
     category: 'Information Technology',
@@ -704,9 +706,9 @@ export const exploreCourses = [
   {
     id: 15,
     title: 'Financial Planning for Beginners',
-    instructor: 'David Kim',
-    cover_image_url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
-    rating: 4.5,
+    instructorName: 'David Kim',
+    coverImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
+    averageRating: 4.5,
     reviewCount: 567,
     price: 1349,
     category: 'Finance',
@@ -730,7 +732,7 @@ export const enrollments = [
       id: 15,
       title: 'Financial Planning for Beginners: Secure Your Future',
       instructor_name: 'David Kim',
-      cover_image_url: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=400&h=300&fit=crop',
       price: 1349
     },
     completion_percentage: 75,
@@ -746,7 +748,7 @@ export const enrollments = [
       id: 16,
       title: 'Mastering Digital Marketing: Strategies for Success',
       instructor_name: 'Ava Harper',
-      cover_image_url: 'https://images.unsplash.com/photo-1432888622747-4eb9a8f2c293?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1432888622747-4eb9a8f2c293?w=400&h=300&fit=crop',
       price: 1899
     },
     completion_percentage: 30,
@@ -759,7 +761,7 @@ export const enrollments = [
       id: 10,
       title: 'Advanced Data Analysis with Python',
       instructor_name: 'Dr. Anya Sharma',
-      cover_image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
       price: 2699
     },
     completion_percentage: 15,
@@ -772,7 +774,7 @@ export const enrollments = [
       id: 14,
       title: 'Web Development Bootcamp: From Zero to Hero',
       instructor_name: 'Sophia Lee',
-      cover_image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
       price: 2999
     },
     completion_percentage: 100,
@@ -788,7 +790,7 @@ export const enrollments = [
       id: 5,
       title: 'Introduction to Machine Learning',
       instructor_name: 'Mia Hughes',
-      cover_image_url: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop',
       price: 2299
     },
     completion_percentage: 100,
@@ -801,7 +803,7 @@ export const enrollments = [
       id: 17,
       title: 'UI/UX Design Fundamentals',
       instructor_name: 'Emma Wilson',
-      cover_image_url: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop',
+      coverImageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop',
       price: 2199
     },
     completion_percentage: 45,
@@ -829,8 +831,8 @@ export const orders = [
       {
         courseId: 8,
         title: 'Mastering Digital Photography',
-        instructor: 'Emily Carter',
-        cover: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&h=300&fit=crop',
+        instructorName: 'Emily Carter',
+        coverImageUrl: 'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&h=300&fit=crop',
         price: 2399
       }
     ]
@@ -845,8 +847,8 @@ export const orders = [
       {
         courseId: 10,
         title: 'Introduction to Data Science',
-        instructor: 'Dr. Anya Sharma',
-        cover: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
+        instructorName: 'Dr. Anya Sharma',
+        coverImageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
         price: 2699
       }
     ]
@@ -861,8 +863,8 @@ export const orders = [
       {
         courseId: 5,
         title: 'Artificial Intelligence and Deep Learning',
-        instructor: 'Mia Hughes',
-        cover: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=300&fit=crop',
+        instructorName: 'Mia Hughes',
+        coverImageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=300&fit=crop',
         price: 2299
       }
     ]
@@ -877,15 +879,15 @@ export const orders = [
       {
         courseId: 14,
         title: 'Web Development Bootcamp',
-        instructor: 'Sophia Lee',
-        cover: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
+        instructorName: 'Sophia Lee',
+        coverImageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=300&fit=crop',
         price: 2999
       },
       {
         courseId: 12,
         title: 'Fundamentals of Graphic Design',
-        instructor: 'Olivia Chen',
-        cover: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400&h=300&fit=crop',
+        instructorName: 'Olivia Chen',
+        coverImageUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400&h=300&fit=crop',
         price: 2099
       }
     ]
@@ -900,8 +902,8 @@ export const orders = [
       {
         courseId: 7,
         title: 'Ethical Hacking and Penetration Testing',
-        instructor: 'Chloe Parker',
-        cover: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=300&fit=crop',
+        instructorName: 'Chloe Parker',
+        coverImageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&h=300&fit=crop',
         price: 1999
       }
     ]

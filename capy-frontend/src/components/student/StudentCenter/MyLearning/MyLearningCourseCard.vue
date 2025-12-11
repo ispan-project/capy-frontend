@@ -2,26 +2,16 @@
   <div class="course-card" @click="handleCardClick">
     <!-- Thumbnail -->
     <div class="course-thumbnail">
-      <img :src="enrollment.course.cover_image_url" :alt="enrollment.course.title" />
+      <img :src="course.coverImageUrl" :alt="course.courseTitle" />
     </div>
 
     <!-- Course Info -->
     <div class="course-info">
       <!-- Title -->
-      <h3 class="course-title">{{ enrollment.course.title }}</h3>
+      <h3 class="course-title">{{ course.courseTitle }}</h3>
 
       <!-- Instructor -->
-      <p class="course-instructor">{{ enrollment.course.instructor_name }}</p>
-
-      <!-- Progress Bar -->
-      <div class="progress-section">
-        <el-progress 
-          :percentage="enrollment.completion_percentage" 
-          :stroke-width="6"
-          :color="progressColor"
-        />
-        <span class="progress-text">{{ enrollment.completion_percentage }}%</span>
-      </div>
+      <p class="course-instructor">{{ course.instructorName }}</p>
 
       <!-- Rating Section -->
       <div class="rating-section" @click.stop>
@@ -33,8 +23,37 @@
           @change="handleRatingClick"
           class="rating-stars"
         />
-        <span class="rating-text">{{ ratingText }}</span>
+        <span
+          class="rating-text"
+          :class="{ 'clickable': !isRated }"
+          @click="handleRatingTextClick"
+        >
+          {{ ratingText }}
+        </span>
       </div>
+    </div>
+
+    <!-- Card Actions (Progress + CTA Button) -->
+    <div class="card-actions">
+      <!-- Progress Bar -->
+      <div class="progress-section">
+        <el-progress
+          :percentage="completionPercentage"
+          :stroke-width="6"
+          :status="completionPercentage === 100 ? 'success' : ''"
+        />
+        <span class="progress-text">{{ completionPercentage }}%</span>
+      </div>
+
+      <!-- CTA Button -->
+      <el-button
+        :type="ctaButtonType"
+        :plain="ctaButtonPlain"
+        class="cta-button"
+        @click.stop="handleCtaClick"
+      >
+        {{ ctaButtonText }}
+      </el-button>
     </div>
   </div>
 </template>
@@ -44,7 +63,7 @@ import { computed } from 'vue'
 import { Star } from '@element-plus/icons-vue'
 
 const props = defineProps({
-  enrollment: {
+  course: {
     type: Object,
     required: true
   }
@@ -56,10 +75,17 @@ const emit = defineEmits(['open-rate-dialog', 'card-click'])
 const StarIcon = Star
 
 /**
+ * 完成百分比 - 使用後端欄位名稱
+ */
+const completionPercentage = computed(() => {
+  return Math.round(props.course.completionPercentage || 0)
+})
+
+/**
  * Check if course is already rated
  */
 const isRated = computed(() => {
-  return !!props.enrollment.my_review
+  return props.course.rating !== null && props.course.rating !== undefined
 })
 
 /**
@@ -67,7 +93,7 @@ const isRated = computed(() => {
  */
 const displayRating = computed({
   get() {
-    return props.enrollment.my_review?.rating || 0
+    return props.course.rating || 0
   },
   set(value) {
     // This will be handled by handleRatingClick
@@ -81,7 +107,7 @@ const ratingText = computed(() => {
   if (isRated.value) {
     return '您的評分'
   }
-  return '留下評分'
+  return '前往評價'
 })
 
 /**
@@ -92,10 +118,30 @@ const ratingColors = computed(() => {
 })
 
 /**
- * Progress bar color
+ * CTA Button Configuration
  */
-const progressColor = computed(() => {
-  return 'var(--capy-primary)'
+const ctaButtonText = computed(() => {
+  const percentage = completionPercentage.value
+  if (percentage === 0) {
+    return '開始上課'
+  } else if (percentage === 100) {
+    return '查看內容'
+  } else {
+    return '繼續學習'
+  }
+})
+
+const ctaButtonType = computed(() => {
+  const percentage = completionPercentage.value
+  if (percentage === 100) {
+    return 'success'
+  }
+  return 'primary'
+})
+
+const ctaButtonPlain = computed(() => {
+  const percentage = completionPercentage.value
+  return percentage === 0 || percentage === 100
 })
 
 /**
@@ -104,28 +150,48 @@ const progressColor = computed(() => {
 const handleRatingClick = (value) => {
   if (!isRated.value && value > 0) {
     emit('open-rate-dialog', {
-      enrollment: props.enrollment,
+      course: props.course,
       initialRating: value
     })
   }
 }
 
 /**
+ * Handle rating text click (for unrated courses)
+ */
+const handleRatingTextClick = () => {
+  if (!isRated.value) {
+    emit('open-rate-dialog', {
+      course: props.course,
+      initialRating: 0
+    })
+  }
+}
+
+/**
+ * Handle CTA button click
+ */
+const handleCtaClick = () => {
+  emit('card-click', props.course.courseId)
+}
+
+/**
  * Handle card click (navigate to course)
  */
 const handleCardClick = () => {
-  emit('card-click', props.enrollment.course.id)
+  emit('card-click', props.course.courseId)
 }
 </script>
 
 <style scoped>
 .course-card {
   display: flex;
+  align-items: center;
   gap: 20px;
   background: white;
-  border-radius: 12px;
+  border-radius: var(--capy-radius-lg);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--capy-shadow-sm);
   transition: all 0.3s ease;
   cursor: pointer;
 }
@@ -138,9 +204,9 @@ const handleCardClick = () => {
 /* Thumbnail */
 .course-thumbnail {
   flex-shrink: 0;
-  width: 200px;
-  height: 112px;
-  border-radius: 8px;
+  width: 220px;
+  height: 124px;
+  border-radius: var(--capy-radius-md);
   overflow: hidden;
   background: var(--el-fill-color-light);
 }
@@ -179,12 +245,22 @@ const handleCardClick = () => {
   margin: 0;
 }
 
+/* Card Actions Section */
+.card-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+  min-width: 180px;
+}
+
 /* Progress Section */
 .progress-section {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 4px;
+  width: 100%;
 }
 
 .progress-section :deep(.el-progress) {
@@ -192,9 +268,7 @@ const handleCardClick = () => {
 }
 
 .progress-section :deep(.el-progress__text) {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--capy-primary);
+  display: none;
 }
 
 .progress-text {
@@ -203,6 +277,13 @@ const handleCardClick = () => {
   color: var(--capy-primary);
   min-width: 45px;
   text-align: right;
+}
+
+/* CTA Button */
+.cta-button {
+  width: 100%;
+  font-weight: 500;
+  border-radius: var(--capy-radius-md);
 }
 
 /* Rating Section */
@@ -244,11 +325,30 @@ const handleCardClick = () => {
   white-space: nowrap;
 }
 
+.rating-text.clickable {
+  color: var(--capy-primary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.rating-text.clickable:hover {
+  color: var(--capy-primary-dark);
+  text-decoration: underline;
+}
+
 /* Responsive Design */
+@media (max-width: 968px) {
+  .card-actions {
+    min-width: 150px;
+  }
+}
+
 @media (max-width: 768px) {
   .course-card {
     flex-direction: column;
     gap: 16px;
+    align-items: stretch;
   }
 
   .course-thumbnail {
@@ -258,6 +358,16 @@ const handleCardClick = () => {
 
   .course-title {
     font-size: 16px;
+  }
+
+  .card-actions {
+    min-width: auto;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .cta-button {
+    width: 100%;
   }
 }
 
@@ -270,18 +380,12 @@ const handleCardClick = () => {
     font-size: 15px;
   }
 
-  .progress-section {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .progress-text {
-    min-width: auto;
-  }
-
   .rating-section {
     flex-wrap: wrap;
+  }
+
+  .card-actions {
+    gap: 10px;
   }
 }
 </style>

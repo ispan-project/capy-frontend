@@ -1,9 +1,12 @@
 <template>
   <div class="login-container">
-    <!-- 左側圖片區域 -->
-    <div class="left-section">
-      <div class="image-wrapper">
-        <img src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=600&h=800&fit=crop" alt="學習圖片" class="side-image" />
+    <!-- 左側隨機化 Hero Section -->
+    <div class="left-section" :style="{ backgroundImage: `url(${currentHero.image})` }">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <h1 class="hero-title">{{ currentHero.title }}</h1>
+        <p class="hero-subtitle">{{ currentHero.subtitle }}</p>
+        <div class="floating-badge">🔥 5,000+ Students</div>
       </div>
     </div>
 
@@ -67,7 +70,17 @@
             <router-link to="/forgot-password" class="link">忘記密碼？</router-link>
           </div>
 
-          <button class="submit-button" @click="handleLogin">登入</button>
+          <button
+            class="submit-button"
+            @click="handleLogin"
+            :disabled="isLoggingIn"
+            :class="{ 'is-loading': isLoggingIn }"
+          >
+            <el-icon v-if="isLoggingIn" class="is-loading">
+              <Loading />
+            </el-icon>
+            <span>{{ isLoggingIn ? '登入中...' : '登入' }}</span>
+          </button>
           <button class="google-button" @click="handleGoogleLogin">
             <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -101,16 +114,28 @@
           <!-- 註冊表單 -->
           <div v-else>
           <div class="form-group">
-            <label class="form-label">使用者名稱</label>
-            <input
-              v-model="registerForm.username"
-              type="text"
-              class="form-input"
-              placeholder="輸入使用者名稱"
-              @input="handleUsernameInput"
-            />
-            <div v-if="usernameValidation.message" :class="['validation-message', usernameValidation.type]">
-              {{ usernameValidation.message }}
+            <label class="form-label">暱稱</label>
+            <div class="input-with-icon">
+              <input
+                v-model="registerForm.username"
+                type="text"
+                class="form-input"
+                placeholder="輸入暱稱（至少 2 個字元）"
+                @input="handleNicknameInput"
+                @compositionstart="handleCompositionStart"
+                @compositionend="handleCompositionEnd"
+              />
+              <div v-if="nicknameValidation.checking" class="input-icon">
+                <el-icon class="is-loading">
+                  <Loading />
+                </el-icon>
+              </div>
+            </div>
+            <div v-show="nicknameValidation.message" :class="['validation-message', nicknameValidation.type]">
+              {{ nicknameValidation.message || '&nbsp;' }}
+            </div>
+            <div v-if="!nicknameValidation.message && registerForm.username" class="nickname-hint">
+              僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白
             </div>
           </div>
 
@@ -151,6 +176,13 @@
             </div>
           </div>
 
+          <!-- 密碼強度提示 -->
+          <div v-show="passwordStrengthMessage"
+               :class="['password-hint', passwordHintClass]">
+            <el-icon><InfoFilled /></el-icon>
+            <span>{{ passwordStrengthMessage || '&nbsp;' }}</span>
+          </div>
+
           <div class="form-group">
             <label class="form-label">確認密碼</label>
             <div class="password-input-wrapper">
@@ -183,7 +215,17 @@
             <label for="terms" class="checkbox-label">我同意服務條款和隱私政策</label>
           </div>
 
-          <button class="submit-button register" @click="handleRegister">建立帳號</button>
+          <button
+            class="submit-button"
+            @click="handleRegister"
+            :disabled="isRegistering"
+            :class="{ 'is-loading': isRegistering }"
+          >
+            <el-icon v-if="isRegistering" class="is-loading">
+              <Loading />
+            </el-icon>
+            <span>{{ isRegistering ? '註冊中...' : '建立帳號' }}</span>
+          </button>
 
           <button class="google-button" @click="handleGoogleLogin">
             <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
@@ -202,10 +244,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { View, Hide, Message } from '@element-plus/icons-vue';
-import { validateUsername, debounce } from '@/utils/usernameValidator';
+import { View, Hide, Message, Loading, InfoFilled } from '@element-plus/icons-vue';
+import {
+  validateNicknameFormat,
+  createNicknameValidator,
+  debounce,
+  VALIDATION_MESSAGES,
+  MIN_NICKNAME_LENGTH
+} from '@/utils/usernameValidator';
 import { ElMessage } from 'element-plus';
 import { login, register, initiateGoogleOAuth } from '@/api/oauth/oauth';
 import { useUserStore } from '@/stores/user';
@@ -213,6 +261,27 @@ import { useUserStore } from '@/stores/user';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+
+// Hero Section 隨機化
+const heroOptions = [
+  {
+    image: '/Gemini_Generated_Image_wncmt4wncmt4wncm.png',
+    title: '像水豚一樣自在地學習',
+    subtitle: 'CapyCourse 陪你從零開始，探索無限可能'
+  },
+  {
+    image: '/Gemini_Generated_Image_wncmt4wncmt4wncm.png',
+    title: '專注，是成長的捷徑',
+    subtitle: '讓知識成為你最強的後盾'
+  },
+  {
+    image: '/Gemini_Generated_Image_wncmt4wncmt4wncm.png',
+    title: '學習，是為了更好的生活',
+    subtitle: '依照你的步調，隨時隨地開始'
+  }
+];
+
+const currentHero = ref(heroOptions[0]);
 
 // 當前標籤
 const activeTab = ref('login');
@@ -224,6 +293,12 @@ const registeredEmail = ref('');
 // 密碼顯示狀態
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+// 登入載入狀態
+const isLoggingIn = ref(false);
+
+// 註冊載入狀態
+const isRegistering = ref(false);
 
 // 登入表單
 const loginForm = reactive({
@@ -241,23 +316,160 @@ const registerForm = reactive({
   googleId: '' // 用於儲存 Google ID（如果是從 OAuth 導向過來的）
 });
 
-// 使用者名稱驗證結果
-const usernameValidation = reactive({
+// 暱稱驗證狀態
+const nicknameValidation = reactive({
   message: '',
-  type: '' // 'success' | 'error' | 'warning'
+  type: '', // 'success' | 'error' | 'warning' | 'info'
+  checking: false, // 是否正在檢查中
+  available: null // true: 可用, false: 不可用, null: 未檢查或錯誤
 });
 
-// 使用者名稱驗證函式（帶 debounce）
-const validateUsernameDebounced = debounce((username) => {
-  const result = validateUsername(username);
-  usernameValidation.message = result.message;
-  usernameValidation.type = result.type;
-}, 300);
+// 中文輸入法狀態
+const isComposing = ref(false);
 
-// 處理使用者名稱輸入
-const handleUsernameInput = () => {
-  validateUsernameDebounced(registerForm.username);
+// 密碼強度提示和驗證
+const passwordStrengthMessage = computed(() => {
+  if (!registerForm.password) return '';
+
+  if (registerForm.password.length < 8) {
+    return '❌ 密碼長度至少需要 8 個字元';
+  }
+
+  // 檢查密碼強度（必要條件）
+  const hasUpperCase = /[A-Z]/.test(registerForm.password);
+  const hasLowerCase = /[a-z]/.test(registerForm.password);
+  const hasNumber = /[0-9]/.test(registerForm.password);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password);
+
+  // 必須包含大小寫字母、數字和特殊符號
+  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecial) {
+    const missing = [];
+    if (!hasUpperCase) missing.push('大寫字母');
+    if (!hasLowerCase) missing.push('小寫字母');
+    if (!hasNumber) missing.push('數字');
+    if (!hasSpecial) missing.push('特殊符號');
+    return `❌ 密碼必須包含${missing.join('、')}`;
+  }
+
+  return '✓ 密碼強度：優秀';
+});
+
+// 檢查密碼是否符合要求
+const isPasswordValid = computed(() => {
+  if (!registerForm.password || registerForm.password.length < 8) return false;
+
+  const hasUpperCase = /[A-Z]/.test(registerForm.password);
+  const hasLowerCase = /[a-z]/.test(registerForm.password);
+  const hasNumber = /[0-9]/.test(registerForm.password);
+  const hasSpecial = /[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password);
+
+  return hasUpperCase && hasLowerCase && hasNumber && hasSpecial;
+});
+
+// 密碼提示的樣式 class
+const passwordHintClass = computed(() => {
+  const message = passwordStrengthMessage.value;
+  if (message.startsWith('❌')) return 'hint-error';
+  if (message.startsWith('✓')) return 'hint-success';
+  return 'hint-info';
+});
+
+// 建立暱稱驗證器（處理請求競爭）
+const nicknameValidator = createNicknameValidator();
+
+// 暱稱驗證函式（帶 debounce 和 API 檢查）
+const validateNicknameDebounced = debounce(async (nickname) => {
+  // 如果正在組字中，不執行驗證
+  if (isComposing.value) {
+    return;
+  }
+
+  const trimmedNickname = nickname.trim();
+
+  // 先進行前端格式驗證
+  const formatValidation = validateNicknameFormat(trimmedNickname);
+
+  // 如果格式驗證失敗，直接顯示錯誤
+  if (!formatValidation.valid) {
+    nicknameValidation.message = formatValidation.message;
+    nicknameValidation.type = formatValidation.type;
+    nicknameValidation.checking = false;
+    nicknameValidation.available = null;
+    return;
+  }
+
+  // 格式驗證通過，開始 API 檢查
+  nicknameValidation.checking = true;
+  nicknameValidation.message = VALIDATION_MESSAGES.CHECKING;
+  nicknameValidation.type = 'info';
+
+  try {
+    // 呼叫 API 檢查暱稱
+    const result = await nicknameValidator.validate(trimmedNickname);
+
+    // 如果返回 null，表示這是舊的請求，被新請求取代了
+    if (result === null) {
+      return;
+    }
+
+    // 更新驗證結果
+    nicknameValidation.message = result.message;
+    nicknameValidation.type = result.type;
+    nicknameValidation.available = result.available;
+    nicknameValidation.checking = false;
+  } catch (error) {
+    console.error('暱稱驗證錯誤:', error);
+    nicknameValidation.message = VALIDATION_MESSAGES.ERROR;
+    nicknameValidation.type = 'warning';
+    nicknameValidation.available = null;
+    nicknameValidation.checking = false;
+  }
+}, 500); // 500ms debounce
+
+// 處理暱稱輸入
+const handleNicknameInput = () => {
+  // 如果正在組字中，不觸發驗證
+  if (isComposing.value) {
+    return;
+  }
+
+  const nickname = registerForm.username.trim();
+
+  // 如果長度不足最小要求，顯示提示但不呼叫 API
+  if (nickname.length === 0) {
+    nicknameValidation.message = '';
+    nicknameValidation.type = '';
+    nicknameValidation.checking = false;
+    nicknameValidation.available = null;
+    return;
+  }
+
+  // 觸發 debounced 驗證
+  validateNicknameDebounced(registerForm.username);
 };
+
+// 處理中文輸入法開始組字
+const handleCompositionStart = () => {
+  isComposing.value = true;
+};
+
+// 處理中文輸入法結束組字
+const handleCompositionEnd = () => {
+  isComposing.value = false;
+  // 組字完成後，觸發驗證
+  handleNicknameInput();
+};
+
+// 清理函式
+onUnmounted(() => {
+  // 取消所有待處理的驗證
+  if (validateNicknameDebounced.cancel) {
+    validateNicknameDebounced.cancel();
+  }
+  if (nicknameValidator.cancel) {
+    nicknameValidator.cancel();
+  }
+});
 
 // 處理登入
 const handleLogin = async () => {
@@ -265,6 +477,14 @@ const handleLogin = async () => {
     ElMessage.error('請填寫所有欄位');
     return;
   }
+
+  // 防止重複點擊
+  if (isLoggingIn.value) {
+    return;
+  }
+
+  // 開始載入
+  isLoggingIn.value = true;
 
   try {
     // 呼叫登入 API（後端會自動設定 Cookie）
@@ -282,13 +502,26 @@ const handleLogin = async () => {
       nickname: user.nickname,
       avatar: user.avatarUrl || '',
       roles: roles || [user.role], // 使用 roles 陣列，或將單一 role 轉換為陣列
-      email: user.email
+      email: user.email,
+      googleLinked: user.googleLinked || false
     });
 
     ElMessage.success('登入成功！');
 
+    // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+    try {
+      await userStore.init();
+      console.log('Cookie 驗證成功，使用者已認證');
+    } catch (verifyError) {
+      console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+      // 即使驗證失敗也繼續，因為使用者資訊已存入 store
+    }
+
     // 檢查是否有原始目標路徑
-    const redirectPath = route.query.redirect || '/student/my-learning';
+    const redirectPath = route.query.redirect || '/';
 
     // 跳轉頁面
     await router.push(redirectPath);
@@ -301,6 +534,8 @@ const handleLogin = async () => {
       if (error.status === 401) {
         ElMessage.error('登入失敗，請檢查您的帳號密碼');
       }
+      // 登入失敗時重置載入狀態
+      isLoggingIn.value = false;
       return;
     }
 
@@ -315,21 +550,71 @@ const handleLogin = async () => {
     } else {
       ElMessage.error(errorMessage || '登入失敗，請檢查您的帳號密碼');
     }
+
+    // 登入失敗時重置載入狀態
+    isLoggingIn.value = false;
   }
 };
 
 // 處理註冊
 const handleRegister = async () => {
-  // 驗證使用者名稱
-  const usernameResult = validateUsername(registerForm.username);
-  if (!usernameResult.valid) {
-    ElMessage.error(usernameResult.message || '使用者名稱不符合規則');
+  // 防止重複點擊
+  if (isRegistering.value) {
+    return;
+  }
+
+  // 檢查是否正在驗證暱稱
+  if (nicknameValidation.checking) {
+    ElMessage.warning('請等待暱稱驗證完成');
+    return;
+  }
+
+  // 驗證暱稱格式
+  const formatValidation = validateNicknameFormat(registerForm.username);
+  if (!formatValidation.valid) {
+    ElMessage.error(formatValidation.message || '暱稱格式不正確');
+    return;
+  }
+
+  // 檢查暱稱是否可用（必須通過 API 驗證）
+  if (nicknameValidation.available !== true) {
+    ElMessage.error('請使用可用的暱稱');
     return;
   }
 
   // 驗證其他欄位
   if (!registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
     ElMessage.error('請填寫所有欄位');
+    return;
+  }
+
+  // 驗證密碼長度
+  if (registerForm.password.length < 8) {
+    ElMessage.error('密碼長度至少需要 8 個字元');
+    return;
+  }
+
+  // 檢查是否包含大寫字母
+  if (!/[A-Z]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個大寫字母 (A-Z)');
+    return;
+  }
+
+  // 檢查是否包含小寫字母
+  if (!/[a-z]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個小寫字母 (a-z)');
+    return;
+  }
+
+  // 檢查是否包含數字
+  if (!/[0-9]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個數字 (0-9)');
+    return;
+  }
+
+  // 檢查是否包含特殊符號
+  if (!/[!@#$%^&*()_+\-={}[\]:;"'<>,.?/]/.test(registerForm.password)) {
+    ElMessage.error('密碼必須包含至少一個特殊符號 (!@#$%^&*()_+-={}[]:;"\'<>,.?/)');
     return;
   }
 
@@ -343,12 +628,26 @@ const handleRegister = async () => {
     return;
   }
 
+  // 開始載入
+  isRegistering.value = true;
+
   try {
+    // 註冊前再次確認暱稱可用性（防止併發問題）
+    const finalCheck = await nicknameValidator.validate(registerForm.username.trim());
+    if (finalCheck && finalCheck.available !== true) {
+      ElMessage.error('此暱稱已被使用，請重新選擇');
+      nicknameValidation.available = false;
+      nicknameValidation.message = VALIDATION_MESSAGES.TAKEN;
+      nicknameValidation.type = 'error';
+      isRegistering.value = false;
+      return;
+    }
+
     // 呼叫註冊 API
     await register({
       email: registerForm.email,
       password: registerForm.password,
-      nickname: registerForm.username,
+      nickname: registerForm.username.trim(),
       googleId: registerForm.googleId || undefined // 如果有 Google ID 則一併送出
     });
 
@@ -371,13 +670,25 @@ const handleRegister = async () => {
           nickname: user.nickname,
           avatar: user.avatarUrl || '',
           roles: roles || [user.role],
-          email: user.email
+          email: user.email,
+          googleLinked: user.googleLinked || false
         });
 
         ElMessage.success('登入成功！');
 
+        // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+        try {
+          await userStore.init();
+          console.log('Cookie 驗證成功，使用者已認證');
+        } catch (verifyError) {
+          console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+        }
+
         // 跳轉到學生中心
-        const redirectPath = route.query.redirect || '/student/my-learning';
+        const redirectPath = route.query.redirect || '/';
         await router.push(redirectPath);
       } catch (loginError) {
         console.error('自動登入失敗:', loginError);
@@ -393,6 +704,9 @@ const handleRegister = async () => {
   } catch (error) {
     console.error('註冊失敗:', error);
     ElMessage.error(error.response?.data?.message || error.message || '註冊失敗，請稍後再試');
+  } finally {
+    // 無論成功或失敗，都重置載入狀態
+    isRegistering.value = false;
   }
 };
 
@@ -410,6 +724,10 @@ const handleGoogleLogin = () => {
  * 在元件掛載時檢查 URL 查詢參數
  */
 onMounted(() => {
+  // 隨機選擇 Hero Section
+  const randomIndex = Math.floor(Math.random() * heroOptions.length);
+  currentHero.value = heroOptions[randomIndex];
+
   const { email, googleId, oauthError } = route.query;
 
   // 情境 1: OAuth 錯誤或帳號停用
@@ -439,21 +757,30 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+:root {
+  --capy-primary: #54CDF2;
+  --capy-primary-dark: #0EA5E9;
+  --capy-bg-base: #F5F7FA;
+  --capy-text-primary: #303133;
+  --capy-text-secondary: #606266;
+  --capy-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
 /* 外層容器 - 全螢幕並置中 */
 .login-container {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--capy-bg-base);
   padding: 20px;
 }
 
 /* 內層容器 - 固定大小 */
 .login-container > .left-section,
 .login-container > .right-section {
-  height: 680px;
+  height: 780px;
 }
 
 .login-container > .left-section {
@@ -464,32 +791,76 @@ onMounted(() => {
   width: 520px;
 }
 
-/* 左側圖片區域 */
+/* 左側 Hero Section */
 .left-section {
-  background: linear-gradient(135deg, #e0e7ff 0%, #ddd6fe 100%);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 60px;
   border-radius: 20px 0 0 20px;
   box-shadow: -5px 0 20px rgba(0, 0, 0, 0.05);
-
-}
-
-.image-wrapper {
-  max-width: 500px;
-  width: 100%;
-  border-radius: 20px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  height: auto;
 }
 
-.side-image {
-  width: 100%;
-  height: 650px;
-  display: block;
-  object-fit: cover;
+/* 藍色漸層覆蓋層 */
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(224, 231, 255, 0.55), rgba(221, 214, 254, 0.75));
+  z-index: 1;
+}
+
+/* Hero 內容 */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: var(--capy-text-primary);
+}
+
+.hero-title {
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  line-height: 1.3;
+  color: var(--capy-text-primary);
+}
+
+.hero-subtitle {
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--capy-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* 浮動徽章 */
+.floating-badge {
+  display: inline-block;
+  padding: 12px 24px;
+  background: white;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--capy-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* 右側表單區域 */
@@ -497,18 +868,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 60px 40px;
   background: white;
-  border-radius: 0 20px 20px 0;
-  box-shadow: 5px 0 20px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
 .form-container {
   width: 100%;
   max-width: 370px;
+  min-height: 500px; /* 固定最小高度 */
 }
 
 .title {
+  margin-top: 0; /* 確保固定起始點 */
   font-size: 36px;
   font-weight: 700;
   color: #1a1a1a;
@@ -549,12 +923,16 @@ onMounted(() => {
 .tab.active {
   background: white;
   color: var(--capy-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--capy-shadow-md);
 }
 
 /* 表單內容 */
 .form-content {
   animation: fadeIn 0.3s ease;
+}
+.info-message-placeholder {
+  height: 40px; /* 固定高度 */
+  visibility: hidden; /* 不顯示但佔空間 */
 }
 
 @keyframes fadeIn {
@@ -586,9 +964,9 @@ onMounted(() => {
   border: 2px solid #e5e5e5;
   border-radius: 10px;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--capy-text-primary);
   transition: all 0.3s ease;
-  background: #f8f9fa;
+  background: var(--capy-bg-base);
 }
 
 .form-input:focus {
@@ -657,7 +1035,10 @@ onMounted(() => {
   font-weight: 500;
   padding: 8px 12px;
   border-radius: 6px;
+  min-height: 37px; /* 固定最小高度，確保即使沒有內容也佔據空間 */
   animation: slideDown 0.3s ease;
+  display: flex;
+  align-items: center;
 }
 
 @keyframes slideDown {
@@ -679,6 +1060,61 @@ onMounted(() => {
 .validation-message.error {
   color: var(--capy-danger);
   background: var(--el-color-danger-light-9);
+}
+
+.validation-message.warning {
+  color: var(--el-color-warning);
+  background: var(--el-color-warning-light-9);
+}
+
+.validation-message.info {
+  color: var(--capy-primary);
+  background: var(--el-color-primary-light-9);
+}
+
+/* 暱稱格式提示 */
+.nickname-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--capy-text-secondary);
+  padding: 6px 12px;
+  background: var(--capy-bg-base);
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+/* 輸入框帶 icon */
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon .form-input {
+  padding-right: 40px;
+}
+
+.input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--capy-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.input-icon .is-loading {
+  animation: rotating 1.5s linear infinite;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 忘記密碼 */
@@ -711,21 +1147,30 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.submit-button:hover {
-  background: var(--el-color-primary-dark-2);
+.submit-button:hover:not(:disabled) {
+  background: var(--capy-primary-dark);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(var(--capy-primary-rgb), 0.3);
+  box-shadow: 0 8px 20px rgba(84, 205, 242, 0.3);
 }
 
-.submit-button.register {
-  background: var(--capy-success);
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.submit-button.register:hover {
-  background: var(--el-color-success-dark-2);
-  box-shadow: 0 8px 20px rgba(103, 194, 58, 0.3);
+.submit-button.is-loading {
+  pointer-events: none;
+}
+
+.submit-button .is-loading {
+  animation: rotating 1.5s linear infinite;
 }
 
 /* API 測試連結 */
@@ -745,7 +1190,7 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: var(--capy-success);
+  accent-color: var(--capy-primary);
 }
 
 .checkbox-label {
@@ -753,6 +1198,40 @@ onMounted(() => {
   color: #666;
   cursor: pointer;
   user-select: none;
+}
+
+/* 密碼強度提示 */
+.password-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  min-height: 45px;
+  animation: slideDown 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.password-hint.hint-error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.password-hint.hint-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.password-hint.hint-info {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.password-hint .el-icon {
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 /* Google 按鈕 */
@@ -825,16 +1304,40 @@ onMounted(() => {
 }
 
 /* 響應式設計 */
-@media (max-width: 968px) {
+@media (max-width: 768px) {
+  .left-section {
+    display: none;
+  }
+
+  .login-container > .right-section {
+    width: 100%;
+    max-width: 520px;
+    border-radius: 20px;
+  }
+
+  .right-section {
+    padding: 40px 20px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 968px) {
   .login-container {
     flex-direction: column;
   }
 
+  .login-container > .left-section,
+  .login-container > .right-section {
+    width: 100%;
+    max-width: 620px;
+  }
+
   .left-section {
-    min-height: 300px;
+    height: 300px;
+    border-radius: 20px 20px 0 0;
   }
 
   .right-section {
+    border-radius: 0 0 20px 20px;
     padding: 40px 20px;
   }
 }

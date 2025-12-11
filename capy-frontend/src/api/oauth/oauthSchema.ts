@@ -21,10 +21,10 @@ export interface RegisterParam {
 export const registerRules = {
   email: [
     { required: true, message: '請輸入電子郵件', trigger: 'blur' },
-    { 
-      type: 'email', 
-      message: '請輸入有效的電子郵件格式', 
-      trigger: ['blur', 'change'] 
+    {
+      type: 'email',
+      message: '請輸入有效的電子郵件格式',
+      trigger: ['blur', 'change']
     },
     {
       max: 255,
@@ -34,10 +34,10 @@ export const registerRules = {
   ],
   password: [
     { required: true, message: '請輸入密碼', trigger: 'blur' },
-    { 
-      min: 8, 
-      message: '密碼長度至少需要 8 個字元', 
-      trigger: 'blur' 
+    {
+      min: 8,
+      message: '密碼長度至少需要 8 個字元',
+      trigger: 'blur'
     },
     {
       max: 128,
@@ -45,17 +45,17 @@ export const registerRules = {
       trigger: 'blur'
     },
     {
-      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/,
       message: '密碼必須包含大小寫字母、數字和特殊字元',
       trigger: 'blur'
     }
   ],
   nickname: [
     { required: true, message: '請輸入暱稱', trigger: 'blur' },
-    { 
-      min: 2, 
-      message: '暱稱長度至少需要 2 個字元', 
-      trigger: 'blur' 
+    {
+      min: 2,
+      message: '暱稱長度至少需要 2 個字元',
+      trigger: 'blur'
     },
     {
       max: 50,
@@ -86,10 +86,10 @@ export interface LoginParam {
 export const loginRules = {
   email: [
     { required: true, message: '請輸入電子郵件', trigger: 'blur' },
-    { 
-      type: 'email', 
-      message: '請輸入有效的電子郵件格式', 
-      trigger: ['blur', 'change'] 
+    {
+      type: 'email',
+      message: '請輸入有效的電子郵件格式',
+      trigger: ['blur', 'change']
     }
   ],
   password: [
@@ -121,10 +121,10 @@ export interface ResetPasswordParam {
 export const resetPasswordRules = {
   newPassword: [
     { required: true, message: '請輸入新密碼', trigger: 'blur' },
-    { 
-      min: 8, 
-      message: '密碼長度至少需要 8 個字元', 
-      trigger: 'blur' 
+    {
+      min: 8,
+      message: '密碼長度至少需要 8 個字元',
+      trigger: 'blur'
     },
     {
       max: 128,
@@ -132,7 +132,7 @@ export const resetPasswordRules = {
       trigger: 'blur'
     },
     {
-      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+      pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/,
       message: '密碼必須包含大小寫字母、數字和特殊字元',
       trigger: 'blur'
     }
@@ -179,30 +179,24 @@ export const validatePasswordStrength = (password: string): {
   }
 
   let strength = 0
-  
+
   // 檢查是否包含小寫字母
   if (/[a-z]/.test(password)) strength++
-  
+
   // 檢查是否包含大寫字母
   if (/[A-Z]/.test(password)) strength++
-  
+
   // 檢查是否包含數字
   if (/\d/.test(password)) strength++
-  
+
   // 檢查是否包含特殊字元
   if (/[@$!%*?&]/.test(password)) strength++
 
-  if (strength < 3) {
+  if (strength < 4) {
     return {
       isValid: false,
       strength: 'weak',
-      message: '密碼強度較弱，建議包含大小寫字母、數字和特殊字元'
-    }
-  } else if (strength === 3) {
-    return {
-      isValid: true,
-      strength: 'medium',
-      message: '密碼強度中等'
+      message: '密碼必須包含大小寫字母、數字和特殊字元'
     }
   } else {
     return {

@@ -25,8 +25,13 @@ instance.interceptors.response.use(
   (response) => {
     // 任何 2xx 的 HTTP 狀態碼，將會觸發此函數
     // 針對回應資料，做些什麼
-    // 安全地提取 data，避免 null/undefined 錯誤
-    return response.data?.data ?? response.data ?? null;
+    // 檢查是否有標準的後端回應格式 {success, code, data}
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      // 返回 data 欄位（可能是 null、陣列或物件）
+      return response.data.data;
+    }
+    // 如果不是標準格式，返回原始 response.data
+    return response.data ?? null;
   },
   (error) => {
     // 任何 2xx 之外的 HTTP 狀態碼，都會觸發此函數
@@ -39,7 +44,7 @@ instance.interceptors.response.use(
       const isVerifyEndpoint = error.config?.url?.includes("/student/verify");
 
       if (isVerifyEndpoint) {
-        // 這是正常的未登入狀態，靜默處理
+        // 這是正常的未登入狀態，完全靜默處理（不記錄任何訊息）
         return Promise.reject({
           handled: true,
           status: 401,
@@ -49,15 +54,25 @@ instance.interceptors.response.use(
       }
 
       // 公開頁面列表（不需要重導向到登入頁）
+      // 包含所有不需要登入就能訪問的頁面
       const publicPages = [
-        "/login",
-        "/forgot-password",
-        "/reset-password",
-        "/verify-email",
-        "/oauth-callback",
+        '/',                    // 主頁
+        '/login',               // 登入頁
+        '/register',            // 註冊頁
+        '/forgot-password',     // 忘記密碼
+        '/reset-password',      // 重設密碼
+        '/verify-email',        // 驗證信箱
+        '/oauth-callback',      // OAuth 回調
+        '/explore',             // 課程探索
+        '/courses/',            // 課程詳情（包含所有課程 ID）
+        '/teacherdetail/',      // 老師詳情（包含所有老師 ID）
+        '/instructor/landing',  // 講師介紹頁
+        '/about',               // 關於我們
+        '/contact',             // 聯絡我們
+        '/privacy'              // 隱私政策
       ];
       const currentPath = window.location.pathname;
-      const isPublicPage = publicPages.some((page) => currentPath.includes(page));
+      const isPublicPage = publicPages.some(page => currentPath.startsWith(page) || currentPath === page);
 
       // 如果不是公開頁面，則導向登入頁
       if (!isPublicPage) {

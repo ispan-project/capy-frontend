@@ -7,13 +7,13 @@
   /* ==================== 主要品牌色彩 ==================== */
 
   /* Primary Color - Sky Blue (天空藍) */
-  --capy-primary: #54cdf2;
+  --capy-primary: #54CDF2;
   --capy-primary-rgb: 84, 205, 242;
-  --capy-primary-dark: #0ea5e9; /* 深藍 - 用於文字和 hover 狀態 */
-  --capy-primary-light: #e0f7fa; /* 極淺藍 - 用於背景 */
+  --capy-primary-dark: #0EA5E9;        /* 深藍 - 用於文字和 hover 狀態 */
+  --capy-primary-light: #E0F7FA;       /* 極淺藍 - 用於背景 */
 
   /* Element Plus Primary Color 覆寫 */
-  --el-color-primary: #54cdf2;
+  --el-color-primary: #54CDF2;
   --el-color-primary-rgb: 84, 205, 242;
 
   /* Primary Light Variants (用於 hover/active 狀態) */
@@ -29,11 +29,11 @@
 
   /* Primary Dark Variants (用於 active/pressed 狀態) */
   --el-color-primary-dark-1: #3bc1ed;
-  --el-color-primary-dark-2: #0ea5e9;
+  --el-color-primary-dark-2: #0EA5E9;
 
   /* Secondary/Brand Color - Capy Brown (水豚棕) - 保持吉祥物特色 */
-  --capy-secondary: #a1887f;
-  --capy-brand: #a1887f;
+  --capy-secondary: #A1887F;
+  --capy-brand: #A1887F;
   --capy-brand-rgb: 161, 136, 127;
   --capy-brand-light: #b39a91;
   --capy-brand-lighter: #c5aca3;
@@ -48,41 +48,41 @@
   --capy-bg-overlay: rgba(0, 0, 0, 0.5); /* 遮罩背景 */
 
   /* Learning Mode - Dark Background */
-  --capy-bg-learning: #1a1a1a; /* 影片播放器深色背景 */
-  --capy-bg-learning-elevated: #2a2a2a; /* 深色模式懸浮元素 */
+  --capy-bg-learning: #1A1A1A;       /* 影片播放器深色背景 */
+  --capy-bg-learning-elevated: #2A2A2A; /* 深色模式懸浮元素 */
 
   /* ==================== 文字色彩 ==================== */
 
   /* Text Colors */
-  --capy-text-primary: #303133; /* 主要文字 */
-  --capy-text-regular: #606266; /* 常規文字 */
-  --capy-text-secondary: #909399; /* 次要文字 */
-  --capy-text-placeholder: #c0c4cc; /* 佔位文字 */
-  --capy-text-disabled: #c0c4cc; /* 禁用文字 */
-  --capy-text-inverse: #ffffff; /* 反色文字（深色背景用） */
+  --capy-text-primary: #303133;      /* 主要文字 */
+  --capy-text-regular: #606266;      /* 常規文字 */
+  --capy-text-secondary: #909399;    /* 次要文字 */
+  --capy-text-placeholder: #C0C4CC;  /* 佔位文字 */
+  --capy-text-disabled: #C0C4CC;     /* 禁用文字 */
+  --capy-text-inverse: #FFFFFF;      /* 反色文字（深色背景用） */
 
   /* Element Plus Text Colors 覆寫 */
   --el-text-color-primary: #303133;
   --el-text-color-regular: #606266;
   --el-text-color-secondary: #909399;
-  --el-text-color-placeholder: #c0c4cc;
-  --el-text-color-disabled: #c0c4cc;
+  --el-text-color-placeholder: #C0C4CC;
+  --el-text-color-disabled: #C0C4CC;
 
   /* ==================== 邊框色彩 ==================== */
 
   /* Border Colors */
-  --capy-border-base: #dcdfe6; /* 基礎邊框 */
-  --capy-border-light: #e4e7ed; /* 淺色邊框 */
-  --capy-border-lighter: #ebeef5; /* 更淺邊框 */
-  --capy-border-extra-light: #f2f6fc; /* 極淺邊框 */
-  --capy-border-dark: #d4d7de; /* 深色邊框 */
+  --capy-border-base: #DCDFE6;       /* 基礎邊框 */
+  --capy-border-light: #E4E7ED;      /* 淺色邊框 */
+  --capy-border-lighter: #EBEEF5;    /* 更淺邊框 */
+  --capy-border-extra-light: #F2F6FC; /* 極淺邊框 */
+  --capy-border-dark: #D4D7DE;       /* 深色邊框 */
 
   /* Element Plus Border Colors 覆寫 */
-  --el-border-color: #dcdfe6;
-  --el-border-color-light: #e4e7ed;
-  --el-border-color-lighter: #ebeef5;
-  --el-border-color-extra-light: #f2f6fc;
-  --el-border-color-dark: #d4d7de;
+  --el-border-color: #DCDFE6;
+  --el-border-color-light: #E4E7ED;
+  --el-border-color-lighter: #EBEEF5;
+  --el-border-color-extra-light: #F2F6FC;
+  --el-border-color-dark: #D4D7DE;
 
   /* ==================== 功能性色彩 ==================== */
 
@@ -96,8 +96,8 @@
   --el-color-success-dark-2: #529b2e;
 
   /* Warning Color - 保持橘色作為強對比 CTA */
-  --capy-warning: #fb8c00;
-  --el-color-warning: #fb8c00;
+  --capy-warning: #FB8C00;
+  --el-color-warning: #FB8C00;
   --el-color-warning-light-3: #fca333;
   --el-color-warning-light-5: #fdba66;
   --el-color-warning-light-7: #fdd199;
@@ -196,19 +196,21 @@
 
   /* ==================== 背景色覆寫 ==================== */
 
-  --el-bg-color: #ffffff;
-  --el-bg-color-page: #f5f7fa;
-  --el-bg-color-overlay: #ffffff;
+
+  --el-bg-color: #FFFFFF;
+  --el-bg-color-page: #F5F7FA;
+  --el-bg-color-overlay: #FFFFFF;
 
   /* ==================== 填充色覆寫 ==================== */
 
-  --el-fill-color-blank: #ffffff;
-  --el-fill-color: #f0f2f5;
-  --el-fill-color-light: #f5f7fa;
-  --el-fill-color-lighter: #fafafa;
-  --el-fill-color-extra-light: #fafcff;
-  --el-fill-color-dark: #ebedf0;
-  --el-fill-color-darker: #e6e8eb;
+  --el-fill-color-blank: #FFFFFF;
+  --el-fill-color: #F0F2F5;
+  --el-fill-color-light: #F5F7FA;
+  --el-fill-color-lighter: #FAFAFA;
+  --el-fill-color-extra-light: #FAFCFF;
+  --el-fill-color-dark: #EBEDF0;
+  --el-fill-color-darker: #E6E8EB;
+
 }
 
 /* ==================== 工具類別 ==================== */

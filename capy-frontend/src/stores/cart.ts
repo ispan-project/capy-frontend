@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useUserStore } from './user'
+import { getCartList, addToCart as addToCartAPI, removeFromCart as removeFromCartAPI, clearCart as clearCartAPI } from '@/api/student/cart'
+import { ElMessage } from 'element-plus'
 
 /**
  * 購物車項目介面
@@ -18,18 +21,27 @@ interface CartItem {
  */
 export const useCartStore = defineStore('cart', () => {
   // ==================== State ====================
-  
+
   /**
    * 購物車項目列表
    */
   const items = ref<CartItem[]>([])
 
   // ==================== Getters ====================
-  
+
   /**
    * 購物車項目數量
+   * 優先使用 user store 的數量（來自 API），如果沒有則使用本地數量
    */
-  const itemCount = computed(() => items.value.length)
+  const itemCount = computed(() => {
+    const userStore = useUserStore()
+    // 如果已登入且有 API 數據，使用 API 數據
+    if (userStore.isAuthenticated && userStore.cartQuantity > 0) {
+      return userStore.cartQuantity
+    }
+    // 否則使用本地購物車數量
+    return items.value.length
+  })
 
   /**
    * 購物車總價（TWD）
@@ -51,58 +63,199 @@ export const useCartStore = defineStore('cart', () => {
   const isEmpty = computed(() => items.value.length === 0)
 
   // ==================== Actions ====================
-  
+
+  /**
+   * 從後端載入購物車列表
+   */
+  const fetchCartList = async () => {
+    const userStore = useUserStore()
+
+    // 如果未登入，直接返回 false（不顯示錯誤訊息）
+    if (!userStore.isAuthenticated) {
+      console.log('未登入，跳過載入購物車')
+      return false
+    }
+
+    try {
+      const data = await getCartList()
+      if (data && Array.isArray(data)) {
+        items.value = data.map((item: any) => ({
+          courseId: item.courseId,
+          title: item.courseTitle,
+          instructor: item.instructorName,
+          price: item.price,
+          coverImageUrl: item.coverImageUrl
+        }))
+        // 同步到 localStorage
+        saveToStorage()
+        return true
+      }
+      return false
+    } catch (error: any) {
+      // 靜默處理 401 錯誤（未登入）
+      if (error?.response?.status === 401 || error?.status === 401) {
+        console.log('未登入，無法載入購物車')
+        return false
+      }
+
+      // 其他錯誤才顯示訊息
+      console.error('載入購物車失敗:', error)
+      ElMessage.error('載入購物車失敗')
+      return false
+    }
+  }
+
   /**
    * 新增課程到購物車
    * @param course 課程資訊
+   *
+   * 注意：此方法假設後端已修改為：
+   * - 成功時返回 200 OK
+   * - 已擁有課程時返回 400 Bad Request
+   * - 已在購物車時返回 409 Conflict
    */
-  const addItem = (course: {
+  const addItem = async (course: {
     id: number
     title: string
     instructor: string
     price: number
     cover_image_url: string
   }) => {
-    // 檢查課程是否已在購物車中
-    const existingItem = items.value.find(item => item.courseId === course.id)
-    
-    if (existingItem) {
-      console.warn('課程已在購物車中')
+    try {
+      // 呼叫後端 API（成功時返回 200）
+      await addToCartAPI(course.id)
+
+      // 成功加入：更新本地購物車
+      const existingItem = items.value.find(item => item.courseId === course.id)
+
+      if (!existingItem) {
+        items.value.push({
+          courseId: course.id,
+          title: course.title,
+          instructor: course.instructor,
+          price: course.price,
+          coverImageUrl: course.cover_image_url
+        })
+
+        // 儲存到 localStorage
+        saveToStorage()
+
+        // 更新 user store 的購物車數量
+        const userStore = useUserStore()
+        if (userStore.isAuthenticated) {
+          userStore.cartQuantity = items.value.length
+        }
+      }
+
+      // 顯示成功訊息
+      ElMessage.success(`已加入「${course.title}」到購物車`)
+      return true
+    } catch (error: any) {
+      console.error('加入購物車失敗:', error)
+
+      // 從錯誤回應中提取訊息
+      let errorMessage = '加入購物車失敗'
+      let messageType: 'info' | 'warning' | 'error' = 'error'
+
+      if (error?.response?.data) {
+        const responseData = error.response.data
+        // 後端標準格式：{ success, code, message, data }
+        errorMessage = responseData.message || errorMessage
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+
+      // 根據狀態碼或訊息內容判斷錯誤類型
+      if (error?.response?.status === 409) {
+        // 409 Conflict - 課程已在購物車
+        errorMessage = '課程已在購物車中'
+        messageType = 'warning'
+      } else if (typeof errorMessage === 'string') {
+        if (errorMessage.includes('已擁有')) {
+          // 已購買課程
+          messageType = 'info'
+        } else if (errorMessage.includes('已在購物車')) {
+          // 已在購物車
+          errorMessage = '課程已在購物車中'
+          messageType = 'warning'
+        }
+      }
+
+      // 顯示訊息（不包含錯誤代碼）
+      if (messageType === 'info') {
+        ElMessage.info(errorMessage)
+      } else if (messageType === 'warning') {
+        ElMessage.warning(errorMessage)
+      } else {
+        ElMessage.error(errorMessage)
+      }
+
       return false
     }
-
-    // 新增到購物車
-    items.value.push({
-      courseId: course.id,
-      title: course.title,
-      instructor: course.instructor,
-      price: course.price,
-      coverImageUrl: course.cover_image_url
-    })
-
-    return true
   }
 
   /**
    * 從購物車移除課程
    * @param courseId 課程 ID
    */
-  const removeItem = (courseId: number) => {
+  const removeItem = async (courseId: number) => {
     const index = items.value.findIndex(item => item.courseId === courseId)
-    
-    if (index !== -1) {
-      items.value.splice(index, 1)
-      return true
+
+    if (index === -1) {
+      return false
     }
 
-    return false
+    try {
+      // 呼叫後端 API
+      await removeFromCartAPI(courseId)
+
+      // 從本地購物車移除
+      items.value.splice(index, 1)
+
+      // 儲存到 localStorage
+      saveToStorage()
+
+      // 更新 user store 的購物車數量
+      const userStore = useUserStore()
+      if (userStore.isAuthenticated) {
+        userStore.cartQuantity = items.value.length
+      }
+
+      return true
+    } catch (error) {
+      console.error('移除購物車項目失敗:', error)
+      ElMessage.error('移除失敗')
+      return false
+    }
   }
 
   /**
    * 清空購物車
    */
-  const clearCart = () => {
-    items.value = []
+  const clearCart = async () => {
+    try {
+      // 呼叫後端 API
+      await clearCartAPI()
+
+      // 清空本地購物車
+      items.value = []
+
+      // 儲存到 localStorage
+      saveToStorage()
+
+      // 更新 user store 的購物車數量
+      const userStore = useUserStore()
+      if (userStore.isAuthenticated) {
+        userStore.cartQuantity = 0
+      }
+
+      ElMessage.success('購物車已清空')
+      return true
+    } catch (error) {
+      console.error('清空購物車失敗:', error)
+      ElMessage.error('清空購物車失敗')
+      return false
+    }
   }
 
   /**
@@ -114,6 +267,39 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   /**
+   * 將購物車項目移至願望清單
+   * @param courseId 課程 ID
+   */
+  const moveToWishlist = async (courseId: number) => {
+    const item = items.value.find(item => item.courseId === courseId)
+
+    if (!item) {
+      return false
+    }
+
+    // 動態導入 wishlist store 以避免循環依賴
+    const { useWishlistStore } = await import('./wishlist')
+    const wishlistStore = useWishlistStore()
+
+    // 新增到願望清單
+    const added = await wishlistStore.addItem({
+      id: item.courseId,
+      title: item.title,
+      instructor: item.instructor,
+      price: item.price,
+      cover_image_url: item.coverImageUrl
+    })
+
+    // 如果成功加入願望清單，從購物車移除
+    if (added) {
+      await removeItem(courseId)
+      return true
+    }
+
+    return false
+  }
+
+  /**
    * 格式化價格（TWD）
    * @param price 價格
    */
@@ -122,7 +308,7 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   // ==================== Persistence ====================
-  
+
   /**
    * 從 localStorage 載入購物車
    */
@@ -154,18 +340,20 @@ export const useCartStore = defineStore('cart', () => {
   return {
     // State
     items,
-    
+
     // Getters
     itemCount,
     totalPrice,
     formattedTotalPrice,
     isEmpty,
-    
+
     // Actions
+    fetchCartList,
     addItem,
     removeItem,
     clearCart,
     hasItem,
+    moveToWishlist,
     formatPrice,
     loadFromStorage,
     saveToStorage

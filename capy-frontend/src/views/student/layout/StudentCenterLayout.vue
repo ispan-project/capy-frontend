@@ -3,27 +3,35 @@
     <div class="container">
       <!-- Header -->
       <div class="page-header">
-        <h1 class="page-title">Student Center</h1>
-        <p class="welcome-text">Welcome back, Sarah!</p>
+        <h1 class="page-title">學生個人中心</h1>
+        <p class="welcome-text">歡迎回來~ {{ userStore.userInfo.nickname || '訪客' }}!</p>
       </div>
-
-
 
       <!-- User Profile Card -->
       <div class="profile-section">
-        <div class="profile-card">
+        <!-- Loading State -->
+        <div v-if="studentCenterStore.profileLoading" class="profile-card">
+          <el-skeleton :rows="2" animated />
+        </div>
+
+        <!-- Profile Card -->
+        <div v-else class="profile-card">
           <div class="profile-avatar">
             <img
-              :src="userProfile.avatar || 'https://via.placeholder.com/80'"
+              :src="studentCenterStore.profile?.avatarUrl || userStore.userInfo.avatar || '/capybaraProfile.png'"
               alt="User Avatar"
             />
           </div>
           <div class="profile-info">
-            <h2 class="profile-name">{{ userProfile.name }}</h2>
-            <p class="profile-email">{{ userProfile.email }}</p>
+            <h2 class="profile-name">
+              {{ studentCenterStore.profile?.nickname || userStore.userInfo.nickname || '訪客' }}
+            </h2>
+            <p class="profile-email">
+              {{ studentCenterStore.profile?.email || userStore.userInfo.email || '' }}
+            </p>
           </div>
           <el-button class="edit-profile-btn" plain @click="openProfileDialog">
-            Edit Profile
+            更新個人檔案
           </el-button>
         </div>
       </div>
@@ -31,31 +39,31 @@
       <!-- Statistics Cards -->
       <div class="stats-section">
         <div class="stat-card">
-          <div class="stat-label">Active Courses</div>
-          <div class="stat-value">{{ stats.activeCourses }}</div>
+          <div class="stat-label">進行中的課程</div>
+          <div class="stat-value">{{ stats.ownedCoursesCount }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Hours Learning</div>
-          <div class="stat-value">{{ stats.hoursLearning }}</div>
+          <div class="stat-label">我的願望清單</div>
+          <div class="stat-value">{{ stats.wishlistCount }}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Courses Completed</div>
-          <div class="stat-value">{{ stats.coursesCompleted }}</div>
+          <div class="stat-label">已完成的課程</div>
+          <div class="stat-value">{{ stats.completedCoursesCount }}</div>
         </div>
       </div>
-    <!-- Tab Navigation -->
-    <div class="tab-navigation">
-      <router-link
-        v-for="tab in tabs"
-        :key="tab.name"
-        :to="{ name: tab.name }"
-        class="tab-item"
-        exact-active-class="active"
-      >
-        {{ tab.label }}
-      </router-link>
-    </div>
 
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <router-link
+          v-for="tab in tabs"
+          :key="tab.name"
+          :to="{ name: tab.name }"
+          class="tab-item"
+          exact-active-class="active"
+        >
+          {{ tab.label }}
+        </router-link>
+      </div>
 
       <!-- Router View for Tab Content -->
       <div class="tab-content">
@@ -66,10 +74,12 @@
     <!-- Profile Edit Dialog -->
     <StudentProfileEditDialog
       v-model:visible="profileDialogVisible"
-      :current-user="{
-        email: userProfile.email,
-        nickname: userProfile.name,
-        avatarUrl: userProfile.avatar
+      :user="{
+        email: studentCenterStore.profile?.email || userStore.userInfo.email || '',
+        nickname: studentCenterStore.profile?.nickname || userStore.userInfo.nickname || '',
+        avatarUrl: studentCenterStore.profile?.avatarUrl || userStore.userInfo.avatar || '',
+        googleLinked: studentCenterStore.profile?.googleLinked ?? (userStore.userInfo.google_id ? true : false),
+        google_email: studentCenterStore.profile?.email || userStore.userInfo.google_email || null
       }"
       @save="handleProfileSave"
     />
@@ -77,71 +87,90 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useStudentCenterStore } from '@/stores/studentCenter'
 import StudentProfileEditDialog from '@/components/student/StudentCenter/StudentProfileEditDialog.vue'
+import { fetchStudentProfile } from '@/api/student/Studentcenter'
 
 const userStore = useUserStore()
+const studentCenterStore = useStudentCenterStore()
+
+// ===== 除錯程式碼 =====
+console.log('=== StudentCenterLayout ===')
+console.log('userStore.userInfo:', userStore.userInfo)
+console.log('googleLinked:', userStore.userInfo.googleLinked)
+// ===== 除錯程式碼結束 =====
 
 const tabs = [
-  { label: 'My Learning', name: 'MyLearning' },
-  { label: 'Wishlist', name: 'Wishlist' },
-  { label: 'Orders紀錄', name: 'Orders' },
-  { label: 'Notifications', name: 'Notifications' }
+  { label: '我的課程', name: 'MyLearning' },
+  { label: '願望清單', name: 'Wishlist' },
+  { label: '訂單記錄', name: 'Orders' },
+  { label: '通知', name: 'Notifications' }
 ]
 
-
-const userProfile = ref({
-  name: 'Sarah Miller',
-  email: 'sarah.miller@email.com',
-  avatar: 'https://i.pravatar.cc/150?img=5'
-})
-
+// 統計資料 - 使用與後端相同的欄位名稱
 const stats = ref({
-  activeCourses: 12,
-  hoursLearning: 45,
-  coursesCompleted: 7
+  ownedCoursesCount: 0,
+  wishlistCount: 0,
+  completedCoursesCount: 0
 })
+
+// 載入統計資料
+const loadStats = async () => {
+  try {
+    const response = await fetchStudentProfile()
+    const profileData = response.studentProfile || response
+
+    // 更新統計資料 - 直接使用後端的欄位名稱
+    stats.value = {
+      ownedCoursesCount: profileData.ownedCoursesCount || 0,
+      wishlistCount: profileData.wishlistCount || 0,
+      completedCoursesCount: profileData.completedCoursesCount || 0
+    }
+  } catch (error) {
+    console.error('載入統計資料失敗:', error)
+  }
+}
 
 // Profile Edit Dialog
 const profileDialogVisible = ref(false)
 
-const openProfileDialog = () => {
+const openProfileDialog = async () => {
+  console.log('🔍 Opening dialog with profile:', studentCenterStore.profile)
+  console.log('🔍 googleLinked value:', studentCenterStore.profile?.googleLinked)
+
+  // 如果 profile 還沒載入，先載入
+  if (!studentCenterStore.profile) {
+    console.log('🔍 Profile not loaded, loading now...')
+    try {
+      await studentCenterStore.loadProfile(true) // 強制重新載入
+      console.log('🔍 Profile loaded:', studentCenterStore.profile)
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+    }
+  }
+
   profileDialogVisible.value = true
 }
 
 const handleProfileSave = async (updatedData) => {
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch('/api/user/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      },
-      body: JSON.stringify({
-        nickname: updatedData.nickname,
-        avatar_url: updatedData.avatarUrl
-      })
+    // 使用新的 API 更新 profile
+    await studentCenterStore.updateProfile({
+      nickname: updatedData.nickname,
+      avatarUrl: updatedData.avatarUrl
     })
 
-    if (!response.ok) {
-      throw new Error('更新失敗')
-    }
+    // 同步更新 userStore
+    userStore.updateUserInfo({
+      nickname: updatedData.nickname,
+      avatar: updatedData.avatarUrl
+    })
 
-    // Update local user profile
-    userProfile.value.name = updatedData.nickname
-    userProfile.value.avatar = updatedData.avatarUrl
-
-    // Update user store
-    if (userStore.userInfo) {
-      userStore.userInfo.nickname = updatedData.nickname
-      userStore.userInfo.avatar = updatedData.avatarUrl
-    }
-
-    // Close dialog
-    profileDialogVisible.value = false
+    // 重新載入統計資料
+    await loadStats()
 
     // Show success message
     ElMessage.success('個人資料更新成功！')
@@ -151,6 +180,19 @@ const handleProfileSave = async (updatedData) => {
     ElMessage.error('個人資料更新失敗，請稍後再試')
   }
 }
+
+// 載入 Profile 資料
+onMounted(async () => {
+  try {
+    // 使用 store 載入 profile（帶快取）
+    await studentCenterStore.loadProfile()
+    // 載入統計資料
+    await loadStats()
+  } catch (error) {
+    console.error('載入 Profile 失敗:', error)
+    ElMessage.error('載入個人資料失敗，請稍後再試')
+  }
+})
 </script>
 
 <style scoped>
@@ -303,7 +345,7 @@ const handleProfileSave = async (updatedData) => {
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0B7FC1;
 }
 
 /* Tab Content */

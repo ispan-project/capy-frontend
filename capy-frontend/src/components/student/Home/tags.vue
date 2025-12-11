@@ -1,27 +1,44 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 
-const tagsData = ref([
-  { id: 1, name: "Java Basic", hot: 95 },
-  { id: 2, name: "Python Basic", hot: 88 },
-  { id: 3, name: "JavaScript Basic", hot: 76 },
-  { id: 4, name: "SQL Basic", hot: 64 }
-])
+const router = useRouter()
 
-const sortedTags = computed(() =>
-  [...tagsData.value].sort((a, b) => b.hot - a.hot)
-)
+// 接收從父組件傳來的標籤資料
+const props = defineProps({
+  tags: {
+    type: Array,
+    default: () => []
+  }
+})
+
+// 後端返回的格式: [{ id, name }]
+// 直接使用後端資料，不需要排序（後端已經按熱度排序）
+const displayTags = computed(() => props.tags)
+
+// 點擊標籤跳轉到 Explore 頁面
+const handleTagClick = async (tagName) => {
+  await router.push({
+    path: '/explore',
+    query: { keyword: tagName }
+  })
+
+  // 確保路由跳轉完成後再滾動
+  await nextTick()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
 
 <template>
   <div class="tags-container">
-    <el-button
-      v-for="tag in sortedTags"
+    <button
+      v-for="tag in displayTags"
       :key="tag.id"
-      type="primary"
+      class="tag-pill"
+      @click="handleTagClick(tag.name)"
     >
       {{ tag.name }}
-    </el-button>
+    </button>
   </div>
 </template>
 
@@ -29,8 +46,79 @@ const sortedTags = computed(() =>
 .tags-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
   align-items: center;
   justify-content: center;
+}
+
+.tag-pill {
+  /* Shape - Premium Pill形狀 */
+  border-radius: 50px;
+  padding: 8px 24px;
+
+  /* High Contrast Base Style */
+  background-color: #FFFFFF;
+  border: 1px solid var(--capy-primary);
+  color: #0277BD;
+
+  /* Typography */
+  font-size: var(--capy-font-size-base);
+  font-weight: 600;
+
+  /* Subtle Depth */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+
+  /* Interaction */
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  /* Remove default button styles */
+  outline: none;
+  font-family: inherit;
+}
+
+/* 使用 CSS ::before 自動添加 # 符號 */
+.tag-pill::before {
+  content: '#';
+  margin-right: 4px;
+  font-weight: var(--capy-font-weight-medium);
+}
+
+/* Hover 狀態 - Premium Interaction */
+.tag-pill:hover {
+  background-color: var(--capy-primary);
+  color: white;
+  border-color: var(--capy-primary);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 15px rgba(84, 205, 242, 0.35);
+}
+
+/* Active/按下狀態 */
+.tag-pill:active {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 191, 165, 0.3);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .tags-container {
+    gap: 12px;
+  }
+
+  .tag-pill {
+    padding: 10px 24px;
+    font-size: var(--capy-font-size-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .tags-container {
+    gap: 10px;
+  }
+
+  .tag-pill {
+    padding: 8px 20px;
+    font-size: var(--capy-font-size-xs);
+  }
 }
 </style>

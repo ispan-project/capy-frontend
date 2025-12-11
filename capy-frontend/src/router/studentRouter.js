@@ -1,4 +1,4 @@
-// ====================================
+ // ====================================
 // Student Router Configuration
 // 使用 LazyLoad 方式載入所有頁面組件
 // ====================================
@@ -48,6 +48,7 @@ const studentRoutes = [
         path: "instructor/apply",
         name: "becomeInstructor",
         component: () => import("@/views/student/instructorApply/BecomeInstructorPage.vue"),
+        meta: { requiresAuth: true }
       },
       // 講師介紹頁面
       {
@@ -55,23 +56,6 @@ const studentRoutes = [
         name: "instructorLanding",
         component: () => import("@/views/student/instructorApply/InstructorLanding.vue"),
       },
-
-      // ====================================
-      // 購物車與結帳路由
-      // ====================================
-      {
-        path: "checkout",
-        name: "checkout",
-        component: () => import("@/views/student/Checkout/Checkout.vue"),
-        meta: { requiresAuth: true },
-      },
-      {
-        path: "checkout/success",
-        name: "checkoutSuccess",
-        component: () => import("@/views/student/Checkout/Success.vue"),
-        meta: { requiresAuth: true },
-      },
-
       // ====================================
       // 其他頁面路由
       // ====================================
@@ -90,6 +74,17 @@ const studentRoutes = [
         name: "privacy",
         component: () => import("@/views/student/Others/Privacy.vue"),
       },
+
+      // ====================================
+      // 結帳路由
+      // ====================================
+      {
+        path: 'checkout/success',
+        name: 'checkoutSuccess',
+        component: () => import('@/views/student/Checkout/Success.vue'),
+        meta: { requiresAuth: true }
+      },
+
       // ====================================
       // 學生中心佈局路由 (StudentCenterLayout)
       // ====================================
@@ -123,17 +118,19 @@ const studentRoutes = [
             component: () =>
               import("@/views/student/StudentCenter/Notifications/NotificationsPage.vue"),
           },
-          // 重設密碼
-          {
-            path: "reset-password",
-            name: "ResetPassword",
-            component: () => import("@/views/student/StudentCenter/Profile/ResetPassword.vue"),
-          },
         ],
       },
     ],
   },
-
+  // ====================================
+  // 購物車路由 (Checkout)
+  // ====================================
+  {
+    path: '/checkout',
+    name: 'checkout',
+    component: () => import('@/views/student/Checkout/Checkout.vue'),
+    meta: { requiresAuth: true }
+  },
   // ====================================
   // 學習佈局路由 (LearningLayout)
   // 用於課程播放頁面
@@ -143,18 +140,11 @@ const studentRoutes = [
     component: () => import("@/views/student/layout/LearningLayout.vue"),
     meta: { requiresAuth: true },
     children: [
-      // 課程學習頁面
+      // 課程學習頁面 - 使用 courseId（課程ID）和 lessonId（單元ID）
       {
-        path: "course/:id",
+        path: "course/:courseId/lesson/:lessonId",
         name: "courseLearning",
         component: () => import("@/views/student/CourseLearning/CourseLearningPage.vue"),
-        meta: { requiresAuth: true },
-      },
-      // 課程播放章節頁面
-      {
-        path: "course/:id/section/:sectionId",
-        name: "coursePlaySection",
-        component: () => import("@/views/student/CoursePlaySection/coursePlaySection.vue"),
         meta: { requiresAuth: true },
       },
     ],
@@ -165,6 +155,11 @@ const studentRoutes = [
   {
     path: "/login",
     name: "login",
+    component: () => import("@/views/student/Auth&Register/LoginPage.vue"),
+  },
+  {
+    path: "/register",
+    name: "register",
     component: () => import("@/views/student/Auth&Register/LoginPage.vue"),
   },
   {
@@ -181,6 +176,25 @@ const studentRoutes = [
     path: "/verify-email",
     name: "verifyEmail",
     component: () => import("@/views/student/Auth&Register/VerifyEmail.vue"),
+  },
+  {
+    path: '/reset-password',
+    name: 'resetPassword',
+    component: () => import('@/views/student/Auth&Register/ResetPassword.vue')
+  },
+
+  // ====================================
+  // 錯誤頁面路由
+  // ====================================
+  {
+    path: '/403',
+    name: 'forbidden',
+    component: () => import('@/views/student/Errors/ForbiddenPage.vue')
+  },
+  {
+    path: '/500',
+    name: 'serverError',
+    component: () => import('@/views/student/Errors/ServerError.vue')
   },
 
   // ====================================

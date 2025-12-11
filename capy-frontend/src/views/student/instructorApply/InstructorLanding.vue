@@ -9,7 +9,6 @@
           加入 CapyCourse，保留 <strong>70%</strong> 的收益。<br />
           安全的影片託管、每月準時付款，以及不斷成長的學生群體。
         </p>
-        <router-link :to="{ name: 'becomeInstructor' }">
         <el-button
           type="primary"
           size="large"
@@ -19,7 +18,6 @@
           立即開始教學
           <el-icon class="ml-2"><ArrowRight /></el-icon>
         </el-button>
-        </router-link>
       </div>
     </section>
 
@@ -272,21 +270,29 @@ const potentialIncome = computed(() => {
 
 // Animated Income (for smooth number transition)
 const animatedIncome = ref(0)
+let animationInterval = null
 
 // Watch for income changes and animate
 watch(potentialIncome, (newValue) => {
+  // Clear any existing animation
+  if (animationInterval) {
+    clearInterval(animationInterval)
+    animationInterval = null
+  }
+
   const duration = 500 // ms
   const steps = 30
   const stepValue = (newValue - animatedIncome.value) / steps
   const stepDuration = duration / steps
 
   let currentStep = 0
-  const interval = setInterval(() => {
+  animationInterval = setInterval(() => {
     if (currentStep >= steps) {
       animatedIncome.value = newValue
-      clearInterval(interval)
+      clearInterval(animationInterval)
+      animationInterval = null
     } else {
-      animatedIncome.value += stepValue
+      animatedIncome.value = Math.round(animatedIncome.value + stepValue)
       currentStep++
     }
   }, stepDuration)
@@ -301,12 +307,12 @@ const formatPrice = (value) => {
 const handleStartTeaching = () => {
   if (userStore.isAuthenticated) {
     // User is logged in, go to application form
-    router.push('/become-instructor')
+    router.push({ name: 'becomeInstructor' })
   } else {
     // User not logged in, go to login page
     router.push({
-      name: 'Login',
-      query: { redirect: '/become-instructor' }
+      name: 'login',
+      query: { redirect: '/instructor/apply' }
     })
   }
 }
@@ -643,7 +649,9 @@ section {
 .step-number {
   width: 48px;
   height: 48px;
-  border-radius: var(--capy-radius-circle);
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 50%;
   background-color: var(--capy-primary);
   color: white;
   display: flex;
@@ -651,6 +659,7 @@ section {
   justify-content: center;
   font-size: 24px;
   font-weight: var(--capy-font-weight-bold);
+  flex-shrink: 0;
 }
 
 .step-title {

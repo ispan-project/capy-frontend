@@ -1,7 +1,294 @@
 <template>
+  <div class="not-found-page">
+    <div class="not-found-container">
+      <!-- 404 水豚插圖 -->
+      <div class="illustration-wrapper">
+        <img
+          src="@/assets/images/error/404-capy.svg"
+          alt="404 - 找不到頁面"
+          class="capy-illustration"
+        />
+      </div>
 
-xxxxxxxxxxxxxxxxxxxxxxxx
+      <!-- 錯誤內容卡片 -->
+      <div class="error-card">
+        <!-- 404 錯誤代碼 -->
+        <div class="error-code">404</div>
+
+        <!-- 標題 -->
+        <h1 class="error-title">找不到這條河流</h1>
+
+        <!-- 描述 -->
+        <p class="error-description">
+          這頁面似乎已經漂流走了，或者您輸入了錯誤的座標。<br>
+          請檢查網址或回到首頁重新探索。
+        </p>
+
+        <!-- 操作按鈕 -->
+        <div class="error-actions">
+          <el-button
+            type="primary"
+            size="large"
+            @click="goHome"
+          >
+            <el-icon class="button-icon">
+              <HomeFilled />
+            </el-icon>
+            游回首頁
+          </el-button>
+
+          <el-button
+            text
+            size="large"
+            @click="goBack"
+          >
+            <el-icon class="button-icon">
+              <Back />
+            </el-icon>
+            返回上一頁
+          </el-button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
+import { HomeFilled, Back } from '@element-plus/icons-vue'
+
+const router = useRouter()
+
+/**
+ * 返回首頁
+ */
+const goHome = () => {
+  router.push('/')
+}
+
+/**
+ * 返回上一頁
+ */
+const goBack = () => {
+  router.go(-1)
+}
 </script>
+
+<style scoped>
+/* 主容器 - 使用專案背景色 */
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--capy-bg-base);
+  padding: var(--capy-spacing-lg);
+}
+
+.not-found-container {
+  max-width: 600px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--capy-spacing-xl);
+}
+
+/* 插圖容器 */
+.illustration-wrapper {
+  width: 100%;
+  max-width: 400px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.capy-illustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(var(--capy-shadow-md));
+}
+
+/* 浮動動畫 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+/* 錯誤內容卡片 - 使用專案卡片背景和陰影 */
+.error-card {
+  width: 100%;
+  background-color: var(--capy-bg-surface);
+  border-radius: var(--capy-radius-lg);
+  box-shadow: var(--capy-shadow-base);
+  padding: var(--capy-spacing-xxl) var(--capy-spacing-xl);
+  text-align: center;
+  transition: box-shadow var(--capy-transition-base);
+}
+
+.error-card:hover {
+  box-shadow: var(--capy-shadow-md);
+}
+
+/* 404 錯誤代碼 - 使用主色調 */
+.error-code {
+  font-size: 96px;
+  font-weight: var(--capy-font-weight-bold);
+  color: var(--capy-primary);
+  line-height: 1;
+  margin-bottom: var(--capy-spacing-md);
+  text-shadow: 0 4px 8px rgba(84, 205, 242, 0.2);
+  letter-spacing: -2px;
+}
+
+/* 標題 - 使用主要文字色 */
+.error-title {
+  font-size: var(--capy-font-size-title);
+  font-weight: var(--capy-font-weight-bold);
+  color: var(--capy-text-primary);
+  margin: 0 0 var(--capy-spacing-md);
+  line-height: 1.4;
+}
+
+/* 描述文字 - 使用常規文字色 */
+.error-description {
+  font-size: var(--capy-font-size-lg);
+  color: var(--capy-text-regular);
+  line-height: 1.6;
+  margin: 0 0 var(--capy-spacing-xl);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 操作按鈕區域 */
+.error-actions {
+  display: flex;
+  gap: var(--capy-spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.button-icon {
+  margin-right: var(--capy-spacing-xs);
+}
+
+/* Element Plus 按鈕自定義 */
+:deep(.el-button) {
+  border-radius: var(--capy-radius-md);
+  font-weight: var(--capy-font-weight-medium);
+  padding: 12px 24px;
+  transition: all var(--capy-transition-base);
+}
+
+:deep(.el-button--primary) {
+  box-shadow: 0 4px 12px rgba(84, 205, 242, 0.3);
+}
+
+:deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(84, 205, 242, 0.4);
+}
+
+:deep(.el-button--text) {
+  color: var(--capy-primary);
+}
+
+:deep(.el-button--text:hover) {
+  background-color: var(--el-color-primary-light-9);
+}
+
+:deep(.el-button:active) {
+  transform: translateY(0);
+}
+
+/* 響應式設計 - 平板 */
+@media (max-width: 768px) {
+  .not-found-page {
+    padding: var(--capy-spacing-md);
+  }
+
+  .not-found-container {
+    gap: var(--capy-spacing-lg);
+  }
+
+  .illustration-wrapper {
+    max-width: 320px;
+  }
+
+  .error-card {
+    padding: var(--capy-spacing-xl) var(--capy-spacing-lg);
+  }
+
+  .error-code {
+    font-size: 72px;
+  }
+
+  .error-title {
+    font-size: 20px;
+  }
+
+  .error-description {
+    font-size: var(--capy-font-size-base);
+  }
+
+  .error-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  :deep(.el-button) {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 響應式設計 - 手機 */
+@media (max-width: 480px) {
+  .not-found-page {
+    padding: var(--capy-spacing-sm);
+  }
+
+  .illustration-wrapper {
+    max-width: 280px;
+  }
+
+  .error-card {
+    padding: var(--capy-spacing-lg) var(--capy-spacing-md);
+  }
+
+  .error-code {
+    font-size: 56px;
+  }
+
+  .error-title {
+    font-size: 18px;
+  }
+
+  .error-description {
+    font-size: var(--capy-font-size-sm);
+  }
+
+  :deep(.el-button) {
+    padding: 10px 20px;
+  }
+}
+
+/* 動畫優化 - 減少動畫以提升性能 */
+@media (prefers-reduced-motion: reduce) {
+  .illustration-wrapper {
+    animation: none;
+  }
+
+  :deep(.el-button--primary:hover) {
+    transform: none;
+  }
+
+  :deep(.el-button:active) {
+    transform: none;
+  }
+}
+</style>

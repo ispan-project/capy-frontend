@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import { getApprovedCourses, getParentCategories } from "@/api/admin/course";
 import dayjs from "dayjs";
 
@@ -424,4 +425,3 @@ onMounted(() => {
   border-color: #E5E7EB;
 }
 </style>
-

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import AppSidebar from '@/components/layout/AppSidebar.vue';
 
 const route = useRoute();
@@ -28,9 +29,10 @@ const adminMenuItems = [
     key: 'course',
     icon: 'Edit',
     label: '課程管理',
+    activeRoutes: ['viewCourseDetail'],
     children: [
       { route: 'course_application_list', label: '上架申請列表' },
-      { route: 'courseManagement', label: '課程狀態管理' }
+      { route: 'courseManagement', label: '課程狀態管理', activeRoutes: ['viewCourseDetail'] }
     ]
   },
   {
@@ -107,12 +109,12 @@ const handleUserCommand = (command) => {
             <div class="header-actions">
               <el-dropdown trigger="hover" @command="handleUserCommand">
                 <span class="user-chip">
-                  <el-avatar :size="40" :src="userProfile.avatar" />
+                  <el-avatar :size="32" :src="userProfile.avatar" />
                   <span class="user-name">{{ userProfile.name }}</span>
                   <el-icon class="arrow"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
-                  <el-dropdown-menu style="width: 200px">
+                  <el-dropdown-menu style="width: 180px">
                     <el-dropdown-item command="switch-teacher">切換至講師端</el-dropdown-item>
                     <el-dropdown-item command="switch-student">切換至學生端</el-dropdown-item>
                     <el-dropdown-item divided command="logout">
@@ -153,8 +155,8 @@ const handleUserCommand = (command) => {
 :deep(.el-header) {
   border-bottom: 1px solid #E5E7EB;
   background-color: #FFFFFF;
-  height: auto;
-  padding: 12px 28px;
+  height: 60px;
+  padding: 6px 16px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -188,13 +190,14 @@ const handleUserCommand = (command) => {
   display: flex;
   align-items: center;
   gap: 16px;
+  height: 48px;
 }
 
 .user-chip {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 16px;
+  padding: 4px 10px;
   border-radius: 50px;
   background-color: #F9FAFB;
   border: 1px solid #E5E7EB;
@@ -211,14 +214,14 @@ const handleUserCommand = (command) => {
 }
 
 .user-name {
-  max-width: 180px;
+  max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .arrow {
-  font-size: 14px;
+  font-size: 12px;
   color: #6B7280;
 }
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import { getInstructorApplications } from "@/api/admin/instructor";
 import dayjs from "dayjs";
 
@@ -266,4 +267,3 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 </style>
-

@@ -1,55 +1,19 @@
- Admin 頁面檢查報告
+Admin 頁面檢查報告
 
-  ---
-  🟡 潛在問題
+---
+🟥 需修復
+1. src/views/admin/user/ChangeUserStatusDialog.vue:64-70 - 初始 currentUserdetail 為 null，template 直接取 currentUserdetail.isActive 會在第一次渲染就拋錯，對話框無法開啟；需加預設值或 ?. 並在未 open 時避免存取。
+2. src/views/admin/platform/Announcement.vue:223-226 - el-radio-button 只吃 label 作為值，目前會把 “All/平台/講師” 傳到 API，與後端預期的 "", "platform", "instructor" 不符，公告類型篩選實際失效。
+3. src/views/admin/layout/AdminLayout.vue:75-86 - handleUserCommand 呼叫 ElMessage 但未 import，點擊頭像下拉會觸發 ReferenceError。
+4. src/views/admin/course/ViewCourseDetail.vue:53-162 - 使用 ElMessage/ElMessageBox 但未 import，進入頁或執行審核操作會報錯。
+5. src/views/admin/user/InstructorDetail.vue:123-205 - 同樣未 import ElMessage/ElMessageBox，錯誤提示與審核流程會直接拋 ReferenceError。
+6. src/views/admin/course/CourseManagement.vue:77 - 取得課程列表失敗時呼叫 ElMessage 未 import。
+7. src/views/admin/user/UserManagement.vue:60 - 取得用戶列表失敗時呼叫 ElMessage 未 import。
+8. src/views/admin/user/InstructorList.vue:54 - 取得教師申請列表失敗時呼叫 ElMessage 未 import。
 
-
-  2. UserManagement.vue:60 - 未導入 ElMessage
-
-  ElMessage.error("取得用戶列表失敗");  // 但沒有 import
-  問題: ElMessage 應該從 element-plus 導入，或確認是否全局註冊
-
-  3. CourseManagement.vue:77 - 同樣未導入 ElMessage
-
-  ElMessage.error("取得課程列表失敗");
-
-  4. InstructorList.vue:54 - 同樣未導入 ElMessage
-
-  ElMessage.error("取得教師申請列表失敗");
-
-  5. ViewCourseDetail.vue:53 - 未導入 ElMessage 和 ElMessageBox
-
-  ElMessage.error("取得課程資料失敗");
-  ElMessageBox.confirm(...)
-
-  ---
-  🟢 優化建議
-
-
-  3. WorkSpace.vue - 熱門課程的「查看」按鈕無功能
-
-  <el-button link type="primary">查看</el-button>  // 沒有 @click
-  建議: 加入點擊跳轉到課程詳情頁
-
-  4. InstructorDetail.vue - 可優化錯誤處理
-
-  // 當前
-  } catch (error) {
-    if (error !== "cancel") {
-      ...
-    }
-  }
-
-  // 建議 - 更明確的判斷
-  } catch (error) {
-    if (error === "cancel" || error?.message === "cancel") return;
-    ...
-  }
-
-  5. API 服務一致性問題
-
-  - course.js 有 getAllTags() 呼叫 /admin/tags
-  - tag.js 有 listAllTags() 呼叫 /admin/tags
-
-  建議: 統一使用一個，避免重複定義
-
+---
+🟡 優化建議
+1. src/views/admin/dashboard/WorkSpace.vue:151-154 - 熱門課程 Top5 的「查看」按鈕沒有 @click，建議導向課程詳情。
+2. src/views/admin/user/InstructorDetail.vue:174-176 - catch 僅檢查 error !== "cancel"，MessageBox 若回傳物件時仍會當作錯誤，建議一併判斷 error?.message === "cancel"。
+3. src/api/admin/course.js 與 src/api/admin/tag.js - getAllTags()、listAllTags() 都打 /admin/tags，功能重複可整併。
+4. 分類管理功能缺席 - 路由 category_management 渲染 PlatformManagement(標籤管理) 並未處理分類，CateManagement.vue 仍是靜態樣板未使用，若需要「分類管理」需補齊實作。

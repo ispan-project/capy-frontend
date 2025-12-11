@@ -7,11 +7,12 @@ const visible = ref(false);
 const operationDetail = ref("");
 const loading = ref(false);
 let resolveFn = null;
-let currentUserdetail = null;
+const defaultUser = { isActive: false, nickname: "", userId: null };
+let currentUserdetail = { ...defaultUser };
 
 function open(userdetail, resolve) {
   visible.value = true;
-  currentUserdetail = userdetail; //user物件
+  currentUserdetail = userdetail || { ...defaultUser }; // user物件
   resolveFn = resolve;
   operationDetail.value = ""; // 重置備註
 }
@@ -50,6 +51,7 @@ async function confirm() {
 
 function cancel() {
   visible.value = false;
+  currentUserdetail = { ...defaultUser };
   resolveFn(false); // switch 不切換
 }
 

@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import GradientLineChart from "@/components/admin/GradientLineChart.vue";
 import UserGrowthChart from "@/components/admin/UserGrowthChart.vue";
 import { getDashboard, getWeeklyUserTrend } from "@/api/admin/dashboard";
 
 const progressBarColor = ["#409eff", "#67c23a", "#e6a23c", "#f56c6c", "#909399"];
+const router = useRouter();
 
 // Dashboard data
 const dashboardData = ref({
@@ -79,6 +81,23 @@ const fetchWeeklyUserTrend = async () => {
   }
 };
 
+const viewCourseDetail = (courseId) => {
+  if (!courseId) return;
+  router.push({
+    name: "viewCourseDetail",
+    params: { courseId },
+    query: { viewtype: "detail" }
+  });
+};
+
+const goToCourseApplications = () => {
+  router.push({ name: "course_application_list" });
+};
+
+const goToInstructorApplications = () => {
+  router.push({ name: "instructor_application_list" });
+};
+
 onMounted(() => {
   fetchDashboard();
   fetchWeeklyUserTrend();
@@ -86,7 +105,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <h2 class="section-heading">管理員工作台</h2>
+  <!-- <h2 class="section-heading">管理員工作台</h2> -->
   <div v-loading="loading" class="dashboard-container">
     <!-- Stats Row -->
     <div class="stats-section">
@@ -99,7 +118,7 @@ onMounted(() => {
           </div>
         </el-col>
         <el-col :span="6">
-          <div class="stat-card">
+          <div class="stat-card stat-card--link" @click="goToCourseApplications">
             <span class="stat-card__label">待審核上架申請</span>
             <span class="stat-card__value" :class="{ 'stat-card__value--warning': dashboardData.pendingCourseReview > 0 }">
               {{ dashboardData.pendingCourseReview }}
@@ -108,7 +127,7 @@ onMounted(() => {
           </div>
         </el-col>
         <el-col :span="6">
-          <div class="stat-card">
+          <div class="stat-card stat-card--link" @click="goToInstructorApplications">
             <span class="stat-card__label">待審核教師申請</span>
             <span class="stat-card__value" :class="{ 'stat-card__value--warning': dashboardData.pendingInstructorApplications > 0 }">
               {{ dashboardData.pendingInstructorApplications }}
@@ -150,7 +169,7 @@ onMounted(() => {
                 <li v-for="item in datalist" :key="item.id" class="top-course-item">
                   <div class="top-course-header">
                     <span class="course-name">{{ item.name }}</span>
-                    <el-button link type="primary">查看</el-button>
+                    <el-button link type="primary" @click="viewCourseDetail(item.id)">查看</el-button>
                   </div>
                   <p class="course-count">{{ item.num }} 人</p>
                   <el-progress :color="item.color" :show-text="false" :percentage="item.value" />
@@ -189,6 +208,10 @@ onMounted(() => {
   border: 1px solid #F3F4F6;
   transition: all 0.25s ease;
   height: 100%;
+}
+
+.stat-card--link {
+  cursor: pointer;
 }
 
 .stat-card:hover {
@@ -305,4 +328,3 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 </style>
-

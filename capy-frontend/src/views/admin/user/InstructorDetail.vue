@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import {
   getInstructorApplicationDetail,
   getApplicationHistory,
@@ -171,7 +172,7 @@ const handleApprove = async () => {
     ElMessage.success("審核通過成功");
     router.push({ name: "instructor_application_list" });
   } catch (error) {
-    if (error !== "cancel") {
+    if (error !== "cancel" && error?.message !== "cancel") {
       console.error("Failed to approve application:", error);
       ElMessage.error("審核操作失敗");
     }

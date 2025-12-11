@@ -1,10 +1,12 @@
 <script setup>
 import { ref, provide, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import CourseAttachment from "@/components/admin/CourseAttachment.vue";
 import CourseDetailForm from "@/components/admin/CourseDetailForm.vue";
 import CoursePlaylist from "@/components/admin/CoursePlaylist.vue";
-import { getCourseOverview, approveCourse, rejectCourse, forceUnpublishCourse, restoreCourse, getAllCategories, getAllTags } from "@/api/admin/course";
+import { getCourseOverview, approveCourse, rejectCourse, forceUnpublishCourse, restoreCourse, getAllCategories } from "@/api/admin/course";
+import { listAllTags } from "@/api/admin/tag";
 
 const props = defineProps({
   viewtype: {
@@ -39,7 +41,7 @@ const fetchCourseOverview = async () => {
     const [courseResult, categoriesResult, tagsResult] = await Promise.all([
       getCourseOverview(courseId),
       getAllCategories(),
-      getAllTags(),
+      listAllTags(),
     ]);
     if (courseResult) {
       courseData.value = courseResult.course || null;

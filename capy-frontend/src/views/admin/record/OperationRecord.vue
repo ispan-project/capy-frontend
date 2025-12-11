@@ -362,7 +362,8 @@ onMounted(() => {
   margin-bottom: 12px;
   padding: 20px 24px;
   background: linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
-  border-radius: 12px 12px 0 0;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 :deep(.el-dialog__title) {
@@ -503,4 +504,3 @@ onMounted(() => {
   border-color: #C7D2FE;
 }
 </style>
-

@@ -154,3 +154,11 @@ export const bindGoogleAccount = ({ googleId, password }) => {
 export const logout = () => {
   return instance.post("/auth/logout");
 };
+//進老師頁面前檢查
+export const CheckIsTeacher = () => {
+  return instance.get("/teacher/health");
+};
+//進管理員頁面前檢查
+export const CheckIsAdmin = () => {
+  return instance.get("/admin/health");
+};

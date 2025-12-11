@@ -3,10 +3,12 @@ import { VueDraggable as Draggable } from "vue-draggable-plus";
 import TextInputDialog from "../common/TextInputDialog.vue";
 import { useLesson } from "@/composable/useLesson";
 import { useCourseStore } from "@/stores/course";
+import { useVideo } from "@/composable/useVideo";
 import AlertDialog from "../common/AlertDialog.vue";
 import LessonFormDialog from "./LessonFormDialog.vue";
 import { getVideoUrl } from "@/api/teacher/video";
 import { createLesson, updateLesson } from "@/api/teacher/course";
+import { useVideoStore } from "@/stores/video";
 
 const props = defineProps({
   sectionInfo: {
@@ -33,7 +35,7 @@ const showLessonDialog = ref(false);
 const lessonVideoUrl = ref(null);
 const handleCreateLesson = () => {
   isEditLesson.value = false;
-  // currentLesson.value =
+  lessonVideoUrl.value = null;
   showLessonDialog.value = true;
   // form.value = {
   //   name: "",
@@ -50,13 +52,11 @@ const handleEditLesson = async (lessonInfo) => {
     lessonVideoUrl.value = res.signedUrl;
   }
   showLessonDialog.value = true;
-  // lessonDialogRef.value.open();
 };
 const handleSaveLesson = async (data) => {
   data.request.courseId = courseStore.currentCourseId;
   data.request.sectionId = props.sectionInfo.sectionId;
   if (!isEditLesson.value) {
-    // data.request.lessonId=1
     data.request.displayOrder = props.sectionInfo.lessons.length;
   }
   console.log(data);
@@ -69,13 +69,41 @@ const handleSaveLesson = async (data) => {
     fd.append("attachments", data.fileList[i]);
   }
 
-  // console.log(fd);
-  if (!isEditLesson.value) {
-    const res = await createLesson(fd);
-    console.log(res);
-  } else {
-    const res = await updateLesson(fd);
-    console.log(res);
+  try {
+    if (!isEditLesson.value) {
+      const res = await createLesson(fd);
+      await courseStore.fetchCourseOverview();
+      console.log(res);
+      if (data.request.videoMeta) {
+        ElMessage.warning("影片上傳中，請勿離開當前頁面或重新刷新");
+        //加入上傳列表 開始上傳
+        const videoStore = useVideoStore();
+        videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
+      } else {
+        // const message = isEditLesson.value ? "更新成功" : "創建成功";
+        ElMessage.success("創建成功");
+      }
+    } else {
+      const res = await updateLesson(fd);
+      console.log(res);
+      await courseStore.fetchCourseOverview();
+      if (data.request.videoMeta) {
+        ElMessage.warning("影片上傳中，請勿離開當前頁面或重新刷新");
+        //加入上傳列表 開始上傳
+        const videoStore = useVideoStore();
+        videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
+        // uploadToGCP()
+        const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
+        await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
+      } else {
+        // const message = isEditLesson.value ? "更新成功" : "創建成功";
+        ElMessage.success("更新成功");
+      }
+    }
+  } catch (e) {
+    console.log(e);
+    const message = isEditLesson.value ? "更新失敗" : "創建失敗";
+    ElMessage.error(message);
   }
 };
 const checkIsUploading = (lessonId) => {

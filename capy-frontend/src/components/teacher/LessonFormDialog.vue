@@ -51,6 +51,7 @@ const requestData = computed(() => {
     attachmentOps: attachmentOps.value,
   };
 });
+let currentUploadVideo;
 const videoPlayerRef = ref(null);
 const videoMeta = ref({
   rawVideoHeight: videoPlayerRef.value?.videoHeight,
@@ -65,6 +66,7 @@ const handleVideoExceed = (file) => {
   upload.value.handleStart(file);
 };
 const handleVideoChange = async (file) => {
+  currentUploadVideo = file.raw;
   formModel.value.videoUrl = URL.createObjectURL(file.raw);
   await nextTick();
   videoMeta.value.fileSize = file.raw.size;
@@ -85,6 +87,8 @@ watch(
       };
     } else {
       emit("update:videoUrl", null);
+      attachmentUploadRef.value.clearFiles();
+      attachmentList.value = [];
     }
   }
 );
@@ -114,7 +118,7 @@ watch(
       // console.log(videoPlayerRef.value.videoHeight);
       return;
     }
-    await videoPlayerRef.play(newVal);
+    await videoPlayerRef.value.play(newVal);
   }
 );
 const handleAttachmentExceed = () => {
@@ -124,6 +128,9 @@ const handleAttachmentChange = (file, files) => {
   console.log(file);
   console.log(files);
   attachmentList.value = files;
+};
+const handleAttachmentClear = () => {
+  attachmentUploadRef.value.clearFiles();
 };
 const handleAttachmentRemove = (file, files) => {
   console.log(file);
@@ -158,6 +165,7 @@ const deleteAttachmentList = computed(() => {
   }
   return [];
 });
+const attachmentUploadRef = ref(null);
 const attachmentOps = computed(() => [...newAttachmentList.value, ...deleteAttachmentList.value]);
 //新增的檔案
 const attachmentFileList = computed(() => attachmentList.value?.map((file) => file.raw));
@@ -167,15 +175,17 @@ const attachmentFileList = computed(() => attachmentList.value?.map((file) => fi
 //   }
 // });
 const save = () => {
-  if (formModel.value.videoUrl || formModel.value.videoUrl === props.videoUrl) {
+  if (!formModel.value.videoUrl || formModel.value.videoUrl === props.videoUrl) {
     requestData.value.videoMeta = null;
   }
   const data = {};
   data.request = requestData.value;
   data.fileList = attachmentFileList.value;
+  data.videoFile = currentUploadVideo;
   console.log(videoMeta.value);
   emit("confirm", data);
   emit("update:visible", false);
+
   dialogVisible.visible = false;
 };
 </script>
@@ -245,14 +255,15 @@ const save = () => {
           <div>
             <el-upload
               multiple
+              ref="attachmentUploadRef"
               :auto-upload="false"
               :on-remove="handleAttachmentRemove"
               :on-change="handleAttachmentChange"
-              :limit="3"
+              :limit="3 - formModel.attachments.length"
               :on-exceed="handleAttachmentExceed"
             >
               <el-button type="primary">選擇上傳文件</el-button>
-              <el-button type="info">清空上傳列表</el-button>
+              <el-button type="info" @click.stop="handleAttachmentClear">清空上傳列表</el-button>
               <template #tip>
                 <div class="el-upload__tip">jpg/png files with a size less than 500KB.</div>
               </template>

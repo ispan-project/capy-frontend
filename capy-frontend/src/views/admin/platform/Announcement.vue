@@ -269,6 +269,7 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
+/* Page-specific styles */
 .filter-bar {
   display: flex;
   align-items: center;
@@ -339,33 +340,11 @@ onMounted(() => {
   color: #1F2937;
 }
 
-.end-text {
-  margin-top: 12px;
-  text-align: center;
-  color: #9CA3AF;
-}
-
-.add-btn {
-  padding: 18px 24px;
-}
-
 .empty-text {
   text-align: center;
   color: #9CA3AF;
   padding: 48px 0;
   font-size: 14px;
-}
-
-.pagination-btn {
-  margin-top: 32px;
-  display: flex;
-}
-
-/* Override radio button fill color */
-:deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background-color: #4F46E5 !important;
-  border-color: #4F46E5 !important;
-  box-shadow: -1px 0 0 0 #4F46E5 !important;
 }
 </style>
 

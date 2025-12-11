@@ -91,9 +91,9 @@ onMounted(() => {
   <div class="wrapper">
     <el-dialog v-model="createDialogVisible" width="500">
       <template #header>
-        <h4 class="dialog-heading">新增課程標籤</h4>
+        <h4 class="admin-dialog-heading">新增課程標籤</h4>
       </template>
-      <div class="dialog-body">
+      <div class="admin-dialog-body">
         <div style="text-align: center">
           <el-input
                         v-model="newTagValue"
@@ -103,7 +103,7 @@ onMounted(() => {
         </div>
       </div>
       <template #footer>
-        <div class="dialog-footer">
+        <div class="admin-dialog-footer">
           <el-button type="info" @click="createDialogVisible = false">取消</el-button>
           <el-button type="primary" :loading="createLoading" @click="handleCreateTag"> 確認 </el-button>
         </div>
@@ -111,15 +111,15 @@ onMounted(() => {
     </el-dialog>
     <el-dialog v-model="deleteDialogVisible" width="500">
       <template #header>
-        <h4 class="dialog-heading">刪除課程標籤</h4>
+        <h4 class="admin-dialog-heading">刪除課程標籤</h4>
       </template>
-      <div class="dialog-body">
+      <div class="admin-dialog-body">
         <p>
           確認刪除標籤<span style="font-weight: 500; color: #409eff">{{ currentTag?.name }}</span>?
         </p>
       </div>
       <template #footer>
-        <div class="dialog-footer">
+        <div class="admin-dialog-footer">
           <el-button type="info" @click="deleteDialogVisible = false">取消</el-button>
           <el-button type="primary" :loading="deleteLoading" @click="handleDeleteTag"> 確認 </el-button>
         </div>
@@ -147,6 +147,7 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
+/* Page-specific styles */
 .title {
   padding: 6px 0;
   padding-right: 20px;
@@ -155,9 +156,11 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 16px;
 }
+
 .add-btn {
   padding: 14px 20px;
 }
+
 .pool {
   border-radius: 12px;
   padding: 20px 14px;
@@ -168,6 +171,7 @@ onMounted(() => {
   gap: 8px;
   min-height: 70px;
 }
+
 .pool-item {
   display: flex;
   align-items: center;
@@ -180,36 +184,18 @@ onMounted(() => {
   font-weight: 500;
   transition: all 0.2s ease;
 }
+
 .pool-item:hover {
   background-color: #FEF2F2;
   border-color: #FECACA;
   color: #B91C1C;
   cursor: pointer;
 }
-.dialog-footer {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  padding-bottom: 10px;
-}
-.dialog-body {
-  padding: 20px;
-  font-size: 15px;
-  text-align: center;
-}
-.username {
-  font-weight: 500;
-  color: #409eff;
-}
-.dialog-heading {
-  text-align: center;
-  padding: 10px 0;
-  font-weight: 500;
-  font-size: 18px;
-}
+
 .empty-text {
   color: rgb(153, 173, 183);
   padding: 12px;
   font-size: 14px;
 }
 </style>
+

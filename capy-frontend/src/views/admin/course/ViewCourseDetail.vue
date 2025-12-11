@@ -223,22 +223,6 @@ onMounted(() => {
   </div>
 </template>
 
-<style>
-/* Global styles for the message box to fix button layout issues */
-.audit-message-box .el-message-box__btns {
-  display: flex !important;
-  flex-direction: row !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 10px 20px 20px !important;
-}
-
-.audit-message-box .el-message-box__btns .el-button {
-  margin-left: 0 !important;
-}
-</style>
-
 <style scoped>
 .page-container {
   max-width: 1200px;

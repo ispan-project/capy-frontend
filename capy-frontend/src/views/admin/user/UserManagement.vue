@@ -142,7 +142,7 @@ onMounted(() => {
   <h2 class="section-heading">用戶狀態管理</h2>
   <div class="wrapper" style="margin-bottom: 24px">
     <!-- 篩選與搜尋區 -->
-    <div class="filter-bar">
+    <div class="admin-filter-row">
       <el-select
         v-model="currentRole"
                 placeholder="全部身分"
@@ -193,7 +193,7 @@ onMounted(() => {
     </div>
   </div>
 
-  <div class="wrapper">
+  <div class="wrapper admin-table-container">
     <el-table
       v-loading="loading"
       stripe
@@ -206,16 +206,16 @@ onMounted(() => {
     >
       <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
-          <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+          <span class="admin-index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
         </template>
       </el-table-column>
       <el-table-column min-width="280" label="用戶資訊">
         <template #default="{ row }">
-          <div class="user-info-cell">
+          <div class="admin-user-info-cell">
             <el-avatar :size="50" :src="row.avatarUrl" />
-            <div class="user-details">
-              <p class="user-name">{{ row.nickname }}</p>
-              <p class="user-sub">{{ row.email }}</p>
+            <div class="admin-user-details">
+              <p class="admin-user-name">{{ row.nickname }}</p>
+              <p class="admin-user-sub">{{ row.email }}</p>
             </div>
           </div>
         </template>
@@ -240,7 +240,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="最後更新時間" min-width="180" align="center">
         <template #default="{ row }">
-          <span class="date-text">{{ formatDate(row.updatedAt) }}</span>
+          <span class="admin-date-text">{{ formatDate(row.updatedAt) }}</span>
         </template>
       </el-table-column>
     </el-table>
@@ -257,84 +257,7 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.pagination-btn {
-  margin-top: 32px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-:deep(.el-table) {
-  --el-table-header-bg-color: #F9FAFB;
-  --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-:deep(.tbody-cell .cell) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 10px;
-}
-
-:deep(.table-head .cell) {
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  color: #374151;
-  padding: 12px 10px;
-}
-
-/* 用戶資訊欄位 */
-.user-info-cell {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 6px 0;
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.user-name {
-  font-weight: 500;
-  font-size: 14px;
-  color: #1F2937;
-}
-
-.user-sub {
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 索引樣式 */
-.index {
-  font-style: italic;
-  font-weight: 600;
-  font-size: 17px;
-  color: #9CA3AF;
-  opacity: 0.4;
-  transition: all 0.2s ease;
-}
-
-.table-row:hover .index {
-  opacity: 1;
-  color: #4F46E5;
-}
-
-/* 狀態欄位 */
+/* Page-specific styles */
 .status-cell {
   display: flex;
   flex-direction: column;
@@ -347,14 +270,8 @@ onMounted(() => {
   color: #6B7280;
 }
 
-/* 日期樣式 */
-.date-text {
-  font-style: italic;
-  font-weight: 500;
-  font-size: 13px;
-}
-
 .el-tag {
   border: 1px solid #E5E7EB;
 }
 </style>
+

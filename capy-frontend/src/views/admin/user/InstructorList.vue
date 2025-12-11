@@ -93,7 +93,7 @@ onMounted(() => {
 <template>
   <h2 class="section-heading">教師申請列表</h2>
   <div class="wrapper" style="margin-bottom: 24px">
-    <div class="filter-bar">
+    <div class="admin-filter-row">
       <el-select
         v-model="currentSort"
                 placeholder="排序方式"
@@ -110,7 +110,7 @@ onMounted(() => {
     </div>
   </div>
 
-  <div class="wrapper">
+  <div class="wrapper admin-table-container">
     <el-table
       v-loading="loading"
       stripe
@@ -123,24 +123,24 @@ onMounted(() => {
     >
       <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
-          <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+          <span class="admin-index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
         </template>
       </el-table-column>
 
       <el-table-column label="申請者" min-width="280">
         <template #default="{ row }">
-          <div class="user-info-cell">
+          <div class="admin-user-info-cell">
             <el-avatar :size="50" :src="row.avatarUrl" />
-            <div class="user-details">
-              <p class="user-name">{{ row.nickname }}</p>
-              <p class="user-sub">{{ row.fullName }}</p>
+            <div class="admin-user-details">
+              <p class="admin-user-name">{{ row.nickname }}</p>
+              <p class="admin-user-sub">{{ row.fullName }}</p>
             </div>
           </div>
         </template>
       </el-table-column>
       <el-table-column label="申請時間" min-width="180" align="center">
         <template #default="{ row }">
-          <span class="date-text">{{ formatDate(row.appliedAt) }}</span>
+          <span class="admin-date-text">{{ formatDate(row.appliedAt) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="是否為第一次申請" min-width="160" align="center">
@@ -171,78 +171,7 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
-:deep(.el-table) {
-  --el-table-header-bg-color: #F9FAFB;
-  --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-:deep(.tbody-cell .cell) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 10px;
-}
-
-:deep(.table-head .cell) {
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  color: #374151;
-  padding: 12px 10px;
-}
-
-/* 用戶資訊欄位 */
-.user-info-cell {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 6px 0;
-}
-
-.user-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.user-name {
-  font-weight: 500;
-  font-size: 14px;
-  color: #1F2937;
-}
-
-.user-sub {
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 索引樣式 */
-.index {
-  font-style: italic;
-  font-weight: 600;
-  font-size: 17px;
-  color: #9CA3AF;
-  opacity: 0.4;
-  transition: all 0.2s ease;
-}
-
-.table-row:hover .index {
-  opacity: 1;
-  color: #4F46E5;
-}
-
-/* 日期樣式 */
-.date-text {
-  font-style: italic;
-  font-weight: 500;
-  font-size: 13px;
-}
-
-/* 首次申請標記 */
+/* Page-specific styles */
 .first-application-badge {
   font-size: 14px;
   font-weight: 500;
@@ -252,17 +181,5 @@ onMounted(() => {
   color: #4F46E5;
   font-weight: 600;
 }
-
-.pagination-btn {
-  margin-top: 32px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
 </style>
+

@@ -122,38 +122,36 @@ onMounted(() => {
       style="width: 100%"
       empty-text="暫無申請"
     >
-      <el-table-column label="序號" width="80">
+      <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
           <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
         </template>
       </el-table-column>
 
-      <el-table-column label="申請者" width="300">
+      <el-table-column label="申請者" min-width="280">
         <template #default="{ row }">
-          <div style="display: flex; gap: 28px; align-items: center; padding: 8px 0">
-            <div style="display: flex; align-items: center">
-              <el-avatar :size="50" :src="row.avatarUrl" />
-            </div>
-            <div>
-              <p style="font-weight: 500">{{ row.nickname }}</p>
-              <p style="font-size: 12px; color: #909399">{{ row.fullName }}</p>
+          <div class="user-info-cell">
+            <el-avatar :size="50" :src="row.avatarUrl" />
+            <div class="user-details">
+              <p class="user-name">{{ row.nickname }}</p>
+              <p class="user-sub">{{ row.fullName }}</p>
             </div>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="申請時間">
+      <el-table-column label="申請時間" min-width="180" align="center">
         <template #default="{ row }">
-          <span style="font-style: italic; font-weight: 500">{{ formatDate(row.appliedAt) }}</span>
+          <span class="date-text">{{ formatDate(row.appliedAt) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="是否為第一次申請">
+      <el-table-column label="是否為第一次申請" min-width="160" align="center">
         <template #default="{ row }">
-          <span style="font-size: 20px" :class="{ 'highlight-record': !row.firstApplication }">
+          <span class="first-application-badge" :class="{ 'highlight-record': !row.firstApplication }">
             {{ row.firstApplication ? "是" : "否" }}
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" width="120" align="center">
         <template #default="{ row }">
           <el-button type="primary" link @click="viewDetail(row.applicationId)">
             查看詳情
@@ -184,6 +182,7 @@ onMounted(() => {
 
 :deep(.tbody-cell .cell) {
   display: flex;
+  align-items: center;
   justify-content: center;
   padding: 16px 12px;
 }
@@ -198,6 +197,31 @@ onMounted(() => {
   padding: 16px 12px;
 }
 
+/* 用戶資訊欄位 */
+.user-info-cell {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1F2937;
+}
+
+.user-sub {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 索引樣式 */
 .index {
   font-style: italic;
   font-weight: 600;
@@ -210,6 +234,18 @@ onMounted(() => {
 .table-row:hover .index {
   opacity: 1;
   color: #4F46E5;
+}
+
+/* 日期樣式 */
+.date-text {
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* 首次申請標記 */
+.first-application-badge {
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .highlight-record {

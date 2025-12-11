@@ -127,7 +127,7 @@ onMounted(() => {
       </template>
     </el-dialog>
     <div class="title">
-      <h3 class="section-title" style="margin-bottom: 0">課程標籤管理</h3>
+      <h3 class="section-title" style="margin-bottom: 0">標籤管理</h3>
       <el-button @click="createDialogVisible = true" round type="primary" class="add-btn"
         ><el-icon size="large" style="margin-right: 4px"><CirclePlus /></el-icon>新增標籤</el-button
       >
@@ -161,26 +161,30 @@ onMounted(() => {
 }
 .pool {
   border-radius: 16px;
-  padding: 24px 12px;
-  background-color: #f0f3f5;
+  padding: 24px 16px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  min-height: 80px;
 }
 .pool-item {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border: 2px solid #000;
-  background-color: #000;
-  color: #fff;
+  border: 1px solid #D1D5DB;
+  background-color: #FFFFFF;
+  color: #374151;
   border-radius: 80px;
   font-weight: 500;
+  transition: all 0.2s ease;
 }
 .pool-item:hover {
-  color: #000;
-  background-color: #f0f3f5;
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #B91C1C;
   cursor: pointer;
 }
 .dialog-footer {

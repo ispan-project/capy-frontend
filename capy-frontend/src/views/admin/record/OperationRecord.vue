@@ -372,8 +372,20 @@ onMounted(() => {
   letter-spacing: 0.3px;
 }
 
+:deep(.el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
+  width: 28px;
+  height: 28px;
+}
+
 :deep(.el-dialog__headerbtn .el-dialog__close) {
   color: #FFFFFF;
+  font-size: 18px;
+}
+
+:deep(.el-dialog__headerbtn:hover .el-dialog__close) {
+  color: #E0E7FF;
 }
 
 :deep(.el-dialog__body) {

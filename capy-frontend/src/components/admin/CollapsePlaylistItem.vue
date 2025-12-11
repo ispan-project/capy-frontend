@@ -117,7 +117,7 @@ watch(
 <template>
   <!-- 單元影片詳情 dialog -->
   <el-dialog center v-model="dialogFormVisible" title="單元影片詳情" width="600">
-    <el-form v-if="currentLesson" label-position="top" size="large" class="dialogForm">
+    <el-form v-if="currentLesson" label-position="top" class="dialogForm">
       <el-form-item label="影片標題 :">
         <p class="lesson-title">
           {{ currentLesson.lessonTitle }}
@@ -166,12 +166,12 @@ watch(
 
   <el-collapse-item>
     <template #icon="{ isActive }">
-      <el-icon size="large" v-show="isActive"><ArrowDownBold /></el-icon>
-      <el-icon size="large" v-show="!isActive"><ArrowRightBold /></el-icon>
+      <el-icon v-show="isActive"><ArrowDownBold /></el-icon>
+      <el-icon v-show="!isActive"><ArrowRightBold /></el-icon>
     </template>
     <template #title>
       <div style="display: flex; align-items: center; gap: 12px">
-        <p style="font-size: 20px; padding: 5px 0; padding-left: 20px">
+        <p style="font-size: 18px; padding: 5px 0; padding-left: 20px">
           {{ sectionInfo.title }}
           <span style="font-size: 14px">
             | 共{{ sortedLessons.length }}單元 時長:{{ totalDuration }}分鐘
@@ -185,7 +185,7 @@ watch(
           <span>
             <span class="index">{{ (index + 1).toString().padStart(2, "0") }}</span>
             {{ lesson.lessonTitle }}
-            <el-tag v-if="lesson.freePreview" style="margin-left: 8px" size="large">試看單元</el-tag>
+            <el-tag v-if="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
           </span>
           <div>
             {{ formatDuration(lesson.lessonDurationSeconds) }}

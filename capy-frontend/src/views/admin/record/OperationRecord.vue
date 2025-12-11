@@ -155,7 +155,7 @@ onMounted(() => {
     <h2 class="section-heading">操作紀錄查詢</h2>
     <div class="wrapper" style="margin-bottom: 24px">
       <div class="filter-bar">
-        <el-form inline size="large" label-position="left" class="filter-form">
+        <el-form inline label-position="left" class="filter-form">
           <el-form-item label="操作類型 :">
             <el-select
               v-model="filters.action"
@@ -199,7 +199,7 @@ onMounted(() => {
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" size="large" @click="resetFilters">
+            <el-button type="primary" @click="resetFilters">
               清除篩選
             </el-button>
           </el-form-item>
@@ -214,8 +214,7 @@ onMounted(() => {
         :cell-class-name="() => 'tbody-cell'"
         :header-cell-class-name="() => 'table-head'"
         :data="displayRecords()"
-        size="large"
-        empty-text="暫無符合的操作紀錄"
+                empty-text="暫無符合的操作紀錄"
         @row-click="openRecord"
       >
         <el-table-column label="序號" width="80">
@@ -225,7 +224,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="操作類型">
           <template #default="{ row }">
-            <el-tag size="large" round effect="plain" :type="actionMeta[row.action]?.tagType || 'info'">
+            <el-tag round effect="plain" :type="actionMeta[row.action]?.tagType || 'info'">
               {{ actionLabel(row.action) }}
             </el-tag>
           </template>
@@ -253,8 +252,7 @@ onMounted(() => {
 
       <div class="pagination-btn" style="justify-content: center">
         <el-pagination
-          size="large"
-          background
+                    background
           layout="total, prev, pager, next"
           :page-size="pageSize"
           :total="totalElements"
@@ -401,7 +399,7 @@ onMounted(() => {
 :deep(.el-table) {
   --el-table-header-bg-color: #F9FAFB;
   --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -410,7 +408,7 @@ onMounted(() => {
 }
 
 :deep(.table-row .cell) {
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.tbody-cell .cell) {
@@ -419,19 +417,19 @@ onMounted(() => {
 }
 
 :deep(.table-head .cell) {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: #374151;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 .index {
   font-style: italic;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   color: #9CA3AF;
   opacity: 0.4;
   transition: all 0.2s ease;
@@ -445,7 +443,7 @@ onMounted(() => {
 .detail-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .detail-row {
@@ -457,18 +455,19 @@ onMounted(() => {
 .detail-label {
   color: #6B7280;
   font-weight: 600;
-  font-size: 14px;
-  min-width: 120px;
+  font-size: 13px;
+  min-width: 100px;
 }
 
 .detail-value {
   flex: 1;
   color: #374151;
+  font-size: 14px;
   word-break: break-word;
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
   justify-content: flex-end;
 }

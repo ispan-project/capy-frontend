@@ -254,6 +254,11 @@
 }
 
 /* ==================== Radio Button Group - Indigo ==================== */
+.el-radio-group .el-radio-button__inner {
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
 .el-radio-group .el-radio-button__inner:hover {
     color: var(--admin-primary);
 }

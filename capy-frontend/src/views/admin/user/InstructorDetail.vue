@@ -237,8 +237,7 @@ onMounted(() => {
           </div>
           <el-tag
             :type="getStatusConfig(instructor.status).type"
-            size="large"
-            round
+                        round
           >
             {{ getStatusConfig(instructor.status).label }}
           </el-tag>
@@ -389,22 +388,20 @@ onMounted(() => {
 
       <!-- 操作按鈕 -->
       <div class="action-bar">
-        <el-button size="large" :icon="ArrowLeft" @click="goBack"
+        <el-button :icon="ArrowLeft" @click="goBack"
           >返回列表</el-button
         >
         <div class="action-main" v-if="instructor.status === 'pending'">
           <el-button
             type="danger"
-            size="large"
-            :icon="Close"
+                        :icon="Close"
             :loading="submitting"
             @click="openRejectDialog"
             >審核不通過</el-button
           >
           <el-button
             type="primary"
-            size="large"
-            :icon="Check"
+                        :icon="Check"
             :loading="submitting"
             @click="handleApprove"
             >審核通過</el-button

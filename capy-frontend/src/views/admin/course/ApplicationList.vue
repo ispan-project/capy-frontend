@@ -110,8 +110,7 @@ onMounted(() => {
     <div class="filter-bar">
       <el-select
         v-model="filters.parentCategoryId"
-        size="large"
-        placeholder="全部分類"
+                placeholder="全部分類"
         clearable
         style="width: 200px"
       >
@@ -123,7 +122,7 @@ onMounted(() => {
         />
       </el-select>
 
-      <el-button type="primary" size="large" @click="resetFilters">清除篩選</el-button>
+      <el-button type="primary" @click="resetFilters">清除篩選</el-button>
     </div>
   </div>
 
@@ -134,8 +133,7 @@ onMounted(() => {
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="displayData"
+            :data="displayData"
       style="width: 100%"
       empty-text="暫無申請"
     >
@@ -170,8 +168,7 @@ onMounted(() => {
     </el-table>
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :page-size="pageSize"
         :total="totalElements"
@@ -198,7 +195,7 @@ onMounted(() => {
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
   justify-content: flex-end;
 }
@@ -206,34 +203,34 @@ onMounted(() => {
 :deep(.el-table) {
   --el-table-header-bg-color: #F9FAFB;
   --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 :deep(.tbody-cell .cell) {
   display: flex;
   justify-content: center;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.table-row .cell) {
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.table-head .cell) {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: #374151;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 .index {
   font-style: italic;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   color: #9CA3AF;
   opacity: 0.4;
   transition: all 0.2s ease;

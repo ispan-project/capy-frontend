@@ -65,7 +65,7 @@ const handleDownload = async (attachment) => {
     <h2 class="section-title">課程附件一覽</h2>
     <el-select
       v-model="currentSection"
-      size="large"
+     
       placeholder="全部章節"
       clearable
       style="width: 240px; margin-bottom: 12px"
@@ -82,7 +82,7 @@ const handleDownload = async (attachment) => {
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
+     
       :data="filteredAttachments"
       style="width: 100%; margin-top: 24px"
       empty-text="暫無附件"

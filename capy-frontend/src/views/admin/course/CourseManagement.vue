@@ -206,8 +206,7 @@ onMounted(() => {
     <div class="filter-bar">
       <el-select
         v-model="currentCategory"
-        size="large"
-        placeholder="全部分類"
+                placeholder="全部分類"
         clearable
         style="width: 200px"
         @change="handleCategoryChange"
@@ -222,8 +221,7 @@ onMounted(() => {
 
       <el-select
         v-model="currentStatus"
-        size="large"
-        placeholder="全部狀態"
+                placeholder="全部狀態"
         clearable
         style="width: 150px"
         @change="handleStatusChange"
@@ -238,8 +236,7 @@ onMounted(() => {
 
       <el-input
         v-model="searchKeyword"
-        size="large"
-        placeholder="搜尋課程名稱、講師..."
+                placeholder="搜尋課程名稱、講師..."
         style="width: 300px"
         clearable
         @keyup.enter="handleSearch"
@@ -250,15 +247,14 @@ onMounted(() => {
         </template>
       </el-input>
 
-      <el-button type="primary" size="large" @click="handleSearch">
+      <el-button type="primary" @click="handleSearch">
         <el-icon style="margin-right: 4px"><Search /></el-icon>
         搜尋
       </el-button>
 
       <el-select
         v-model="currentSort"
-        size="large"
-        placeholder="排序方式"
+                placeholder="排序方式"
         style="width: 200px"
         @change="handleSortChange"
       >
@@ -280,8 +276,7 @@ onMounted(() => {
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="dataWithIndex"
+            :data="dataWithIndex"
       style="width: 100%"
       empty-text="暫無課程"
     >
@@ -331,8 +326,7 @@ onMounted(() => {
     <!-- 分頁 -->
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :total="totalElements"
         :page-size="pageSize"
@@ -352,7 +346,7 @@ onMounted(() => {
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
   justify-content: flex-end;
 }
@@ -360,30 +354,30 @@ onMounted(() => {
 :deep(.el-table) {
   --el-table-header-bg-color: #F9FAFB;
   --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 :deep(.tbody-cell .cell) {
   display: flex;
   justify-content: center;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.table-head .cell) {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: #374151;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 .index {
   font-style: italic;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   color: #9CA3AF;
   opacity: 0.4;
   transition: all 0.2s ease;
@@ -397,6 +391,7 @@ onMounted(() => {
 .published-at {
   font-style: italic;
   font-weight: 500;
+  font-size: 13px;
   color: #6B7280;
 }
 

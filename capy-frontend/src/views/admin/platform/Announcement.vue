@@ -176,8 +176,7 @@ onMounted(() => {
       <el-form
         style="padding: 12px"
         label-position="top"
-        size="large"
-        ref="formRef"
+                ref="formRef"
         :model="formModel"
       >
         <el-form-item>
@@ -209,8 +208,8 @@ onMounted(() => {
           <div
             style="display: flex; justify-content: center; gap: 12px; width: 100%; margin-top: 12px"
           >
-            <el-button size="large" @click="addDialogVisible = false">取消</el-button>
-            <el-button size="large" type="primary" :loading="submitLoading" @click="handleCreateAnnouncement">發布</el-button>
+            <el-button @click="addDialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="submitLoading" @click="handleCreateAnnouncement">發布</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -220,14 +219,13 @@ onMounted(() => {
       <div class="filter-bar">
         <div style="display: flex; align-items: center; gap: 12px">
           <span style="font-weight: 500; font-size: 16px">發布人 :</span>
-          <el-radio-group v-model="currentAnnouncementType" size="large" fill="#4F46E5" @change="handleTypeChange">
+          <el-radio-group v-model="currentAnnouncementType" fill="#4F46E5" @change="handleTypeChange">
             <el-radio-button label="All" value="" />
             <el-radio-button label="平台" value="platform" />
             <el-radio-button label="講師" value="instructor" />
           </el-radio-group>
         </div>
-        <el-button @click="addDialogVisible = true" type="primary" round size="large"
-          ><el-icon size="large" style="margin-right: 4px"><CirclePlus /></el-icon>發布公告</el-button
+        <el-button @click="addDialogVisible = true" type="primary" round           ><el-icon style="margin-right: 4px"><CirclePlus /></el-icon>發布公告</el-button
         >
       </div>
     </div>
@@ -235,15 +233,14 @@ onMounted(() => {
       <ul v-loading="loading" class="message-list">
         <li v-for="item in announcementList" :key="item.id" @click="checkoutDetail(item)" class="message-list-item">
           <div>
-            <div style="display: flex; align-items: center; margin-bottom: 24px; gap: 4px">
+            <div style="display: flex; align-items: center; margin-bottom: 16px; gap: 4px">
               <h3 class="message-title">{{ item.title }}</h3>
               <el-tag
                 class="tag"
                 type="info"
                 effect="plain"
                 round
-                size="large"
-                >{{ formatTargetAudience(item.targetAudience) }}</el-tag
+                                >{{ formatTargetAudience(item.targetAudience) }}</el-tag
               >
             </div>
             <p style="margin-bottom: 12px; font-weight: 500">
@@ -259,7 +256,7 @@ onMounted(() => {
       </ul>
       <div style="justify-content: center" class="pagination-btn">
         <el-pagination 
-          size="large" 
+          
           background 
           layout="total, prev, pager, next" 
           :total="totalElements"
@@ -287,15 +284,15 @@ onMounted(() => {
 }
 
 .message-list-item {
-  padding: 20px 24px;
+  padding: 16px 20px;
   position: relative;
   display: flex;
-  gap: 24px;
-  border-radius: 12px;
+  gap: 20px;
+  border-radius: 10px;
   justify-content: space-between;
   align-items: center;
   background-color: #FFFFFF;
-  border-left: 4px solid #C7D2FE;
+  border-left: 3px solid #C7D2FE;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
@@ -308,36 +305,36 @@ onMounted(() => {
 }
 
 .dialog-body {
-  padding: 24px;
-  font-size: 16px;
+  padding: 20px;
+  font-size: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .detail-label {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: #6B7280;
-  margin-right: 12px;
+  margin-right: 10px;
 }
 
 .dialog-heading {
   text-align: center;
-  padding: 16px 0;
+  padding: 12px 0;
   font-weight: 600;
-  font-size: 22px;
+  font-size: 18px;
   color: #1F2937;
 }
 
 .checkout {
-  font-size: 13px;
+  font-size: 12px;
   color: #9CA3AF;
   white-space: nowrap;
 }
 
 .message-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #1F2937;
 }
@@ -355,12 +352,12 @@ onMounted(() => {
 .empty-text {
   text-align: center;
   color: #9CA3AF;
-  padding: 64px 0;
-  font-size: 15px;
+  padding: 48px 0;
+  font-size: 14px;
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
 }
 

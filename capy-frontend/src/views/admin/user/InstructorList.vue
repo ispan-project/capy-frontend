@@ -96,8 +96,7 @@ onMounted(() => {
     <div class="filter-bar">
       <el-select
         v-model="currentSort"
-        size="large"
-        placeholder="排序方式"
+                placeholder="排序方式"
         style="width: 200px"
         @change="handleSortChange"
       >
@@ -118,8 +117,7 @@ onMounted(() => {
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="dataWithIndex"
+            :data="dataWithIndex"
       style="width: 100%"
       empty-text="暫無申請"
     >
@@ -162,8 +160,7 @@ onMounted(() => {
     </el-table>
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :total="totalElements"
         :page-size="pageSize"
@@ -177,7 +174,7 @@ onMounted(() => {
 :deep(.el-table) {
   --el-table-header-bg-color: #F9FAFB;
   --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -185,35 +182,36 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.table-head .cell) {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: #374151;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 /* 用戶資訊欄位 */
 .user-info-cell {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .user-name {
   font-weight: 500;
+  font-size: 14px;
   color: #1F2937;
 }
 
@@ -226,7 +224,7 @@ onMounted(() => {
 .index {
   font-style: italic;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   color: #9CA3AF;
   opacity: 0.4;
   transition: all 0.2s ease;
@@ -241,11 +239,12 @@ onMounted(() => {
 .date-text {
   font-style: italic;
   font-weight: 500;
+  font-size: 13px;
 }
 
 /* 首次申請標記 */
 .first-application-badge {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -255,7 +254,7 @@ onMounted(() => {
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
   justify-content: flex-end;
 }

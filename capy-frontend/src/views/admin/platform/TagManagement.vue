@@ -96,8 +96,7 @@ onMounted(() => {
       <div class="dialog-body">
         <div style="text-align: center">
           <el-input
-            size="large"
-            v-model="newTagValue"
+                        v-model="newTagValue"
             placeholder="輸入標籤名稱"
             style="width: 90%"
           />
@@ -105,8 +104,8 @@ onMounted(() => {
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="large" type="info" @click="createDialogVisible = false">取消</el-button>
-          <el-button size="large" type="primary" :loading="createLoading" @click="handleCreateTag"> 確認 </el-button>
+          <el-button type="info" @click="createDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="createLoading" @click="handleCreateTag"> 確認 </el-button>
         </div>
       </template>
     </el-dialog>
@@ -121,15 +120,15 @@ onMounted(() => {
       </div>
       <template #footer>
         <div class="dialog-footer">
-          <el-button size="large" type="info" @click="deleteDialogVisible = false">取消</el-button>
-          <el-button size="large" type="primary" :loading="deleteLoading" @click="handleDeleteTag"> 確認 </el-button>
+          <el-button type="info" @click="deleteDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="deleteLoading" @click="handleDeleteTag"> 確認 </el-button>
         </div>
       </template>
     </el-dialog>
     <div class="title">
       <h3 class="section-title" style="margin-bottom: 0">標籤管理</h3>
       <el-button @click="createDialogVisible = true" round type="primary" class="add-btn"
-        ><el-icon size="large" style="margin-right: 4px"><CirclePlus /></el-icon>新增標籤</el-button
+        ><el-icon style="margin-right: 4px"><CirclePlus /></el-icon>新增標籤</el-button
       >
     </div>
     <p style="padding-bottom: 12px">現有標籤 :</p>
@@ -149,25 +148,25 @@ onMounted(() => {
 </template>
 <style scoped>
 .title {
-  padding: 8px 0;
-  padding-right: 24px;
+  padding: 6px 0;
+  padding-right: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .add-btn {
-  padding: 18px 24px;
+  padding: 14px 20px;
 }
 .pool {
-  border-radius: 16px;
-  padding: 24px 16px;
+  border-radius: 12px;
+  padding: 20px 14px;
   background-color: #F9FAFB;
   border: 1px solid #E5E7EB;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  min-height: 80px;
+  gap: 8px;
+  min-height: 70px;
 }
 .pool-item {
   display: flex;
@@ -189,13 +188,13 @@ onMounted(() => {
 }
 .dialog-footer {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   justify-content: center;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
 .dialog-body {
-  padding: 24px;
-  font-size: 18px;
+  padding: 20px;
+  font-size: 15px;
   text-align: center;
 }
 .username {
@@ -204,9 +203,9 @@ onMounted(() => {
 }
 .dialog-heading {
   text-align: center;
-  padding: 12px 0;
+  padding: 10px 0;
   font-weight: 500;
-  font-size: 24px;
+  font-size: 18px;
 }
 .empty-text {
   color: rgb(153, 173, 183);

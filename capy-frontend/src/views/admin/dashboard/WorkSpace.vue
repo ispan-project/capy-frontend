@@ -193,17 +193,17 @@ onMounted(() => {
 
 <style scoped>
 .dashboard-container {
-  padding-top: 24px;
+  padding-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  gap: 32px;
 }
 
 /* ==================== Stat Cards ==================== */
 .stat-card {
   background: linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%);
-  border-radius: 16px;
-  padding: 24px 28px;
+  border-radius: 12px;
+  padding: 18px 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   border: 1px solid #F3F4F6;
   transition: all 0.25s ease;
@@ -215,23 +215,23 @@ onMounted(() => {
 }
 
 .stat-card:hover {
-  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.1);
   border-color: #E0E7FF;
   transform: translateY(-2px);
 }
 
 .stat-card__label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #6B7280;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .stat-card__value {
   position: relative;
   display: block;
-  font-size: 32px;
+  font-size: 26px;
   font-weight: 700;
   color: #1F2937;
   line-height: 1.2;
@@ -247,10 +247,10 @@ onMounted(() => {
 
 .pending-dot {
   position: absolute;
-  top: 4px;
-  margin-left: 6px;
-  width: 10px;
-  height: 10px;
+  top: 2px;
+  margin-left: 5px;
+  width: 8px;
+  height: 8px;
   background-color: #EF4444;
   border-radius: 50%;
   animation: pulse 2s infinite;
@@ -262,7 +262,7 @@ onMounted(() => {
 }
 
 .revenue-text {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: #4F46E5;
 }
@@ -276,32 +276,32 @@ onMounted(() => {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .chart-title {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #374151;
 }
 
 .chart-value {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #4F46E5;
 }
 
 .chart-container {
-  height: 450px;
+  height: 320px;
   width: 100%;
 }
 
 /* ==================== Top Course List ==================== */
 .top-course-list {
-  padding-top: 24px;
+  padding-top: 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .top-course-item {
@@ -312,19 +312,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .course-name {
   font-weight: 500;
   color: #374151;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .course-count {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #6B7280;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 </style>

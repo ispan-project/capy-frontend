@@ -119,7 +119,7 @@ const handleUserCommand = (command) => {
                     <el-dropdown-item command="switch-student">切換至學生端</el-dropdown-item>
                     <el-dropdown-item divided command="logout">
                       <span>
-                        <el-icon size="large" style="vertical-align: middle"><SwitchButton /></el-icon>
+                        <el-icon style="vertical-align: middle"><SwitchButton /></el-icon>
                         退出登入
                       </span>
                     </el-dropdown-item>
@@ -167,11 +167,11 @@ const handleUserCommand = (command) => {
 .el-main {
   background-color: #F5F7FA;
   min-height: 100vh;
-  padding: 24px 32px;
+  padding: 20px 24px;
 }
 
 .main-container {
-  max-width: 1320px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 

@@ -114,7 +114,7 @@ watch(
     <div class="wrapper" style="margin-bottom: 24px">
       <div class="section-title">訂單紀錄</div>
       <div class="filter-bar">
-        <el-form inline label-position="left" size="large" class="filter-form">
+        <el-form inline label-position="left" class="filter-form">
           <el-form-item label="時間區段">
             <el-date-picker
               v-model="filters.dateRange"
@@ -137,7 +137,7 @@ watch(
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" size="large" @click="resetFilters">清除篩選</el-button>
+            <el-button type="primary" @click="resetFilters">清除篩選</el-button>
           </el-form-item>
         </el-form>
       </div>
@@ -148,8 +148,7 @@ watch(
         v-loading="loading"
         stripe
         :data="displayOrders"
-        size="large"
-        :row-class-name="() => 'table-row'"
+                :row-class-name="() => 'table-row'"
         :cell-class-name="() => 'tbody-cell'"
         :header-cell-class-name="() => 'table-head'"
         empty-text="暫無訂單"
@@ -168,7 +167,7 @@ watch(
         </el-table-column>
         <el-table-column label="訂單狀態">
           <template #default="{ row }">
-            <el-tag size="large" round effect="plain" :type="statusTag(row.status).type">
+            <el-tag round effect="plain" :type="statusTag(row.status).type">
               {{ statusTag(row.status).text }}
             </el-tag>
           </template>
@@ -181,8 +180,7 @@ watch(
       </el-table>
       <div class="pagination-btn">
         <el-pagination
-          size="large"
-          background
+                    background
           layout="prev, pager, next"
           :page-size="pageSize"
           :total="totalElements"
@@ -208,7 +206,7 @@ watch(
         </div>
         <div class="detail-row">
           <span class="detail-label">訂單狀態</span>
-          <el-tag round size="large" effect="plain" :type="statusTag(selectedOrder.status).type">
+          <el-tag round effect="plain" :type="statusTag(selectedOrder.status).type">
             {{ statusTag(selectedOrder.status).text }}
           </el-tag>
         </div>
@@ -247,19 +245,19 @@ watch(
 :deep(.tbody-cell .cell) {
   display: flex;
   justify-content: center;
-  padding: 12px 0;
+  padding: 10px 0;
 }
 
 :deep(.table-head .cell) {
-  font-size: 18px;
+  font-size: 14px;
   text-align: center;
-  padding: 4px 0 28px 0;
+  padding: 4px 0 16px 0;
 }
 
 .index {
   font-style: italic;
   font-weight: 500;
-  font-size: 24px;
+  font-size: 17px;
   color: #909399;
   opacity: 0.3;
   transition: opacity 0.2s;

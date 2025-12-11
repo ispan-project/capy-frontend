@@ -80,7 +80,7 @@ const formatPrice = (price) => {
 <template>
   <div class="wrapper">
     <h2 class="section-title">課程基本資訊</h2>
-    <el-form size="large" label-position="top">
+    <el-form label-position="top">
       <el-form-item label="課程名稱 :">
         {{ courseData?.title || "-" }}
       </el-form-item>
@@ -107,7 +107,7 @@ const formatPrice = (price) => {
         <span v-else>-</span>
       </el-form-item>
       <el-form-item label="課程狀態 :">
-        <el-tag v-if="courseData?.status" :type="statusTagType(courseData.status)" size="large">
+        <el-tag v-if="courseData?.status" :type="statusTagType(courseData.status)">
           {{ statusMap[courseData.status] || courseData.status }}
         </el-tag>
         <span v-else>-</span>

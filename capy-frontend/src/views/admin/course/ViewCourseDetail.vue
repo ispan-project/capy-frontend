@@ -175,33 +175,31 @@ onMounted(() => {
   <h2 class="section-heading">
     {{ props.viewtype === "apply" ? "課程申請詳情" : "課程狀態詳情" }}
   </h2>
-  <div v-loading="loading" style="display: flex; flex-direction: column; gap: 50px">
+  <div v-loading="loading" style="display: flex; flex-direction: column; gap: 32px">
     <CourseDetailForm />
     <CoursePlaylist />
     <CourseAttachment />
     <div class="operation-btns">
-      <el-button @click="$router.go(-1)" size="large" type="info">
-        <el-icon style="margin-right: 4px" size="large"><ArrowLeftBold /></el-icon>
+      <el-button @click="$router.go(-1)" type="info">
+        <el-icon style="margin-right: 4px"><ArrowLeftBold /></el-icon>
         返回課程列表
       </el-button>
       <div class="operation-btns" v-if="props.viewtype === 'apply'">
-        <el-button type="danger" size="large" @click="handleReject">審核拒絕</el-button>
-        <el-button type="primary" size="large" @click="handleApprove">審核通過</el-button>
+        <el-button type="danger" @click="handleReject">審核拒絕</el-button>
+        <el-button type="primary" @click="handleApprove">審核通過</el-button>
       </div>
       <div class="operation-btns" v-else>
         <el-button
           v-if="courseData?.status !== 'force_unpublish'"
           type="danger"
-          size="large"
-          @click="handleForceUnpublish"
+                    @click="handleForceUnpublish"
         >
           強制下架
         </el-button>
         <el-button
           v-if="courseData?.status === 'force_unpublish'"
           type="primary"
-          size="large"
-          @click="handleRestore"
+                    @click="handleRestore"
         >
           恢復上架
         </el-button>
@@ -215,6 +213,6 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 24px;
+  gap: 16px;
 }
 </style>

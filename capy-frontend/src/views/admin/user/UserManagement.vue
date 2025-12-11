@@ -145,8 +145,7 @@ onMounted(() => {
     <div class="filter-bar">
       <el-select
         v-model="currentRole"
-        size="large"
-        placeholder="全部身分"
+                placeholder="全部身分"
         clearable
         style="width: 150px"
         @change="handleRoleChange"
@@ -161,8 +160,7 @@ onMounted(() => {
 
       <el-select
         v-model="currentStatus"
-        size="large"
-        placeholder="全部狀態"
+                placeholder="全部狀態"
         clearable
         style="width: 150px"
         @change="handleStatusChange"
@@ -177,8 +175,7 @@ onMounted(() => {
 
       <el-input
         v-model="searchKeyword"
-        size="large"
-        placeholder="搜尋用戶暱稱、Email..."
+                placeholder="搜尋用戶暱稱、Email..."
         style="width: 300px"
         clearable
         @keyup.enter="handleSearch"
@@ -189,7 +186,7 @@ onMounted(() => {
         </template>
       </el-input>
 
-      <el-button type="primary" size="large" @click="handleSearch">
+      <el-button type="primary" @click="handleSearch">
         <el-icon style="margin-right: 4px"><Search /></el-icon>
         搜尋
       </el-button>
@@ -203,8 +200,7 @@ onMounted(() => {
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="dataWithIndex"
+            :data="dataWithIndex"
       style="width: 100%"
       empty-text="暫無用戶"
     >
@@ -226,7 +222,7 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="身分" min-width="120" align="center">
         <template #default="{ row }">
-          <el-tag type="info" effect="plain" size="large" round>
+          <el-tag type="info" effect="plain" round>
             {{ formatRole(row.role) }}
           </el-tag>
         </template>
@@ -236,8 +232,7 @@ onMounted(() => {
           <div class="status-cell">
             <el-switch
               :before-change="() => handleChangeStatus(row)"
-              size="large"
-              v-model="row.isActive"
+                            v-model="row.isActive"
             />
             <p class="status-text">{{ row.isActive ? "活動中" : "已停權" }}</p>
           </div>
@@ -251,8 +246,7 @@ onMounted(() => {
     </el-table>
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :total="totalElements"
         :page-size="pageSize"
@@ -271,7 +265,7 @@ onMounted(() => {
 }
 
 .pagination-btn {
-  margin-top: 48px;
+  margin-top: 32px;
   display: flex;
   justify-content: flex-end;
 }
@@ -279,7 +273,7 @@ onMounted(() => {
 :deep(.el-table) {
   --el-table-header-bg-color: #F9FAFB;
   --el-table-row-hover-bg-color: #F5F3FF;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -287,35 +281,36 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 :deep(.table-head .cell) {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   color: #374151;
-  padding: 16px 12px;
+  padding: 12px 10px;
 }
 
 /* 用戶資訊欄位 */
 .user-info-cell {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .user-name {
   font-weight: 500;
+  font-size: 14px;
   color: #1F2937;
 }
 
@@ -328,7 +323,7 @@ onMounted(() => {
 .index {
   font-style: italic;
   font-weight: 600;
-  font-size: 20px;
+  font-size: 17px;
   color: #9CA3AF;
   opacity: 0.4;
   transition: all 0.2s ease;
@@ -344,11 +339,11 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .status-text {
-  font-size: 12px;
+  font-size: 11px;
   color: #6B7280;
 }
 
@@ -356,6 +351,7 @@ onMounted(() => {
 .date-text {
   font-style: italic;
   font-weight: 500;
+  font-size: 13px;
 }
 
 .el-tag {

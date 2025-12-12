@@ -76,6 +76,44 @@ const studentRoutes = [
       },
 
       // ====================================
+      // 支援與幫助頁面路由
+      // ====================================
+      {
+        path: "support",
+        name: "supportCenter",
+        component: () => import("@/views/support/SupportCenter.vue"),
+      },
+      {
+        path: "support/faq",
+        name: "faq",
+        component: () => import("@/views/support/SupportCenter.vue"),
+      },
+      {
+        path: "support/about",
+        name: "aboutUs",
+        component: () => import("@/views/support/AboutUs.vue"),
+      },
+
+      // ====================================
+      // 法律條款頁面路由
+      // ====================================
+      {
+        path: "legal/terms",
+        name: "termsOfService",
+        component: () => import("@/views/legal/LegalView.vue"),
+      },
+      {
+        path: "legal/privacy",
+        name: "privacyPolicy",
+        component: () => import("@/views/legal/LegalView.vue"),
+      },
+      {
+        path: "legal/refund",
+        name: "refundPolicy",
+        component: () => import("@/views/legal/LegalView.vue"),
+      },
+
+      // ====================================
       // 結帳路由
       // ====================================
       {

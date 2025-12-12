@@ -438,13 +438,79 @@ const handleNotifications = () => {
 
 @media (max-width: 768px) {
   .header-content {
-    flex-wrap: wrap;
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    justify-content: space-between !important;
   }
 
+  /* FORCE Hide search bar on mobile */
   .header-center {
-    order: 3;
-    width: 100%;
-    max-width: 100%;
+    display: none !important;
+  }
+
+  /* FORCE Hide Explore button on mobile */
+  .explore {
+    display: none !important;
+  }
+
+  /* FORCE Hide "Become a Teacher" button on mobile */
+  .btn-ghost-teacher,
+  .btn-glass,
+  a:has(.btn-ghost-teacher),
+  a:has(.btn-glass) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide transaction group (cart, wishlist) on mobile */
+  .transaction-group,
+  .icon-group.transaction-group {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide notification group on mobile */
+  .notification-group,
+  .icon-group.notification-group {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide icon divider on mobile */
+  .icon-divider {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide all icon badges on mobile */
+  .icon-badge {
+    display: none !important;
+  }
+
+  /* Adjust header actions for mobile - only show login/user dropdown */
+  .header-actions {
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Keep logo visible and adjust size */
+  .logo {
+    font-size: 18px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .logo-text {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0 12px !important;
+  }
+
+  .logo {
+    font-size: 16px !important;
   }
 }
 </style>

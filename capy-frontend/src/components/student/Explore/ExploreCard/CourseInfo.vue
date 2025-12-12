@@ -3,8 +3,13 @@
     <!-- Title -->
     <h3 class="course-title">{{ course.title }}</h3>
 
+    <!-- Enrolled Badge -->
+    <!-- <div v-if="course.isEnrolled" class="enrolled-badge">
+      已購買
+    </div> -->
+
     <!-- Tags (below title) - Limited to 3 tags -->
-    <div class="course-tags" v-if="!hideTags && course.tags && course.tags.length > 0">
+    <div class="course-tags" :class="{ 'hide-on-mobile': hideTagsOnMobile }" v-if="!hideTags && course.tags && course.tags.length > 0">
       <span
         v-for="tag in visibleTags"
         :key="tag"
@@ -19,7 +24,14 @@
     </div>
 
     <!-- Teacher -->
-    <p class="course-teacher">{{ course.instructorName || course.instructor_name || '未知' }} 老師</p>
+    <p class="course-teacher">
+      <span
+        class="teacher-link"
+        @click="handleTeacherClick"
+      >
+        {{ course.instructorName || course.instructor_name || '未知' }} 老師
+      </span>
+    </p>
 
     <!-- Rating -->
     <div class="course-rating">
@@ -45,6 +57,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   course: {
@@ -52,6 +67,10 @@ const props = defineProps({
     required: true
   },
   hideTags: {
+    type: Boolean,
+    default: false
+  },
+  hideTagsOnMobile: {
     type: Boolean,
     default: false
   },
@@ -106,6 +125,16 @@ const handleTagClick = (tag, event) => {
   // 阻止事件冒泡，避免觸發卡片的點擊事件
   event.stopPropagation()
   emit('tag-click', tag)
+}
+
+const handleTeacherClick = (event) => {
+  // 阻止事件冒泡，避免觸發卡片的點擊事件
+  event.stopPropagation()
+
+  const instructorId = props.course.instructorId || props.course.instructor_id
+  if (instructorId) {
+    router.push(`/teacherdetail/${instructorId}`)
+  }
 }
 </script>
 
@@ -172,11 +201,34 @@ const handleTagClick = (tag, event) => {
   cursor: default;
 }
 
+.enrolled-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #54CDF2 0%, #0EA5E9 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  margin-bottom: var(--capy-spacing-sm);
+  box-shadow: 0 2px 8px rgba(84, 205, 242, 0.3);
+  letter-spacing: 0.5px;
+}
+
 .course-teacher {
   font-size: 13px;
   color: var(--capy-text-primary);
   font-weight: 500;
   margin: 0 0 12px 0;
+}
+
+.teacher-link {
+  cursor: pointer;
+  transition: color var(--capy-transition-fast);
+}
+
+.teacher-link:hover {
+  color: var(--capy-primary);
+  text-decoration: underline;
 }
 
 .course-rating {
@@ -230,18 +282,56 @@ const handleTagClick = (tag, event) => {
 .price {
   font-size: var(--capy-font-size-xl);
   font-weight: 700;
-  color: var(--capy-danger);
+  color: var(--capy-danger);  /* 桌面版保持紅色 */
   letter-spacing: 0.5px;
+}
+
+.course-price {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 /* RWD */
 @media (max-width: 768px) {
   .course-title {
-    font-size: 15px;
+    font-size: 15px !important;
   }
 
   .course-info {
-    padding: 14px;
+    padding: 14px !important;
+  }
+
+  /* FORCE Hide ALL tags on mobile */
+  .course-tags,
+  .course-tags.hide-on-mobile,
+  .tag-item {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Price styling on mobile */
+  .price {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--capy-text-primary) !important;
+  }
+
+  /* Ensure price section layout */
+  .course-price {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .price {
+    font-size: 16px !important;
+    font-weight: 600 !important;
   }
 }
 </style>

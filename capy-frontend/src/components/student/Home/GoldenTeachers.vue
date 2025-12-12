@@ -200,7 +200,7 @@ const formatStudentCount = (count) => {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .golden-teachers-container {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: var(--capy-spacing-lg);
   }
 }
@@ -221,32 +221,95 @@ const formatStudentCount = (count) => {
   }
 
   .teacher-avatar {
-    width: 110px !important;
-    height: 110px !important;
+    width: 100px !important;
+    height: 100px !important;
   }
 
   .avatar-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .teacher-card:hover .avatar-ring {
     width: 130px;
     height: 130px;
   }
 
-  .teacher-card:hover .avatar-ring {
-    width: 140px;
-    height: 140px;
-  }
-
   .teacher-name {
-    font-size: var(--capy-font-size-lg);
+    font-size: var(--capy-font-size-md);
   }
 
   .teacher-title {
     font-size: var(--capy-font-size-sm);
   }
+
+  .stat-icon {
+    font-size: 16px;
+  }
+
+  .stat-value {
+    font-size: var(--capy-font-size-base);
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 480px) {
   .golden-teachers-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--capy-spacing-sm);
+    padding: 0 var(--capy-spacing-sm);
+  }
+
+  .teacher-card {
+    padding: var(--capy-spacing-md) var(--capy-spacing-sm);
+  }
+
+  .teacher-avatar {
+    width: 80px !important;
+    height: 80px !important;
+  }
+
+  .avatar-ring {
+    width: 100px;
+    height: 100px;
+  }
+
+  .teacher-card:hover .avatar-ring {
+    width: 110px;
+    height: 110px;
+  }
+
+  .teacher-name {
+    font-size: var(--capy-font-size-base);
+  }
+
+  .teacher-title {
+    font-size: 12px;
+  }
+
+  .teacher-stats {
+    gap: var(--capy-spacing-sm);
+    margin: var(--capy-spacing-sm) 0;
+    padding: var(--capy-spacing-sm) 0;
+  }
+
+  .stat-icon {
+    font-size: 14px;
+  }
+
+  .stat-value {
+    font-size: var(--capy-font-size-sm);
+  }
+
+  .stat-label {
+    font-size: 10px;
+  }
+
+  .stat-divider {
+    height: 30px;
   }
 }
 </style>

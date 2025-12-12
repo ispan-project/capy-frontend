@@ -1,9 +1,26 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const carouselRef = ref(null)
+
+// 響應式狀態：檢測螢幕寬度
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 768)
+
+// 監聽視窗大小變化
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 const slides = ref([
   {
@@ -55,11 +72,12 @@ const setActiveSlide = (index) => {
     <el-carousel
       ref="carouselRef"
       :interval="5000"
-      type="card"
-      height="400px"
+      :type="isMobile ? '' : 'card'"
+      :height="isMobile ? '300px' : '400px'"
       :card-scale="0.85"
       @change="handleChange"
       class="hero-carousel"
+      :class="{ 'mobile-carousel': isMobile }"
     >
       <el-carousel-item
         v-for="(slide, index) in slides"
@@ -315,6 +333,26 @@ const setActiveSlide = (index) => {
   display: none;
 }
 
+/* Mobile Carousel - Full Width Standard Layout */
+.mobile-carousel :deep(.el-carousel__item) {
+  width: 100% !important;
+  transform: none !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.mobile-carousel .slide-container {
+  transform: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.mobile-carousel .slide-image {
+  border-radius: 0 !important;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .hero-carousel {
@@ -333,30 +371,31 @@ const setActiveSlide = (index) => {
 
 @media (max-width: 768px) {
   .hero-carousel-wrapper {
-    padding: var(--capy-spacing-lg) 0;
+    padding: var(--capy-spacing-md) 0;
   }
 
   .hero-carousel {
-    height: 320px;
+    height: 300px;
   }
 
-  /* On mobile, disable the 3D card effect */
-  .hero-carousel :deep(.el-carousel__item) {
-    opacity: 1 !important;
-    filter: none !important;
-  }
-
-  .hero-carousel :deep(.el-carousel__item) .slide-container {
-    transform: scale(1) !important;
-    box-shadow: var(--capy-shadow-md) !important;
-  }
-
+  /* Mobile: Image on Top, Text on Bottom Layout */
   .content-overlay {
-    bottom: 16px;
-    left: 16px;
-    right: 16px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     max-width: none;
     padding: var(--capy-spacing-md);
+    padding-bottom: 40px; /* 防止 CTA 按鈕觸碰底部邊緣 */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 0;
+    border: none;
+  }
+
+  .image-overlay {
+    opacity: 0.5 !important; /* 增強深色遮罩確保白色文字可讀 */
   }
 
   .slide-title {
@@ -371,6 +410,16 @@ const setActiveSlide = (index) => {
     padding: 8px 20px;
     font-size: var(--capy-font-size-sm);
   }
+
+  .featured-badge {
+    top: var(--capy-spacing-sm);
+    right: var(--capy-spacing-sm);
+  }
+
+  /* Hide custom indicators on mobile, use default */
+  .custom-indicators {
+    margin-top: var(--capy-spacing-md);
+  }
 }
 
 @media (max-width: 480px) {
@@ -378,13 +427,28 @@ const setActiveSlide = (index) => {
     height: 280px;
   }
 
+  .content-overlay {
+    padding: var(--capy-spacing-sm);
+  }
+
   .slide-title {
     font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .slide-subtitle {
+    font-size: 12px;
+    margin-bottom: var(--capy-spacing-sm);
   }
 
   .featured-badge {
-    font-size: var(--capy-font-size-xs);
-    padding: 4px 12px;
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+
+  .view-details-btn {
+    padding: 6px 16px;
+    font-size: 12px;
   }
 }
 </style>

@@ -27,11 +27,12 @@
           <div class="footer-column">
             <h4 class="column-title">探索課程</h4>
             <ul class="footer-links">
-              <li><a href="/explore?category=web">網頁開發</a></li>
-              <li><a href="/explore?category=data">數據科學</a></li>
-              <li><a href="/explore?category=design">設計創作</a></li>
-              <li><a href="/explore?category=business">商業管理</a></li>
-              <li><a href="/explore">所有課程</a></li>
+              <li v-for="category in categories" :key="category.id">
+                <router-link :to="{ path: '/explore', query: { categoryId: category.id } }">
+                  {{ category.name }}
+                </router-link>
+              </li>
+              <li><router-link to="/explore">所有課程</router-link></li>
             </ul>
           </div>
 
@@ -39,11 +40,10 @@
           <div class="footer-column">
             <h4 class="column-title">支援服務</h4>
             <ul class="footer-links">
-              <li><a href="/help">幫助中心</a></li>
-              <li><a href="/contact">聯絡我們</a></li>
-              <li><a href="/become-instructor">成為講師</a></li>
-              <li><a href="/faq">常見問題</a></li>
-              <li><a href="/about">關於我們</a></li>
+              <li><router-link to="/support" exact>客服中心</router-link></li>
+              <li><router-link to="/support/faq" exact>常見問題</router-link></li>
+              <li><router-link to="/support/about" exact>關於我們</router-link></li>
+              <li><router-link to="/instructor/landing" exact>成為講師</router-link></li>
             </ul>
           </div>
 
@@ -51,11 +51,9 @@
           <div class="footer-column">
             <h4 class="column-title">法律條款</h4>
             <ul class="footer-links">
-              <li><a href="/terms">服務條款</a></li>
-              <li><a href="/privacy">隱私政策</a></li>
-              <li><a href="/cookie-policy">Cookie 政策</a></li>
-              <li><a href="/refund-policy">退款政策</a></li>
-              <li><a href="/accessibility">無障礙聲明</a></li>
+              <li><router-link to="/legal/terms">服務條款</router-link></li>
+              <li><router-link to="/legal/privacy">隱私權政策</router-link></li>
+              <li><router-link to="/legal/refund">退款政策</router-link></li>
             </ul>
           </div>
         </div>
@@ -72,6 +70,26 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+import { getCategories } from '@/api/student/explore'
+
+const categories = ref([])
+const loading = ref(false)
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const result = await getCategories()
+    // 取得前 4 個主分類（頂層分類）
+    categories.value = result.filter(cat => !cat.parentCategoryId).slice(0, 4)
+  } catch (error) {
+    console.error('載入分類失敗:', error)
+    // 失敗時使用預設分類
+    categories.value = []
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -168,7 +186,9 @@
   margin: 0;
 }
 
-.footer-links a {
+.footer-links a,
+.footer-links .router-link-active,
+.footer-links .router-link-exact-active {
   font-size: 14px;
   color: #b3b9c5;
   text-decoration: none;
@@ -176,7 +196,9 @@
   display: inline-block;
 }
 
-.footer-links a:hover {
+.footer-links a:hover,
+.footer-links .router-link-active:hover,
+.footer-links .router-link-exact-active:hover {
   color: var(--capy-primary);
   transform: translateX(4px);
 }
@@ -263,6 +285,7 @@
 
   .copyright-bar {
     padding: 20px 0;
+    padding-bottom: 80px; /* 防止 "Back to Top" 浮動按鈕重疊文字 */
   }
 
   .copyright-text {

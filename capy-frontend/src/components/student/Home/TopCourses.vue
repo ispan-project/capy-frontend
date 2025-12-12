@@ -117,6 +117,16 @@ const toggleWishlist = async (event, courseId) => {
 const isInWishlist = (courseId) => {
   return wishlistStore.hasItem(courseId)
 }
+
+/**
+ * 點擊老師名稱跳轉到老師詳情頁面
+ */
+const handleTeacherClick = (event, instructorId) => {
+  event.stopPropagation() // 防止觸發卡片點擊事件
+  if (instructorId) {
+    router.push(`/teacherdetail/${instructorId}`)
+  }
+}
 </script>
 
 <template>
@@ -133,13 +143,14 @@ const isInWishlist = (courseId) => {
       pauseOnMouseEnter: true
     }"
     :breakpoints="{
-      1280: { slidesPerView: 3, spaceBetween: 30 },
-      1024: { slidesPerView: 2, spaceBetween: 24 },
+      320: { slidesPerView: 1.2, spaceBetween: 16 },
+      480: { slidesPerView: 1.2, spaceBetween: 16 },
       768: { slidesPerView: 2, spaceBetween: 20 },
-      480: { slidesPerView: 1, spaceBetween: 10 }
+      1024: { slidesPerView: 2, spaceBetween: 24 },
+      1280: { slidesPerView: 3, spaceBetween: 30 }
     }"
     class="course-swiper"
-  ><!-- Navigation Buttons -->
+  >
     <swiper-slide v-for="course in displayCourses" :key="course.id">
       <div class="course-card" @click="goToCourse(course.id)">
         <!-- Image Area -->
@@ -177,6 +188,11 @@ const isInWishlist = (courseId) => {
         <div class="course-content">
           <h3 class="course-title">{{ course.title }}</h3>
 
+          <!-- Enrolled Badge (右下角) -->
+          <div v-if="course.isEnrolled" class="enrolled-badge-corner">
+            已購買
+          </div>
+
           <!-- Tags below title -->
           <div class="tags-container" v-if="course.tags && course.tags.length > 0">
             <span
@@ -192,7 +208,14 @@ const isInWishlist = (courseId) => {
             </span>
           </div>
 
-          <p class="course-instructor">{{ course.instructorName }} 老師</p>
+          <p class="course-instructor">
+            <span
+              class="teacher-link"
+              @click="handleTeacherClick($event, course.instructorId)"
+            >
+              {{ course.instructorName }} 老師
+            </span>
+          </p>
 
           <div class="course-meta">
             <div class="rating">
@@ -222,10 +245,6 @@ const isInWishlist = (courseId) => {
       </div>
     </swiper-slide>
   </swiper>
-    <div class="swiper-button-next"></div>
-    <div class="swiper-button-prev"></div>
-
-
 </template>
 
 <style scoped>
@@ -457,6 +476,16 @@ const isInWishlist = (courseId) => {
   margin: 0 0 12px 0;
 }
 
+.teacher-link {
+  cursor: pointer;
+  transition: color var(--capy-transition-fast);
+}
+
+.teacher-link:hover {
+  color: var(--capy-primary);
+  text-decoration: underline;
+}
+
 .course-meta {
   display: flex;
   flex-direction: column;
@@ -503,6 +532,7 @@ const isInWishlist = (courseId) => {
 .price-section {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   margin-top: auto;
   padding-top: 8px;
 }
@@ -510,7 +540,7 @@ const isInWishlist = (courseId) => {
 .price {
   font-size: var(--capy-font-size-xl);
   font-weight: 700;
-  color: var(--capy-danger);
+  color: var(--capy-danger);  /* 桌面版保持紅色 */
   letter-spacing: 0.5px;
 }
 
@@ -534,6 +564,22 @@ const isInWishlist = (courseId) => {
   font-weight: var(--capy-font-weight-medium);
 }
 
+/* Enrolled Badge - 右下角 */
+.enrolled-badge-corner {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #54CDF2 0%, #0EA5E9 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(84, 205, 242, 0.3);
+  letter-spacing: 0.5px;
+  z-index: 5;
+}
+
 /* Tablet Breakpoint */
 @media (max-width: 1024px) {
   .course-swiper {
@@ -550,18 +596,71 @@ const isInWishlist = (courseId) => {
   }
 }
 
-/* Mobile Breakpoint */
+/* Mobile Breakpoint - Hide Navigation Arrows */
 @media (max-width: 768px) {
   .course-swiper {
-    padding: 0 20px var(--capy-spacing-md);
+    padding: 0 var(--capy-spacing-md) var(--capy-spacing-md) !important;
+  }
+
+  /* FORCE Hide navigation arrows on mobile - rely on touch swipe */
+  .course-swiper :deep(.swiper-button-next),
+  .course-swiper :deep(.swiper-button-prev) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide ALL tags on mobile to save vertical space */
+  .tags-container,
+  .tag-item {
+    display: none !important;
+    visibility: hidden !important;
   }
 
   .course-title {
-    font-size: var(--capy-font-size-sm);
+    font-size: var(--capy-font-size-sm) !important;
   }
 
   .course-content {
-    padding: var(--capy-spacing-sm);
+    padding: var(--capy-spacing-sm) !important;
+  }
+
+  /* FORCE Adjust price styling on mobile */
+  .price {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: var(--capy-text-primary) !important;
+  }
+
+  /* Ensure price section layout */
+  .price-section {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-swiper {
+    padding: 0 var(--capy-spacing-sm) var(--capy-spacing-sm) !important;
+  }
+
+  .course-card {
+    max-width: 100% !important;
+  }
+
+  .course-title {
+    font-size: var(--capy-font-size-sm) !important;
+    min-height: 38px !important;
+  }
+
+  .course-content {
+    padding: 12px !important;
+  }
+
+  .price {
+    font-size: 16px !important;
+    font-weight: 600 !important;
   }
 }
 </style>

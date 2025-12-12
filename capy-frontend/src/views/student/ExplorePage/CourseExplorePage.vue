@@ -461,14 +461,31 @@ watch([selectedCategories, selectedRating, sortBy], () => {
   loadCourses()
 }, { deep: true })
 
-// 監聽 URL query 變化（當使用者在 Header 搜尋時）
-watch(() => route.query, (newQuery) => {
-  // 優先使用 keyword，其次 search，最後 tag
+// 監聽 URL query 變化（當使用者在 Header 搜尋時或從 Footer 導航時）
+watch(() => route.query, (newQuery, oldQuery) => {
+  // 處理關鍵字變化
   const keyword = newQuery.keyword || newQuery.search || newQuery.tag
   if (keyword && keyword !== searchQuery.value) {
     searchQuery.value = keyword
     currentPage.value = 1
     loadCourses()
+  }
+
+  // 處理分類變化
+  if (newQuery.categoryId) {
+    const categoryId = parseInt(newQuery.categoryId)
+    if (!isNaN(categoryId) && !selectedCategories.value.includes(categoryId)) {
+      selectedCategories.value = [categoryId]
+      currentPage.value = 1
+      loadCourses()
+    }
+  } else if (oldQuery?.categoryId && !newQuery.categoryId) {
+    // 當 URL 中沒有 categoryId 但之前有時，清除分類篩選
+    if (selectedCategories.value.length > 0) {
+      selectedCategories.value = []
+      currentPage.value = 1
+      loadCourses()
+    }
   }
 }, { deep: true })
 

@@ -626,12 +626,18 @@ watch(
  */
 const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) => {
   return new Promise((resolve, reject) => {
+    // 設定 10 秒超時
+    const timeout = setTimeout(() => {
+      reject(new Error('圖片處理超時，請嘗試較小的圖片'))
+    }, 10000)
+
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (e) => {
       const img = new Image()
       img.src = e.target.result
       img.onload = () => {
+        clearTimeout(timeout)
         const canvas = document.createElement('canvas')
         let width = img.width
         let height = img.height
@@ -660,6 +666,11 @@ const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) =
         const tryCompress = () => {
           canvas.toBlob(
             (blob) => {
+              if (!blob) {
+                reject(new Error('圖片壓縮失敗：無法生成壓縮後的圖片'))
+                return
+              }
+
               const sizeMB = blob.size / 1024 / 1024
 
               if (sizeMB <= maxSizeMB || quality <= 0.1) {
@@ -677,15 +688,40 @@ const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) =
 
         tryCompress()
       }
-      img.onerror = reject
+      img.onerror = (error) => {
+        clearTimeout(timeout)
+        reject(new Error('圖片載入失敗：檔案可能已損壞或格式不支援'))
+      }
     }
-    reader.onerror = reject
+    reader.onerror = (error) => {
+      clearTimeout(timeout)
+      reject(new Error('檔案讀取失敗：無法讀取圖片內容'))
+    }
   })
 }
 
 // 處理頭像選擇（本地預覽 + 壓縮）
 const handleAvatarChange = async (file) => {
   if (!file || !file.raw) return
+
+  // 驗證檔案類型
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+  if (!allowedTypes.includes(file.raw.type)) {
+    ElMessage.error('只支援 PNG、JPEG 或 JPG 格式的圖片')
+    return
+  }
+
+  // 驗證檔案大小（5MB 限制）
+  if (file.raw.size > 5 * 1024 * 1024) {
+    ElMessage.error('圖片大小不能超過 5MB')
+    return
+  }
+
+  // 驗證檔案是否為空
+  if (file.raw.size === 0) {
+    ElMessage.error('圖片檔案無效或已損壞')
+    return
+  }
 
   // 清理舊的預覽 URL
   cleanupPreview()
@@ -715,7 +751,8 @@ const handleAvatarChange = async (file) => {
     }
   } catch (error) {
     console.error('圖片壓縮失敗:', error)
-    ElMessage.error('圖片處理失敗，請重試')
+    // 顯示更詳細的錯誤訊息
+    ElMessage.error(error.message || '圖片處理失敗，請確認檔案格式正確且未損壞')
   }
 }
 

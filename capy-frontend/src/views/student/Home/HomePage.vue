@@ -344,7 +344,7 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   }
 
   .section-header {
-    margin-bottom: var(--capy-spacing-xl);
+    margin-bottom: var(--capy-spacing-lg);
   }
 
   .section-title-student {
@@ -367,58 +367,102 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   }
 }
 
+/* Mobile Breakpoint (768px) */
 @media (max-width: 768px) {
+  .loading-container {
+    padding: var(--capy-spacing-xl) var(--capy-spacing-md) !important;
+    min-height: 50vh !important;
+  }
+
   .trust-bar-section {
-    margin-bottom: 40px;
+    margin-bottom: var(--capy-spacing-lg) !important;
   }
 
   .section-wrapper {
-    padding: 40px 0;
+    padding: var(--capy-spacing-lg) 0 !important;
   }
 
   .section-container {
-    padding: 0 var(--capy-spacing-md);
+    padding: 0 var(--capy-spacing-md) !important;
   }
 
   .section-header {
-    margin-bottom: 30px;
+    margin-bottom: var(--capy-spacing-md) !important;
   }
 
-  .section-title {
-    font-size: 24px;
+  /* FORCE Section title size on mobile - MAX 22px */
+  .section-title-student {
+    font-size: 22px !important;
+    margin-bottom: var(--capy-spacing-sm) !important;
+    font-weight: 700 !important;
   }
 
   .title-underline {
-    width: 40px;
+    width: 45px !important;
+    height: 3px !important;
   }
 
   .blob-1 {
-    width: 400px;
-    height: 400px;
-    top: -100px;
-    left: -50px;
+    width: 400px !important;
+    height: 400px !important;
+    top: -100px !important;
+    left: -50px !important;
   }
 
   .blob-2 {
-    width: 350px;
-    height: 350px;
-    bottom: -100px;
-    right: -50px;
+    width: 350px !important;
+    height: 350px !important;
+    bottom: -100px !important;
+    right: -50px !important;
+  }
+
+  /* Remove gap between last section and footer on mobile */
+  .home-page > section:last-child {
+    padding-bottom: var(--capy-spacing-xl) !important;
   }
 }
 
+/* Small Mobile Breakpoint (480px) */
 @media (max-width: 480px) {
-  .section-wrapper {
-    padding: 30px 0;
+  .loading-container {
+    padding: var(--capy-spacing-lg) var(--capy-spacing-sm) !important;
   }
 
-  .section-title {
-    font-size: 20px;
+  .trust-bar-section {
+    margin-bottom: var(--capy-spacing-md) !important;
+  }
+
+  .section-wrapper {
+    padding: var(--capy-spacing-md) 0 !important;
+  }
+
+  .section-container {
+    padding: 0 var(--capy-spacing-sm) !important;
+  }
+
+  .section-header {
+    margin-bottom: var(--capy-spacing-sm) !important;
+  }
+
+  /* FORCE Section title size on small mobile - 20px */
+  .section-title-student {
+    font-size: 20px !important;
+    margin-bottom: 8px !important;
+    font-weight: 700 !important;
+  }
+
+  .title-underline {
+    width: 40px !important;
+    height: 3px !important;
   }
 
   .blob-1,
   .blob-2 {
-    display: none;
+    display: none !important;
+  }
+
+  .home-page > section:last-child {
+    padding-bottom: var(--capy-spacing-lg) !important;
   }
 }
 </style>

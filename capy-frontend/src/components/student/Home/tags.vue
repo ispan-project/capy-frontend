@@ -54,7 +54,8 @@ const handleTagClick = async (tagName) => {
 .tag-pill {
   /* Shape - Premium Pill形狀 */
   border-radius: 50px;
-  padding: 8px 24px;
+  padding: 10px 24px;
+  min-height: 40px; /* 確保觸控目標至少 40px */
 
   /* High Contrast Base Style */
   background-color: #FFFFFF;
@@ -75,6 +76,11 @@ const handleTagClick = async (tagName) => {
   /* Remove default button styles */
   outline: none;
   font-family: inherit;
+
+  /* Flex for better centering */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 使用 CSS ::before 自動添加 # 符號 */
@@ -103,10 +109,12 @@ const handleTagClick = async (tagName) => {
 @media (max-width: 768px) {
   .tags-container {
     gap: 12px;
+    padding: 0 var(--capy-spacing-sm);
   }
 
   .tag-pill {
-    padding: 10px 24px;
+    padding: 8px 20px;
+    min-height: 36px; /* Mobile 觸控目標至少 36px */
     font-size: var(--capy-font-size-sm);
   }
 }
@@ -114,11 +122,17 @@ const handleTagClick = async (tagName) => {
 @media (max-width: 480px) {
   .tags-container {
     gap: 10px;
+    padding: 0 var(--capy-spacing-xs);
   }
 
   .tag-pill {
-    padding: 8px 20px;
-    font-size: var(--capy-font-size-xs);
+    padding: 7px 18px;
+    min-height: 34px; /* 小螢幕觸控目標至少 34px */
+    font-size: 13px;
+  }
+
+  .tag-pill::before {
+    margin-right: 3px;
   }
 }
 </style>

@@ -206,13 +206,17 @@
           </div>
 
           <div class="checkbox-group">
-            <input
+            <el-checkbox
               v-model="registerForm.agreeTerms"
-              type="checkbox"
               id="terms"
-              class="checkbox"
-            />
-            <label for="terms" class="checkbox-label">我同意服務條款和隱私政策</label>
+            >
+              <span class="checkbox-text">
+                我已閱讀並同意
+                <a href="#" @click.stop.prevent="showTermsDialog = true" class="legal-link">服務條款</a>
+                和
+                <a href="#" @click.stop.prevent="showPrivacyDialog = true" class="legal-link">隱私權政策</a>
+              </span>
+            </el-checkbox>
           </div>
 
           <button
@@ -240,6 +244,28 @@
         </div>
       </div>
     </div>
+
+    <!-- 服務條款對話框 -->
+    <el-dialog
+      v-model="showTermsDialog"
+      title="服務條款"
+      width="800px"
+      :close-on-click-modal="false"
+      class="legal-dialog"
+    >
+      <TermsOfServiceContent />
+    </el-dialog>
+
+    <!-- 隱私權政策對話框 -->
+    <el-dialog
+      v-model="showPrivacyDialog"
+      title="隱私權政策"
+      width="800px"
+      :close-on-click-modal="false"
+      class="legal-dialog"
+    >
+      <PrivacyPolicyContent />
+    </el-dialog>
   </div>
 </template>
 
@@ -247,6 +273,8 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { View, Hide, Message, Loading, InfoFilled } from '@element-plus/icons-vue';
+import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent.vue';
+import PrivacyPolicyContent from '@/components/legal/PrivacyPolicyContent.vue';
 import {
   validateNicknameFormat,
   createNicknameValidator,
@@ -293,6 +321,10 @@ const registeredEmail = ref('');
 // 密碼顯示狀態
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+// 法律條款對話框狀態
+const showTermsDialog = ref(false);
+const showPrivacyDialog = ref(false);
 
 // 登入載入狀態
 const isLoggingIn = ref(false);
@@ -1180,24 +1212,34 @@ onMounted(() => {
 
 /* Checkbox */
 .checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-bottom: 16px;
 }
 
-.checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--capy-primary);
+.checkbox-group :deep(.el-checkbox) {
+  align-items: flex-start;
 }
 
-.checkbox-label {
+.checkbox-group :deep(.el-checkbox__label) {
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.checkbox-text {
   font-size: 14px;
   color: #666;
-  cursor: pointer;
-  user-select: none;
+  line-height: 1.6;
+}
+
+.legal-link {
+  color: var(--capy-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.legal-link:hover {
+  color: var(--capy-primary-dark);
+  text-decoration: underline;
 }
 
 /* 密碼強度提示 */
@@ -1339,6 +1381,26 @@ onMounted(() => {
   .right-section {
     border-radius: 0 0 20px 20px;
     padding: 40px 20px;
+  }
+}
+
+/* 法律條款對話框樣式 */
+:deep(.legal-dialog) {
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 30px;
+  }
+
+  .el-dialog__header {
+    border-bottom: 1px solid var(--capy-border-lighter);
+    padding: 20px 30px;
+  }
+
+  .el-dialog__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--capy-text-primary);
   }
 }
 </style>

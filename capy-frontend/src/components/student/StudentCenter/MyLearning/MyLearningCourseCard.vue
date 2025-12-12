@@ -11,7 +11,14 @@
       <h3 class="course-title">{{ course.courseTitle }}</h3>
 
       <!-- Instructor -->
-      <p class="course-instructor">{{ course.instructorName }}</p>
+      <p class="course-instructor">
+        <span
+          class="teacher-link"
+          @click.stop="handleTeacherClick"
+        >
+          {{ course.instructorName }}
+        </span>
+      </p>
 
       <!-- Rating Section -->
       <div class="rating-section" @click.stop>
@@ -60,7 +67,10 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Star } from '@element-plus/icons-vue'
+
+const router = useRouter()
 
 const props = defineProps({
   course: {
@@ -181,6 +191,16 @@ const handleCtaClick = () => {
 const handleCardClick = () => {
   emit('card-click', props.course.courseId)
 }
+
+/**
+ * Handle teacher name click
+ */
+const handleTeacherClick = () => {
+  const instructorId = props.course.instructorId
+  if (instructorId) {
+    router.push(`/teacherdetail/${instructorId}`)
+  }
+}
 </script>
 
 <style scoped>
@@ -243,6 +263,16 @@ const handleCardClick = () => {
   font-size: 14px;
   color: var(--el-text-color-secondary);
   margin: 0;
+}
+
+.teacher-link {
+  cursor: pointer;
+  transition: color var(--capy-transition-fast);
+}
+
+.teacher-link:hover {
+  color: var(--capy-primary);
+  text-decoration: underline;
 }
 
 /* Card Actions Section */

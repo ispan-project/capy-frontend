@@ -4,6 +4,12 @@ import { ref, computed } from 'vue'
 import { getUserData } from '@/api/student/home.js'
 // @ts-ignore - oauth.js 是 JavaScript 檔案
 import { logout as logoutApi } from '@/api/oauth/oauth.js'
+// @ts-ignore - studentCenter.js 是 JavaScript 檔案
+import { useStudentCenterStore } from './studentCenter.js'
+// @ts-ignore - cart.ts 是 TypeScript 檔案
+import { useCartStore } from './cart'
+// @ts-ignore - wishlist.ts 是 TypeScript 檔案
+import { useWishlistStore } from './wishlist'
 
 /**
  * 使用者資訊介面
@@ -117,6 +123,31 @@ export const useUserStore = defineStore('user', () => {
     cartQuantity.value = 0
     wishlistQuantity.value = 0
     notifyQuantity.value = 0
+
+    // 清除所有相關 Store 的快取
+    try {
+      const studentCenterStore = useStudentCenterStore()
+      studentCenterStore.clearAll()
+      console.log('✅ 已清除 Student Center Store 快取')
+    } catch (error) {
+      console.warn('清除 Student Center Store 快取時發生錯誤:', error)
+    }
+
+    try {
+      const cartStore = useCartStore()
+      cartStore.$reset()
+      console.log('✅ 已清除 Cart Store 快取')
+    } catch (error) {
+      console.warn('清除 Cart Store 快取時發生錯誤:', error)
+    }
+
+    try {
+      const wishlistStore = useWishlistStore()
+      wishlistStore.$reset()
+      console.log('✅ 已清除 Wishlist Store 快取')
+    } catch (error) {
+      console.warn('清除 Wishlist Store 快取時發生錯誤:', error)
+    }
   }
 
   /**

@@ -156,12 +156,26 @@
               <span class="total-amount">{{ formattedSelectedTotal }}</span>
             </div>
 
+            <!-- 退款政策確認 -->
+            <div class="refund-policy-checkbox">
+              <el-checkbox
+                v-model="agreeRefundPolicy"
+                :disabled="selectedItems.length === 0"
+              >
+                <span class="policy-text">
+                  我已確認課程內容並同意
+                  <a href="#" @click.stop.prevent="showRefundPolicyDialog = true" class="policy-link">數位商品不可退款</a>
+                  之規定
+                </span>
+              </el-checkbox>
+            </div>
+
             <!-- 結帳按鈕 -->
             <el-button
               type="primary"
               size="large"
               class="checkout-btn"
-              :disabled="selectedItems.length === 0"
+              :disabled="selectedItems.length === 0 || !agreeRefundPolicy"
               :loading="isCheckingOut"
               @click="handleCheckout"
             >
@@ -179,6 +193,17 @@
         </div>
       </div>
     </div>
+
+    <!-- 退款政策對話框 -->
+    <el-dialog
+      v-model="showRefundPolicyDialog"
+      title="退款政策"
+      width="800px"
+      :close-on-click-modal="false"
+      class="refund-policy-dialog"
+    >
+      <RefundPolicyContent />
+    </el-dialog>
   </div>
 </template>
 
@@ -196,6 +221,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useCartStore } from '@/stores/cart'
 import { createOrder, getEcpayCheckout } from '@/api/student/orders'
+import RefundPolicyContent from '@/components/legal/RefundPolicyContent.vue'
 
 // ==================== Composables ====================
 
@@ -214,6 +240,16 @@ const selectedItemIds = ref([])
  * 是否正在結帳
  */
 const isCheckingOut = ref(false)
+
+/**
+ * 是否同意退款政策
+ */
+const agreeRefundPolicy = ref(false)
+
+/**
+ * 是否顯示退款政策對話框
+ */
+const showRefundPolicyDialog = ref(false)
 
 // ==================== Computed ====================
 
@@ -342,6 +378,11 @@ const goToExplore = () => {
 const handleCheckout = async () => {
   if (selectedItems.value.length === 0) {
     ElMessage.warning('請選擇要結帳的課程')
+    return
+  }
+
+  if (!agreeRefundPolicy.value) {
+    ElMessage.warning('請確認並同意退款政策')
     return
   }
 
@@ -821,6 +862,62 @@ onMounted(() => {
   gap: var(--capy-spacing-xs);
   color: var(--capy-text-secondary);
   font-size: var(--capy-font-size-xs);
+}
+
+/* 退款政策確認 */
+.refund-policy-checkbox {
+  margin-bottom: var(--capy-spacing-md);
+  padding: var(--capy-spacing-md);
+  background-color: #FFF7E6;
+  border: 2px solid #FFD666;
+  border-radius: var(--capy-radius-md);
+}
+
+.refund-policy-checkbox :deep(.el-checkbox) {
+  align-items: flex-start;
+}
+
+.refund-policy-checkbox :deep(.el-checkbox__label) {
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.policy-text {
+  font-size: var(--capy-font-size-sm);
+  color: var(--capy-text-primary);
+  line-height: 1.6;
+}
+
+.policy-link {
+  color: var(--capy-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.policy-link:hover {
+  color: var(--capy-primary-dark);
+  text-decoration: underline;
+}
+
+/* 退款政策對話框樣式 */
+:deep(.refund-policy-dialog) {
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 30px;
+  }
+
+  .el-dialog__header {
+    border-bottom: 1px solid var(--capy-border-lighter);
+    padding: 20px 30px;
+  }
+
+  .el-dialog__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--capy-text-primary);
+  }
 }
 
 /* ==================== 響應式設計 ==================== */

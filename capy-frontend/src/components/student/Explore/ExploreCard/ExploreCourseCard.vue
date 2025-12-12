@@ -24,10 +24,15 @@
         :is-wishlisted="isWishlisted"
         @toggle="toggleWishlist"
       />
+
+      <!-- Enrolled Badge (右下角) -->
+      <div v-if="course.isEnrolled" class="enrolled-badge-corner">
+        已購買
+      </div>
     </div>
 
     <!-- Course Info -->
-    <CourseInfo :course="course" @tag-click="handleTagClick" :hide-tags="false" />
+    <CourseInfo :course="course" @tag-click="handleTagClick" :hide-tags="false" :hide-tags-on-mobile="hideTagsOnMobile" />
   </el-card>
 </template>
 
@@ -45,6 +50,10 @@ const props = defineProps({
   course: {
     type: Object,
     required: true
+  },
+  hideTagsOnMobile: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -124,6 +133,22 @@ const goToCourseDetail = () => {
 
 .placeholder-icon {
   font-size: 48px;
+}
+
+/* Enrolled Badge - 右下角 */
+.enrolled-badge-corner {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #54CDF2 0%, #0EA5E9 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(84, 205, 242, 0.3);
+  letter-spacing: 0.5px;
+  z-index: 2;
 }
 
 </style>

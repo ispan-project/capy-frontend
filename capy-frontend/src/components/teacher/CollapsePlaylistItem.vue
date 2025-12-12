@@ -17,9 +17,11 @@ const props = defineProps({
   },
 });
 const courseStore = useCourseStore();
+
 const { deleteSection, updateSection, deleteCourseLesson, reorderCourseLesson } = useLesson(
   props.sectionInfo
 );
+
 const sectionTitle = ref(props.sectionInfo.title);
 const showSectionEditDialog = ref(false);
 const handleEditSection = async (val) => {
@@ -173,7 +175,38 @@ const handleReorderLesson = () => {
         <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
       >
       <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
-        <Draggable @update="handleReorderLesson" v-model="sectionInfo.lessons"> </Draggable>
+        <Draggable v-model="tableData">
+          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
+            <div style="display: flex; align-items: center">
+              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
+              >{{ lesson.lessonTitle
+              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
+            </div>
+            <div v-if="checkIsUploading(lesson.lessonId)">
+              <<<<<<< HEAD
+              {{ lesson.lessonDurationSeconds }}
+            </div>
+          </li>
+          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
+            <div style="display: flex; align-items: center">
+              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
+              >{{ lesson.lessonTitle
+              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
+            </div>
+            <div v-if="checkIsUploading(lesson.lessonId)">
+              {{
+                lesson.lessonDurationSeconds
+                  ? transformSeconds(lesson.lessonDurationSeconds)
+                  : "暫無影片"
+              }}
+
+              <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"
+                >編輯
+              </el-button>
+              <el-button type="info" @click="handleDeleteLesson(lesson.lessonId)">刪除 </el-button>
+            </div>
+          </li>
+        </Draggable>
       </ul>
     </div>
   </el-collapse-item>

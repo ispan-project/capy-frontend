@@ -158,18 +158,17 @@
 </template>
 
 <script setup>
-
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Filter } from '@element-plus/icons-vue'
-import ExploreCourseCard from '@/components/student/Explore/ExploreCard/ExploreCourseCard.vue'
-import CategoryTreeMulti from '@/components/student/Explore/FilterDrawer/CategoryTreeMulti.vue'
-import RatingOptions from '@/components/student/Explore/FilterDrawer/RatingOptions.vue'
-import ActiveFiltersBar from '@/components/student/Explore/ActiveFiltersBar.vue'
-import { useWishlistStore } from '@/stores/wishlist'
-import { useUserStore } from '@/stores/user'
-import { useExploreStore } from '@/stores/explore'
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
+import { Filter } from "@element-plus/icons-vue";
+import ExploreCourseCard from "@/components/student/Explore/ExploreCard/ExploreCourseCard.vue";
+import CategoryTreeMulti from "@/components/student/Explore/FilterDrawer/CategoryTreeMulti.vue";
+import RatingOptions from "@/components/student/Explore/FilterDrawer/RatingOptions.vue";
+import ActiveFiltersBar from "@/components/student/Explore/ActiveFiltersBar.vue";
+import { useWishlistStore } from "@/stores/wishlist";
+import { useUserStore } from "@/stores/user";
+import { useExploreStore } from "@/stores/explore";
 
 // Router
 const route = useRoute();
@@ -297,7 +296,7 @@ const loadCourses = async () => {
     if (selectedRating.value > 0) {
       // 將單一 rating 值轉換為陣列（後端期望 BigDecimal[]）
       // 例如：選擇 4 星表示 >= 4.0 的課程
-      params.maxRatings = [selectedRating.value.toFixed(1)]
+      params.maxRatings = [selectedRating.value.toFixed(1)];
     }
 
     // 標籤篩選（支援多選，傳遞 tagIds 陣列）
@@ -436,11 +435,11 @@ const handlePageChange = () => {
 };
 
 const handleMobileApplyFilter = () => {
-  drawerVisible.value = false
+  drawerVisible.value = false;
   // 篩選已經透過 watch 自動觸發，這裡只需要關閉 drawer
   // 如果需要更嚴格的 "點擊才套用"，需要重構 watch 邏輯
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
 // Responsive handling
 const checkMobile = () => {
@@ -531,23 +530,15 @@ onMounted(async () => {
     }
     // 添加評分篩選參數
     if (selectedRating.value > 0) {
-      courseParams.maxRatings = [selectedRating.value.toFixed(1)]
+      courseParams.maxRatings = [selectedRating.value.toFixed(1)];
     }
 
     // 使用 Store 的並行載入方法
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     const { courses } = await exploreStore.loadAllData(courseParams);
     coursesData.value = courses;
-=======
-=======
 
->>>>>>> c19c06fb6481586462f2a829df39bc836e2d7f97
-    const { courses } = await exploreStore.loadAllData(courseParams)
-    console.log(courses);
-
-    coursesData.value = courses
->>>>>>> fb273da87ed68d396e9e9bec9fc5f55084b43ac1
+    coursesData.value = courses;
   } catch (error) {
     console.error("並行載入失敗:", error);
     ElMessage.error("載入資料失敗，請稍後再試");
@@ -571,15 +562,10 @@ onUnmounted(() => {
 
 .explore-page {
   min-height: 100vh;
-<<<<<<< HEAD
-<<<<<<< HEAD
-  background: #fcf9f4;
-=======
-=======
 
->>>>>>> c19c06fb6481586462f2a829df39bc836e2d7f97
+  background: #fcf9f4;
+
   background: var(--capy-bg-base); /* 使用變數 #FCF9F4 */
->>>>>>> fb273da87ed68d396e9e9bec9fc5f55084b43ac1
 }
 
 .loading-wrapper {

@@ -109,9 +109,7 @@ const handleSaveLesson = async (data) => {
 const checkIsUploading = (lessonId) => {
   return true;
 };
-const checkIsUploading = (lessonId) => {
-  return true;
-};
+
 /////////////////////////
 const tableData = ref([
   {
@@ -195,7 +193,6 @@ const deleteLessonVid = async () => {
     :lessonInfo="currentLesson"
   />
 
-
   <el-collapse-item>
     <template #icon="{ isActive }">
       <el-icon size="large" v-show="isActive"><ArrowDownBold /></el-icon>
@@ -229,6 +226,8 @@ const deleteLessonVid = async () => {
             </div>
             <div v-if="checkIsUploading(lesson.lessonId)">
               {{ lesson.lessonDurationSeconds }}
+            </div>
+          </li>
           <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
             <div style="display: flex; align-items: center">
               <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
@@ -297,7 +296,6 @@ const deleteLessonVid = async () => {
 .dialogForm {
   padding: 16px;
 }
-
 
 .collapse-chapter-btns {
   position: absolute;

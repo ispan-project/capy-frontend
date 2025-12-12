@@ -17,7 +17,9 @@ const props = defineProps({
   },
 });
 const courseStore = useCourseStore();
-const { deleteSection, updateSection, deleteCourseLesson } = useLesson(props.sectionInfo);
+const { deleteSection, updateSection, deleteCourseLesson, reorderCourseLesson } = useLesson(
+  props.sectionInfo
+);
 const sectionTitle = ref(props.sectionInfo.title);
 const showSectionEditDialog = ref(false);
 const handleEditSection = async (val) => {
@@ -106,33 +108,21 @@ const handleSaveLesson = async (data) => {
   }
 };
 const checkIsUploading = (lessonId) => {
-  return true;
+  const { isUploading } = useVideo();
+
+  return isUploading(lessonId);
 };
 
 const handleDeleteLesson = async (lessonId) => {
   await deleteCourseLesson(lessonId);
 };
 
-const tableData = ref([
-  {
-    date: "2016-05-03",
-    name: "Tom",
-    isFree: true,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-  {
-    date: "2016-05-02",
-    name: "Tom",
-    isFree: false,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-  {
-    date: "2016-05-04",
-    name: "Tom",
-    isFree: false,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-]);
+const lessonOrderList = computed(() => {
+  return props.sectionInfo.lessons.map((lesson) => lesson.lessonId);
+});
+const handleReorderLesson = () => {
+  reorderCourseLesson(lessonOrderList.value);
+};
 </script>
 <template>
   <TextInputDialog
@@ -152,7 +142,7 @@ const tableData = ref([
   <!-- //添加單元影片dialog form -->
   <LessonFormDialog
     :sectionInfo="props.sectionInfo"
-    :videoUrl="lessonVideoUrl"
+    v-model:videoUrl="lessonVideoUrl"
     @confirm="handleSaveLesson"
     ref="lessonDialogRef"
     v-model:visible="showLessonDialog"
@@ -184,13 +174,14 @@ const tableData = ref([
         <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
       >
       <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
-        <Draggable v-model="tableData">
+        <Draggable @update="handleReorderLesson" v-model="sectionInfo.lessons">
           <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
-            <div style="display: flex; align-items: center">
+            <div style="display: flex; align-items: center; flex: 2">
               <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
               >{{ lesson.lessonTitle
               }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
             </div>
+            <<<<<<< HEAD
             <div v-if="checkIsUploading(lesson.lessonId)">
               <<<<<<< HEAD
               {{ lesson.lessonDurationSeconds }}
@@ -202,7 +193,7 @@ const tableData = ref([
               >{{ lesson.lessonTitle
               }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
             </div>
-            <div v-if="checkIsUploading(lesson.lessonId)">
+            <div v-if="!checkIsUploading(lesson.lessonId)">
               {{
                 lesson.lessonDurationSeconds
                   ? transformSeconds(lesson.lessonDurationSeconds)
@@ -213,6 +204,15 @@ const tableData = ref([
                 >編輯
               </el-button>
               <el-button type="info" @click="handleDeleteLesson(lesson.lessonId)">刪除 </el-button>
+            </div>
+            <div v-else style="flex: 1">
+              上傳中...請稍後
+              <el-progress
+                :percentage="100"
+                :show-text="false"
+                :indeterminate="true"
+                :duration="5"
+              />
             </div>
           </li>
         </Draggable>
@@ -256,6 +256,8 @@ const tableData = ref([
   padding: 10px 10px;
   /* border-radius: 8px; */
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
 }
 .course-playlist li .index {

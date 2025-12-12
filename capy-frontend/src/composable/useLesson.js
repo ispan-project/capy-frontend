@@ -1,7 +1,9 @@
 import { useSection } from "./useSection";
 import { deleteLesson } from "@/api/teacher/course";
+import { useCourseStore } from "@/stores/course";
 const { updateCourseSection, deleteCourseSection } = useSection();
 export const useLesson = (sectionInfo) => {
+  const courseStore = useCourseStore();
   const currentSectionInfo = sectionInfo;
   //pinia
   // const currentUploadingLesson = [];
@@ -31,6 +33,7 @@ export const useLesson = (sectionInfo) => {
     try {
       await deleteLesson(lessonId);
       ElMessage.success("刪除成功");
+      await courseStore.fetchCourseOverview();
     } catch (e) {
       ElMessage.error("刪除失敗");
     }
@@ -41,5 +44,6 @@ export const useLesson = (sectionInfo) => {
     updateSection,
     deleteSection,
     defaultLessonInfo,
+    deleteCourseLesson,
   };
 };

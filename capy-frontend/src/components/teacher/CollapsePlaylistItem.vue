@@ -17,6 +17,7 @@ const props = defineProps({
   },
 });
 const courseStore = useCourseStore();
+
 const { deleteSection, updateSection, deleteCourseLesson, reorderCourseLesson } = useLesson(
   props.sectionInfo
 );
@@ -182,38 +183,7 @@ const handleReorderLesson = () => {
       <el-button plain class="upload-btn" @click="handleCreateLesson">
         <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
       >
-      <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
-        <Draggable @update="handleReorderLesson" v-model="sectionInfo.lessons">
-          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
-            <div style="display: flex; align-items: center; flex: 2">
-              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
-              >{{ lesson.lessonTitle
-              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
-            </div>
-            <div v-if="!checkIsUploading(lesson.lessonId)">
-              {{
-                lesson.videoAssetStatus === "upload_failed"
-                  ? "暫無影片"
-                  : transformSeconds(lesson.lessonDurationSeconds)
-              }}
-
-              <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"
-                >編輯
-              </el-button>
-              <el-button type="info" @click="handleDeleteLesson(lesson.lessonId)">刪除 </el-button>
-            </div>
-            <div v-else style="flex: 1">
-              上傳中...請稍後
-              <el-progress
-                :percentage="100"
-                :show-text="false"
-                :indeterminate="true"
-                :duration="5"
-              />
-            </div>
-          </li>
-        </Draggable>
-      </ul>
+      <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist"></ul>
     </div>
   </el-collapse-item>
 </template>

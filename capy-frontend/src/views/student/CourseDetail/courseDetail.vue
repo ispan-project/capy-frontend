@@ -117,6 +117,17 @@
             加入購物車
           </el-button>
 
+          <!-- 加入願望清單按鈕：僅訪客用戶顯示 -->
+          <el-button
+            v-if="!course.isEnrolled"
+            size="large"
+            class="wishlist-btn"
+            @click="handleAddToWishlist"
+          >
+            <el-icon><Star /></el-icon>
+            加入願望清單
+          </el-button>
+
           <div class="course-includes">
             <h4 class="includes-title">課程總長</h4>
             <div class="include-item">
@@ -176,7 +187,7 @@
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { List, Download, Clock, VideoPlay, Lock } from '@element-plus/icons-vue'
+import { List, Download, Clock, VideoPlay, Lock, Star } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
 import CourseContent from '@/components/student/CourseDetail/CourseContent.vue'
 import CourseIntro from '@/components/student/CourseDetail/CourseIntro.vue'
@@ -192,12 +203,14 @@ import {
 } from '@/api/student/courseDetail'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
+import { useWishlistStore } from '@/stores/wishlist'
 import { createOrder } from '@/api/student/orders'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
+const wishlistStore = useWishlistStore()
 
 // 載入狀態
 const loading = ref(false)
@@ -560,6 +573,41 @@ const handleAddToCart = async () => {
 
   // 使用 cartStore 的 addItem 方法
   await cartStore.addItem({
+    id: course.value.id,
+    title: course.value.title,
+    instructor: course.value.instructor.name,
+    price: course.value.price,
+    cover_image_url: course.value.cover
+  })
+}
+
+/**
+ * 處理加入願望清單
+ */
+const handleAddToWishlist = async () => {
+  // 檢查登入狀態
+  if (!userStore.isAuthenticated) {
+    ElMessage.warning('請先登入以使用願望清單功能')
+    router.push({
+      name: 'login',
+      query: { redirect: route.fullPath }
+    })
+    return
+  }
+
+  if (!course.value.id) {
+    ElMessage.error('課程資訊錯誤')
+    return
+  }
+
+  // 檢查課程是否已在願望清單中
+  if (wishlistStore.hasItem(course.value.id)) {
+    ElMessage.warning('課程已在願望清單中')
+    return
+  }
+
+  // 使用 wishlistStore 的 addItem 方法
+  await wishlistStore.addItem({
     id: course.value.id,
     title: course.value.title,
     instructor: course.value.instructor.name,
@@ -955,6 +1003,25 @@ onBeforeUnmount(async () => {
 
 .cart-btn:hover {
   background: #f0f9f4;
+}
+
+/* 願望清單按鈕樣式 */
+.wishlist-btn {
+  width: calc(100% - 48px);
+  margin: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #fff;
+  border: 2px solid #FB8C00;
+  color: #FB8C00;
+}
+
+.wishlist-btn:hover {
+  background: #FFF3E0;
+}
+
+.wishlist-btn .el-icon {
+  margin-right: 4px;
 }
 
 .course-includes {

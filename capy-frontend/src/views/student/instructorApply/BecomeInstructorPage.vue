@@ -74,9 +74,9 @@ const initialFormData = computed(() => {
     })),
     // 證書文件需要特殊處理 - 標記為已存在的文件
     certificates: (data.certificates || []).map(cert => ({
-      certificateId: cert.certificateId,
+      certificateId: cert.id,
       name: cert.fileName,
-      url: cert.filePath,
+      url: cert.fileUrl,
       status: 'success',
       isExisting: true // 標記為已存在的文件
     }))

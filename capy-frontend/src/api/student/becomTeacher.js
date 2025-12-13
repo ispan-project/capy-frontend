@@ -153,7 +153,7 @@ export const getApplicationStatus = () => {
  * 查詢當前用戶最新的講師申請狀態和詳細資訊
  * 需要 JWT 認證
  *
- * @returns {Promise} 回傳最新申請記錄
+ * @returns {Promise<InstructorApplicationVo>} 回傳最新申請記錄
  * @example
  * // Response 範例（待審核）:
  * {
@@ -162,11 +162,20 @@ export const getApplicationStatus = () => {
  *   "data": {
  *     "applicationId": 123,
  *     "status": "pending",  // pending（待審核）| approved（已通過）| rejected（已拒絕）
+ *     "fullName": "王小明",
+ *     "resume": "我有5年的後端開發經驗，專精於 Java Spring Boot...",
+ *     "bankCode": "822",
+ *     "accountNumber": "1234567890",
  *     "certificates": [
  *       {
- *         "certificateId": 1,
+ *         "id": 1,
  *         "fileName": "cert1.pdf",
- *         "filePath": "resources/certificates/123/<stored-name>"
+ *         "fileUrl": "resources/certificates/123/<stored-name>"
+ *       },
+ *       {
+ *         "id": 2,
+ *         "fileName": "cert2.pdf",
+ *         "fileUrl": "resources/certificates/123/<stored-name>"
  *       }
  *     ],
  *     "workExperiences": [
@@ -181,15 +190,32 @@ export const getApplicationStatus = () => {
  *   }
  * }
  *
- * // Response 範例（被拒絕）:
+ * // Response 範例（被拒絕，可用於回填表單）:
  * {
  *   "code": 200,
  *   "msg": "success",
  *   "data": {
  *     "applicationId": 123,
  *     "status": "rejected",
- *     "certificates": [ ... ],
- *     "workExperiences": [ ... ],
+ *     "fullName": "王小明",
+ *     "resume": "我有5年的後端開發經驗...",
+ *     "bankCode": "822",
+ *     "accountNumber": "1234567890",
+ *     "certificates": [
+ *       {
+ *         "id": 1,
+ *         "fileName": "cert1.pdf",
+ *         "fileUrl": "resources/certificates/123/<stored-name>"
+ *       }
+ *     ],
+ *     "workExperiences": [
+ *       {
+ *         "companyName": "ABC Corp",
+ *         "jobTitle": "Senior Engineer",
+ *         "startDate": "2022-01-01",
+ *         "endDate": "2024-06-30"
+ *       }
+ *     ],
  *     "rejectionReason": "缺少必要文件"  // 拒絕原因
  *   }
  * }

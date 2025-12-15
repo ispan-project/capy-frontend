@@ -194,23 +194,11 @@ const handleReorderLesson = () => {
               >{{ lesson.lessonTitle
               }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
             </div>
-            <<<<<<< HEAD
-            <div v-if="checkIsUploading(lesson.lessonId)">
-              <<<<<<< HEAD
-              {{ lesson.lessonDurationSeconds }}
-            </div>
-          </li>
-          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
-            <div style="display: flex; align-items: center">
-              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
-              >{{ lesson.lessonTitle
-              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
-            </div>
             <div v-if="!checkIsUploading(lesson.lessonId)">
               {{
-                lesson.lessonDurationSeconds
-                  ? transformSeconds(lesson.lessonDurationSeconds)
-                  : "暫無影片"
+                lesson.videoAssetStatus === "upload_failed"
+                  ? "暫無影片"
+                  : transformSeconds(lesson.lessonDurationSeconds)
               }}
 
               <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"

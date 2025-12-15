@@ -92,6 +92,7 @@ watch(
         videoUrl: props.videoUrl,
         attachments: props.lessonInfo?.attachments?.map((item) => ({ ...item })) ?? [],
       };
+      console.log(props.videoUrl);
     } else {
       emit("update:videoUrl", null);
       attachmentUploadRef.value.clearFiles();

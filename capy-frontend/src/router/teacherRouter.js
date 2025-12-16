@@ -1,9 +1,9 @@
 import { useVideo } from "@/composable/useVideo";
-import useCourseSwitch from "@/hooks/useCourseSwitch";
+import { switchCourseStatus } from "@/hooks/useCourseSwitch";
 import { useCourseStore } from "@/stores/course";
 import { useInstructorNotificationStore } from "@/stores/instructorNotification";
 
-const { switchCourseStatus } = useCourseSwitch();
+// const { switchCourseStatus } = useCourseSwitch();
 
 export default [
   {

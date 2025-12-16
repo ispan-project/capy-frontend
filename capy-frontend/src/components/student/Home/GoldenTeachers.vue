@@ -209,7 +209,7 @@ const formatStudentCount = (count) => {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .golden-teachers-container {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--capy-spacing-md);

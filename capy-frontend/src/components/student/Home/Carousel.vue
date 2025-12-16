@@ -137,8 +137,9 @@ const setActiveSlide = (index) => {
 .hero-carousel-wrapper {
   position: relative;
   width: 100%;
-  padding: var(--capy-spacing-xxl) 0;
+  padding: var(--capy-spacing-xxl) var(--capy-spacing-lg);
   background: linear-gradient(180deg, var(--capy-bg-base) 0%, var(--capy-bg-surface) 100%);
+  overflow: hidden;
 }
 
 .hero-carousel {
@@ -355,8 +356,20 @@ const setActiveSlide = (index) => {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+  .hero-carousel-wrapper {
+    padding: var(--capy-spacing-xl) var(--capy-spacing-md);
+    padding-bottom: var(--capy-spacing-xxl);
+    overflow: visible;
+  }
+
   .hero-carousel {
     height: 360px;
+    margin-bottom: var(--capy-spacing-lg);
+    overflow: visible;
+  }
+
+  .hero-carousel :deep(.el-carousel__container) {
+    overflow: visible;
   }
 
   .slide-title {
@@ -367,11 +380,16 @@ const setActiveSlide = (index) => {
     max-width: 380px;
     padding: var(--capy-spacing-md);
   }
+
+  .custom-indicators {
+    margin-top: var(--capy-spacing-xl);
+    margin-bottom: var(--capy-spacing-md);
+  }
 }
 
 @media (max-width: 768px) {
   .hero-carousel-wrapper {
-    padding: var(--capy-spacing-md) 0;
+    padding: var(--capy-spacing-md) var(--capy-spacing-sm);
   }
 
   .hero-carousel {
@@ -423,6 +441,10 @@ const setActiveSlide = (index) => {
 }
 
 @media (max-width: 480px) {
+  .hero-carousel-wrapper {
+    padding: var(--capy-spacing-sm) var(--capy-spacing-xs);
+  }
+
   .hero-carousel {
     height: 280px;
   }

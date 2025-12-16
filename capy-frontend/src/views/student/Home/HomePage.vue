@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import {
   getPopularCourses,
@@ -20,6 +20,52 @@ import ContinueLearning from '@/components/student/Home/ContinueLearning.vue'
 // 使用 user store 來判斷登入狀態
 const userStore = useUserStore()
 const isLoggedIn = computed(() => userStore.isAuthenticated)
+
+// 響應式螢幕寬度
+const windowWidth = ref(window.innerWidth)
+
+// 根據螢幕寬度決定顯示的講師數量
+const displayedTeachers = computed(() => {
+  const teachers = homeData.value.goldenTeachers
+  if (windowWidth.value >= 1025) {
+    // 桌面版：顯示全部（最多 4 個）
+    return teachers
+  } else if (windowWidth.value >= 768) {
+    // 平板版 (768-1024)：只顯示前 3 個
+    return teachers.slice(0, 3)
+  } else {
+    // 手機版：顯示全部（由 CSS 控制為 2 欄）
+    return teachers.slice(0, 2)
+  }
+})
+
+// 根據螢幕寬度決定顯示的繼續學習課程數量
+const displayedContinueLearning = computed(() => {
+  const courses = homeData.value.continueLearning
+  if (windowWidth.value >= 1025) {
+    // 桌面版：顯示 3 個
+    return courses.slice(0, 3)
+  } else if (windowWidth.value >= 768) {
+    // 平板版 (768-1024)：只顯示 2 個
+    return courses.slice(0, 2)
+  } else {
+    // 手機版：顯示全部（由 CSS 控制為橫向滾動）
+    return courses
+  }
+})
+
+// 監聽視窗大小變化
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 // 首頁資料狀態
 const loading = ref(true)
@@ -160,7 +206,7 @@ watch(isLoggedIn, async (newValue, oldValue) => {
             <h2 class="section-title-student">繼續學習</h2>
             <div class="title-underline"></div>
           </div>
-          <ContinueLearning :enrollments="homeData.continueLearning.slice(0, 3)" />
+          <ContinueLearning :enrollments="displayedContinueLearning" />
         </div>
       </section>
 
@@ -208,7 +254,7 @@ watch(isLoggedIn, async (newValue, oldValue) => {
             <h2 class="section-title-student">金牌講師</h2>
             <div class="title-underline"></div>
           </div>
-          <GoldenTeachers :teachers="homeData.goldenTeachers" />
+          <GoldenTeachers :teachers="displayedTeachers" />
         </div>
       </section>
     </div>

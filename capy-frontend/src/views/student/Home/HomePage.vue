@@ -261,7 +261,10 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
+@import '@/styles/breakpoints';
+@import '@/styles/project-mixins';
+
 .home-page {
   width: 100%;
   min-height: 100vh;
@@ -277,12 +280,29 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @include below($bp-md) {
+    padding: var(--capy-spacing-xl) var(--capy-spacing-md);
+    min-height: 50vh;
+  }
+
+  @include below($bp-sm) {
+    padding: var(--capy-spacing-lg) var(--capy-spacing-sm);
+  }
 }
 
 /* Remove gap between last section and footer */
 .home-page > section:last-child {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
   padding-bottom: 80px;
+
+  @include below($bp-md) {
+    padding-bottom: var(--capy-spacing-xl);
+  }
+
+  @include below($bp-sm) {
+    padding-bottom: var(--capy-spacing-lg);
+  }
 }
 
 /* Hero Section */
@@ -298,6 +318,14 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   margin-bottom: var(--capy-spacing-xxl);
   position: relative;
   z-index: 2;
+
+  @include below($bp-md) {
+    margin-bottom: var(--capy-spacing-lg);
+  }
+
+  @include below($bp-sm) {
+    margin-bottom: var(--capy-spacing-md);
+  }
 }
 
 /* Section Wrapper - Alternating Backgrounds */
@@ -306,6 +334,18 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   padding: var(--capy-spacing-xxl) 0;
   position: relative;
   z-index: 2;
+
+  @include below($bp-lg) {
+    padding: var(--capy-spacing-xl) 0;
+  }
+
+  @include below($bp-md) {
+    padding: var(--capy-spacing-lg) 0;
+  }
+
+  @include below($bp-sm) {
+    padding: var(--capy-spacing-md) 0;
+  }
 }
 
 .section-white {
@@ -321,32 +361,54 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 var(--capy-spacing-lg);
+
+  @include below($bp-lg) {
+    padding: 0 var(--capy-spacing-md);
+  }
+
+  @include below($bp-md) {
+    padding: 0 var(--capy-spacing-md);
+  }
+
+  @include below($bp-sm) {
+    padding: 0 var(--capy-spacing-sm);
+  }
 }
 
 /* Section Header with Underline */
 .section-header {
   text-align: center;
   margin-bottom: var(--capy-spacing-xl);
+
+  @include below($bp-lg) {
+    margin-bottom: var(--capy-spacing-lg);
+  }
+
+  @include below($bp-md) {
+    margin-bottom: var(--capy-spacing-md);
+  }
+
+  @include below($bp-sm) {
+    margin-bottom: var(--capy-spacing-sm);
+  }
 }
 
 .section-title-student {
-  font-size: 32px;
-  font-weight: var(--capy-font-weight-bold);
-  color: var(--capy-text-primary);
+  @include section-title;
+  text-align: center;
   margin: 0 0 var(--capy-spacing-md) 0;
-  letter-spacing: -0.5px;
+
+  @include below($bp-md) {
+    margin-bottom: var(--capy-spacing-sm);
+  }
+
+  @include below($bp-sm) {
+    margin-bottom: 8px;
+  }
 }
 
 .title-underline {
-  width: 60px;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--capy-primary) 0%,
-    var(--capy-brand) 100%
-  );
-  margin: 0 auto;
-  border-radius: 2px;
+  @include section-title-underline;
 }
 
 /* Latest Courses Section with Decorative Blobs */
@@ -369,6 +431,22 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   height: 600px;
   top: -200px;
   left: -100px;
+
+  @include below($bp-lg) {
+    width: 500px;
+    height: 500px;
+  }
+
+  @include below($bp-md) {
+    width: 400px;
+    height: 400px;
+    top: -100px;
+    left: -50px;
+  }
+
+  @include below($bp-sm) {
+    display: none;
+  }
 }
 
 .blob-2 {
@@ -377,145 +455,26 @@ watch(isLoggedIn, async (newValue, oldValue) => {
   bottom: -150px;
   right: -80px;
   background: var(--capy-brand);
+
+  @include below($bp-lg) {
+    width: 400px;
+    height: 400px;
+  }
+
+  @include below($bp-md) {
+    width: 350px;
+    height: 350px;
+    bottom: -100px;
+    right: -50px;
+  }
+
+  @include below($bp-sm) {
+    display: none;
+  }
 }
 
 .latest-courses-section .section-container {
   position: relative;
   z-index: 1;
-}
-
-/* Responsive Design */
-
-/* Tablet Breakpoint (1024px) */
-@media (max-width: 1024px) {
-  .section-wrapper {
-    padding: var(--capy-spacing-xl) 0;
-  }
-
-  .section-container {
-    padding: 0 var(--capy-spacing-md);
-  }
-
-  .section-header {
-    margin-bottom: var(--capy-spacing-lg);
-  }
-
-  .section-title-student {
-    font-size: 28px;
-  }
-
-  .title-underline {
-    width: 50px;
-    height: 3px;
-  }
-
-  .blob-1 {
-    width: 500px;
-    height: 500px;
-  }
-
-  .blob-2 {
-    width: 400px;
-    height: 400px;
-  }
-}
-
-/* Mobile Breakpoint (768px) */
-@media (max-width: 768px) {
-  .loading-container {
-    padding: var(--capy-spacing-xl) var(--capy-spacing-md) !important;
-    min-height: 50vh !important;
-  }
-
-  .trust-bar-section {
-    margin-bottom: var(--capy-spacing-lg) !important;
-  }
-
-  .section-wrapper {
-    padding: var(--capy-spacing-lg) 0 !important;
-  }
-
-  .section-container {
-    padding: 0 var(--capy-spacing-md) !important;
-  }
-
-  .section-header {
-    margin-bottom: var(--capy-spacing-md) !important;
-  }
-
-  /* FORCE Section title size on mobile - MAX 22px */
-  .section-title-student {
-    font-size: 22px !important;
-    margin-bottom: var(--capy-spacing-sm) !important;
-    font-weight: 700 !important;
-  }
-
-  .title-underline {
-    width: 45px !important;
-    height: 3px !important;
-  }
-
-  .blob-1 {
-    width: 400px !important;
-    height: 400px !important;
-    top: -100px !important;
-    left: -50px !important;
-  }
-
-  .blob-2 {
-    width: 350px !important;
-    height: 350px !important;
-    bottom: -100px !important;
-    right: -50px !important;
-  }
-
-  /* Remove gap between last section and footer on mobile */
-  .home-page > section:last-child {
-    padding-bottom: var(--capy-spacing-xl) !important;
-  }
-}
-
-/* Small Mobile Breakpoint (480px) */
-@media (max-width: 480px) {
-  .loading-container {
-    padding: var(--capy-spacing-lg) var(--capy-spacing-sm) !important;
-  }
-
-  .trust-bar-section {
-    margin-bottom: var(--capy-spacing-md) !important;
-  }
-
-  .section-wrapper {
-    padding: var(--capy-spacing-md) 0 !important;
-  }
-
-  .section-container {
-    padding: 0 var(--capy-spacing-sm) !important;
-  }
-
-  .section-header {
-    margin-bottom: var(--capy-spacing-sm) !important;
-  }
-
-  /* FORCE Section title size on small mobile - 20px */
-  .section-title-student {
-    font-size: 20px !important;
-    margin-bottom: 8px !important;
-    font-weight: 700 !important;
-  }
-
-  .title-underline {
-    width: 40px !important;
-    height: 3px !important;
-  }
-
-  .blob-1,
-  .blob-2 {
-    display: none !important;
-  }
-
-  .home-page > section:last-child {
-    padding-bottom: var(--capy-spacing-lg) !important;
-  }
 }
 </style>

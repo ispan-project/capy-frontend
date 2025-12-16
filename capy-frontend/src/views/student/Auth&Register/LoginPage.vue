@@ -984,9 +984,9 @@ onMounted(() => {
       console.log('Turnstile 已載入，Site Key:', turnstileSiteKey);
       // 根據當前 tab 渲染對應的 widget
       setTimeout(() => {
-        if (activeTab.value === 'login') {
+        if (activeTab.value === 'login' && loginWidgetId.value === null) {
           renderLoginTurnstile();
-        } else {
+        } else if (activeTab.value === 'register' && registerWidgetId.value === null) {
           renderRegisterTurnstile();
         }
       }, 100);

@@ -280,7 +280,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { View, Hide, Message, Loading, InfoFilled } from '@element-plus/icons-vue';
 import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent.vue';
@@ -939,6 +939,17 @@ const handleTabChange = (tab) => {
   }, 100);
 };
 
+// 監聽 activeTab 變化，確保 Turnstile 在任何情況下都能被渲染
+watch(activeTab, async (newTab) => {
+  await nextTick();  // 等待 DOM 更新
+
+  if (newTab === 'register' && registerWidgetId.value === null) {
+    renderRegisterTurnstile();
+  } else if (newTab === 'login' && loginWidgetId.value === null) {
+    renderLoginTurnstile();
+  }
+});
+
 /**
  * 處理 OAuth 回調的三種情境
  * 在元件掛載時檢查 URL 查詢參數
@@ -955,7 +966,7 @@ onMounted(() => {
     ElMessage.error(`Google 登入失敗: ${oauthError}`);
     // 清除 URL 中的查詢參數
     router.replace({ path: '/login', query: {} });
-    return;
+    // ⚠️ 移除 return，讓程式繼續執行 initTurnstile
   }
 
   // 情境 2: 未綁定的 Google 帳號，需要完成註冊/綁定
@@ -972,7 +983,7 @@ onMounted(() => {
 
     // 清除 URL 中的查詢參數
     router.replace({ path: '/login', query: {} });
-    return;
+    // ⚠️ 移除 return，讓程式繼續執行 initTurnstile
   }
 
   // 等待 Turnstile script 載入後渲染 widgets

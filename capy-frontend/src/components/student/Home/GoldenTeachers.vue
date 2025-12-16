@@ -47,7 +47,11 @@ const formatStudentCount = (count) => {
           :size="140"
           :src="teacher.avatarUrl"
           class="teacher-avatar"
-        />
+        >
+          <template #default>
+            <img :src="teacher.avatarUrl" :alt="teacher.name" loading="lazy" />
+          </template>
+        </el-avatar>
       </div>
 
       <!-- Teacher Info -->

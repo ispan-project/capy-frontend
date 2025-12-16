@@ -1,7 +1,13 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { getHomePageData, getContinueLearningData } from '@/api/student/home.js'
+import {
+  getPopularCourses,
+  getLatestCourses,
+  getTopTags,
+  getGoldenTeachers,
+  getContinueLearningData
+} from '@/api/student/home.js'
 import { ElMessage } from 'element-plus'
 import Carousel from '@/components/student/Home/Carousel.vue'
 import TrustBar from '@/components/student/Home/TrustBar.vue'
@@ -10,7 +16,6 @@ import LatestCourses from '@/components/student/Home/LatestCourses.vue'
 import Tags from '@/components/student/Home/tags.vue'
 import TopCourses from '@/components/student/Home/TopCourses.vue'
 import ContinueLearning from '@/components/student/Home/ContinueLearning.vue'
-// import ScrollytellingBackground from '@/components/student/Home/ScrollytellingBackground.vue'
 
 // 使用 user store 來判斷登入狀態
 const userStore = useUserStore()
@@ -28,38 +33,40 @@ const homeData = ref({
   continueLearning: []
 })
 
-// 獲取首頁資料
+// 獲取首頁資料 - 並行呼叫 4 個 API
 const fetchHomeData = async () => {
   try {
     loading.value = true
-    const response = await getHomePageData()
 
-    console.log('API 回應 (已被 http.js 處理):', response)
+    // 並行呼叫所有 API
+    const [popularResponse, latestResponse, tagsResponse, teachersResponse] = await Promise.all([
+      getPopularCourses(),
+      getLatestCourses(),
+      getTopTags(),
+      getGoldenTeachers()
+    ])
 
-    // 注意：http.js 的 response 攔截器已經提取了 response.data.data
-    // 所以這裡的 response 直接就是後端的 data 陣列
-    // 後端格式: data: [{ popularCourses, latestCourses, topTags, goldenTr }]
-    if (response && Array.isArray(response) && response.length > 0) {
-      const apiData = response[0]
-      console.log('解析的 API 資料:', apiData)
+    console.log('熱門課程 API 回應:', popularResponse)
+    console.log('最新課程 API 回應:', latestResponse)
+    console.log('熱門標籤 API 回應:', tagsResponse)
+    console.log('金牌講師 API 回應:', teachersResponse)
 
-      homeData.value = {
-        topCourses: apiData.popularCourses || [],
-        latestCourses: apiData.latestCourses || [],
-        goldenTeachers: apiData.goldenTr || [],
-        popularTags: apiData.topTags || [],
-        carousel: [],  // 暫時為空，等待後端提供
-        stats: null,   // 暫時為空，等待後端提供
-        continueLearning: []  // 初始化為空陣列，稍後單獨獲取
-      }
-
-      console.log('設定後的 homeData:', homeData.value)
-      console.log('熱門課程數量:', homeData.value.topCourses.length)
-      console.log('最新課程數量:', homeData.value.latestCourses.length)
-      console.log('標籤數量:', homeData.value.popularTags.length)
-    } else {
-      console.warn('API 回應格式不符合預期:', response)
+    // 設定資料（http.js 已經提取了 response.data.data）
+    homeData.value = {
+      topCourses: Array.isArray(popularResponse) ? popularResponse : [],
+      latestCourses: Array.isArray(latestResponse) ? latestResponse : [],
+      popularTags: Array.isArray(tagsResponse) ? tagsResponse : [],
+      goldenTeachers: Array.isArray(teachersResponse) ? teachersResponse : [],
+      carousel: [],  // 暫時為空，等待後端提供
+      stats: null,   // 暫時為空，等待後端提供
+      continueLearning: []  // 初始化為空陣列，稍後單獨獲取
     }
+
+    console.log('設定後的 homeData:', homeData.value)
+    console.log('熱門課程數量:', homeData.value.topCourses.length)
+    console.log('最新課程數量:', homeData.value.latestCourses.length)
+    console.log('熱門標籤數量:', homeData.value.popularTags.length)
+    console.log('金牌講師數量:', homeData.value.goldenTeachers.length)
   } catch (error) {
     console.error('獲取首頁資料失敗:', error)
     console.error('錯誤詳情:', error.response || error.message)

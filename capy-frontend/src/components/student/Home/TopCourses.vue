@@ -155,7 +155,12 @@ const handleTeacherClick = (event, instructorId) => {
       <div class="course-card" @click="goToCourse(course.id)">
         <!-- Image Area -->
         <div class="image-area">
-          <img :src="course.coverImageUrl" :alt="course.title" class="course-img" />
+          <img
+            :src="course.coverImageUrl"
+            :alt="course.title"
+            class="course-img"
+            loading="lazy"
+          />
 
           <!-- Bestseller Badge -->
           <div class="bestseller-badge">

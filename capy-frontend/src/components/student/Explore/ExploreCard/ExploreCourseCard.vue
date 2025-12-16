@@ -11,6 +11,7 @@
         :src="course.coverImageUrl"
         fit="cover"
         class="cover-image"
+        loading="lazy"
       >
         <template #error>
           <div class="image-placeholder">

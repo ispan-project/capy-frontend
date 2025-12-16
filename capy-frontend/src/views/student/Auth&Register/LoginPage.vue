@@ -928,15 +928,7 @@ const handleGoogleLogin = () => {
 // 處理 tab 切換
 const handleTabChange = (tab) => {
   activeTab.value = tab;
-
-  // 等待 DOM 更新後渲染對應的 widget
-  setTimeout(() => {
-    if (tab === 'login' && loginWidgetId.value === null) {
-      renderLoginTurnstile();
-    } else if (tab === 'register' && registerWidgetId.value === null) {
-      renderRegisterTurnstile();
-    }
-  }, 100);
+  // 渲染邏輯已移至 watch 監聽器，避免重複渲染
 };
 
 // 監聽 activeTab 變化，確保 Turnstile 在任何情況下都能被渲染

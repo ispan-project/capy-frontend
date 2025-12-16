@@ -1,7 +1,6 @@
 <template>
   <div class="status-card-container">
     <el-result
-      :icon="resultIcon"
       :title="resultTitle"
       :sub-title="resultDescription"
       class="status-result"

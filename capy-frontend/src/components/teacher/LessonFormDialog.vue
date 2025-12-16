@@ -3,8 +3,6 @@ import { useLesson } from "@/composable/useLesson";
 import VideoPlayer from "../admin/VideoPlayer.vue";
 import { nextTick } from "vue";
 import { useAttachment } from "@/composable/useAttachment";
-import { nextTick } from "vue";
-import { useAttachment } from "@/composable/useAttachment";
 const props = defineProps({
   sectionInfo: {
     type: Object,
@@ -51,7 +49,6 @@ const requestData = computed(() => {
     ...formModel.value,
     lessonDescription: formModel.value.description,
     videoMeta: videoMeta.value,
-    videoMeta: videoMeta.value,
     attachmentOps: attachmentOps.value,
   };
 });
@@ -73,8 +70,6 @@ const handleVideoExceed = (file) => {
 const handleVideoChange = async (file) => {
   currentUploadVideo = file.raw;
   formModel.value.videoUrl = URL.createObjectURL(file.raw);
-  await nextTick();
-  videoMeta.value.fileSize = file.raw.size;
   await nextTick();
   videoMeta.value.fileSize = file.raw.size;
 };
@@ -107,24 +102,9 @@ watch(
     if (!newVal) {
       return;
     }
-    if (!newVal) {
-      return;
-    }
     if (!oldVal) {
       await nextTick();
       // console.log(videoPlayerRef.value);
-      try {
-        await videoPlayerRef.value.init();
-        await videoPlayerRef.value.play(newVal);
-        videoMeta.value.rawVideoHeight = videoPlayerRef.value.videoHeight;
-        videoMeta.value.durationSeconds = videoPlayerRef.value.videoDuration;
-      } catch (e) {
-        console.log(e);
-        ElMessage.error("影片播放錯誤");
-        videoPlayerRef.value.destroy();
-        formModel.value.videoUrl = null;
-      }
-
       try {
         await videoPlayerRef.value.init();
         await videoPlayerRef.value.play(newVal);
@@ -187,7 +167,6 @@ const defaultAttachmentList = computed(() => {
 const deleteAttachmentList = computed(() => {
   if (props.isEdit) {
     return formModel.value.attachments.filter((attachment) => attachment.isDelete);
-    return formModel.value.attachments.filter((attachment) => attachment.isDelete);
   }
   return [];
 });
@@ -195,16 +174,6 @@ const attachmentUploadRef = ref(null);
 const attachmentOps = computed(() => [...newAttachmentList.value, ...deleteAttachmentList.value]);
 //新增的檔案
 const attachmentFileList = computed(() => attachmentList.value?.map((file) => file.raw));
-// onMounted(() => {
-//   if (!props.isEdit) {
-//     formModel.value = { ...defaultLessonInfo, videoUrl: props.videoUrl };
-//   }
-// });
-// onMounted(() => {
-//   if (!props.isEdit) {
-//     formModel.value = { ...defaultLessonInfo, videoUrl: props.videoUrl };
-//   }
-// });
 const save = () => {
   if (!formModel.value.videoUrl || formModel.value.videoUrl === props.videoUrl) {
     requestData.value.videoMeta = null;
@@ -264,15 +233,6 @@ const save = () => {
               <div class="el-upload__tip">jpg/png files with a size less than 500kb</div>
             </template>
           </el-upload>
-        </div>
-      </el-form-item>
-      <el-form-item v-else label="預覽影片 :">
-        <div>
-          <VideoPlayer ref="videoPlayerRef" />
-          <div>
-            <el-button type="primary">重新選擇影片檔案</el-button>
-            <el-button type="info">清空</el-button>
-          </div>
         </div>
       </el-form-item>
       <el-form-item v-else label="預覽影片 :">
@@ -349,12 +309,6 @@ const save = () => {
     </template>
   </el-dialog>
 </template>
-<style scoped>
-.attachment-list-item {
-  display: flex;
-  gap: 24px;
-}
-</style>
 <style scoped>
 .attachment-list-item {
   display: flex;

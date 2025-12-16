@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useUserStore } from './user'
 import { getCartList, addToCart as addToCartAPI, removeFromCart as removeFromCartAPI, clearCart as clearCartAPI } from '@/api/student/cart'
 import { ElMessage } from 'element-plus'
+import { getItemState } from '@/composable/useCourseState.js'
 
 /**
  * 購物車項目介面
@@ -13,6 +14,8 @@ interface CartItem {
   instructor: string
   price: number
   coverImageUrl: string
+  status?: string
+  isEnrolled?: boolean
 }
 
 /**
@@ -31,23 +34,27 @@ export const useCartStore = defineStore('cart', () => {
 
   /**
    * 購物車項目數量
-   * 優先使用 user store 的數量（來自 API），如果沒有則使用本地數量
+   * 購物車功能需要登入才能使用，直接使用後端 API 數據
    */
   const itemCount = computed(() => {
     const userStore = useUserStore()
-    // 如果已登入且有 API 數據，使用 API 數據
-    if (userStore.isAuthenticated && userStore.cartQuantity > 0) {
-      return userStore.cartQuantity
-    }
-    // 否則使用本地購物車數量
-    return items.value.length
+    // 購物車需要登入，直接使用 API 數據
+    return userStore.isAuthenticated ? userStore.cartQuantity : 0
   })
 
   /**
    * 購物車總價（TWD）
+   * 只計算可購買的項目（過濾已下架和已擁有的課程）
    */
   const totalPrice = computed(() => {
-    return items.value.reduce((sum, item) => sum + item.price, 0)
+    return items.value.reduce((sum, item) => {
+      const state = getItemState(item)
+      // 只計算可購買的項目
+      if (state.canBuy) {
+        return sum + item.price
+      }
+      return sum
+    }, 0)
   })
 
   /**
@@ -72,7 +79,6 @@ export const useCartStore = defineStore('cart', () => {
 
     // 如果未登入，直接返回 false（不顯示錯誤訊息）
     if (!userStore.isAuthenticated) {
-      console.log('未登入，跳過載入購物車')
       return false
     }
 
@@ -84,9 +90,11 @@ export const useCartStore = defineStore('cart', () => {
           title: item.courseTitle,
           instructor: item.instructorName,
           price: item.price,
-          coverImageUrl: item.coverImageUrl
+          coverImageUrl: item.coverImageUrl,
+          status: item.status,
+          isEnrolled: item.isEnrolled
         }))
-        // 同步到 localStorage
+        // 同步到 localStorage（作為臨時快取）
         saveToStorage()
         return true
       }
@@ -94,12 +102,10 @@ export const useCartStore = defineStore('cart', () => {
     } catch (error: any) {
       // 靜默處理 401 錯誤（未登入）
       if (error?.response?.status === 401 || error?.status === 401) {
-        console.log('未登入，無法載入購物車')
         return false
       }
 
       // 其他錯誤才顯示訊息
-      console.error('載入購物車失敗:', error)
       ElMessage.error('載入購物車失敗')
       return false
     }
@@ -134,7 +140,9 @@ export const useCartStore = defineStore('cart', () => {
           title: course.title,
           instructor: course.instructor,
           price: course.price,
-          coverImageUrl: course.cover_image_url
+          coverImageUrl: course.cover_image_url,
+          status: 'PUBLISHED', // 新加入的課程預設為已上架
+          isEnrolled: false // 新加入的課程預設為未擁有
         })
 
         // 儲存到 localStorage
@@ -151,8 +159,6 @@ export const useCartStore = defineStore('cart', () => {
       ElMessage.success(`已加入「${course.title}」到購物車`)
       return true
     } catch (error: any) {
-      console.error('加入購物車失敗:', error)
-
       // 從錯誤回應中提取訊息
       let errorMessage = '加入購物車失敗'
       let messageType: 'info' | 'warning' | 'error' = 'error'
@@ -223,19 +229,34 @@ export const useCartStore = defineStore('cart', () => {
 
       return true
     } catch (error) {
-      console.error('移除購物車項目失敗:', error)
       ElMessage.error('移除失敗')
       return false
     }
   }
 
   /**
-   * 清空購物車
+   * 清空購物車選項介面
    */
-  const clearCart = async () => {
+  interface ClearCartOptions {
+    /**
+     * 是否跳過呼叫後端 API
+     * 用於登出時，因為 Cookie 已被清除，無需再呼叫 API
+     */
+    skipAPICall?: boolean
+  }
+
+  /**
+   * 清空購物車
+   * @param options - 清空選項
+   */
+  const clearCart = async (options: ClearCartOptions = {}) => {
+    const { skipAPICall = false } = options
+
     try {
-      // 呼叫後端 API
-      await clearCartAPI()
+      // 只在需要時呼叫後端 API
+      if (!skipAPICall) {
+        await clearCartAPI()
+      }
 
       // 清空本地購物車
       items.value = []
@@ -249,11 +270,14 @@ export const useCartStore = defineStore('cart', () => {
         userStore.cartQuantity = 0
       }
 
-      ElMessage.success('購物車已清空')
+      if (!skipAPICall) {
+        ElMessage.success('購物車已清空')
+      }
       return true
     } catch (error) {
-      console.error('清空購物車失敗:', error)
-      ElMessage.error('清空購物車失敗')
+      if (!skipAPICall) {
+        ElMessage.error('清空購物車失敗')
+      }
       return false
     }
   }
@@ -312,6 +336,10 @@ export const useCartStore = defineStore('cart', () => {
   /**
    * 從 localStorage 載入購物車
    */
+  /**
+   * 從 localStorage 載入購物車
+   * 注意：僅作為已登入用戶的臨時快取使用
+   */
   const loadFromStorage = () => {
     try {
       const stored = localStorage.getItem('cart')
@@ -319,18 +347,22 @@ export const useCartStore = defineStore('cart', () => {
         items.value = JSON.parse(stored)
       }
     } catch (error) {
-      console.error('載入購物車失敗:', error)
+      // 靜默失敗
     }
   }
 
   /**
    * 儲存購物車到 localStorage
    */
+  /**
+   * 儲存購物車到 localStorage
+   * 注意：僅作為已登入用戶的臨時快取使用
+   */
   const saveToStorage = () => {
     try {
       localStorage.setItem('cart', JSON.stringify(items.value))
     } catch (error) {
-      console.error('儲存購物車失敗:', error)
+      // 靜默失敗
     }
   }
 

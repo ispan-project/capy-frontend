@@ -153,7 +153,7 @@ watch(isLoggedIn, async (newValue, oldValue) => {
             <h2 class="section-title-student">繼續學習</h2>
             <div class="title-underline"></div>
           </div>
-          <ContinueLearning :enrollments="homeData.continueLearning" />
+          <ContinueLearning :enrollments="homeData.continueLearning.slice(0, 3)" />
         </div>
       </section>
 

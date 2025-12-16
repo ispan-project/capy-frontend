@@ -110,29 +110,8 @@ const tabs = [
   { label: '通知', name: 'Notifications' }
 ]
 
-// 統計資料 - 使用與後端相同的欄位名稱
-const stats = ref({
-  ownedCoursesCount: 0,
-  wishlistCount: 0,
-  completedCoursesCount: 0
-})
-
-// 載入統計資料
-const loadStats = async () => {
-  try {
-    const response = await fetchStudentProfile()
-    const profileData = response.studentProfile || response
-
-    // 更新統計資料 - 直接使用後端的欄位名稱
-    stats.value = {
-      ownedCoursesCount: profileData.ownedCoursesCount || 0,
-      wishlistCount: profileData.wishlistCount || 0,
-      completedCoursesCount: profileData.completedCoursesCount || 0
-    }
-  } catch (error) {
-    console.error('載入統計資料失敗:', error)
-  }
-}
+// 統計資料 - 直接使用 store 的 computed getter，避免重複呼叫 API
+const stats = computed(() => studentCenterStore.statistics)
 
 // Profile Edit Dialog
 const profileDialogVisible = ref(false)
@@ -169,8 +148,7 @@ const handleProfileSave = async (updatedData) => {
       avatar: updatedData.avatarUrl
     })
 
-    // 重新載入統計資料
-    await loadStats()
+    // 統計資料會自動從 store 更新，不需要手動重新載入
 
     // Show success message
     ElMessage.success('個人資料更新成功！')
@@ -185,9 +163,8 @@ const handleProfileSave = async (updatedData) => {
 onMounted(async () => {
   try {
     // 使用 store 載入 profile（帶快取）
+    // 統計資料會自動從 store 的 statistics getter 取得，不需要重複呼叫 API
     await studentCenterStore.loadProfile()
-    // 載入統計資料
-    await loadStats()
   } catch (error) {
     console.error('載入 Profile 失敗:', error)
     ElMessage.error('載入個人資料失敗，請稍後再試')

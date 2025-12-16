@@ -46,7 +46,7 @@
           <div
             v-for="item in wishlistStore.recentItems"
             :key="item.courseId"
-            class="wishlist-item"
+            :class="['wishlist-item', { 'is-disabled': !getItemState(item).canBuy }]"
           >
             <!-- 課程縮圖 -->
             <div class="item-thumbnail">
@@ -66,11 +66,18 @@
             <!-- 課程資訊 -->
             <div class="item-info">
               <h5 class="item-title">{{ item.title }}</h5>
-              <div class="item-price">{{ wishlistStore.formatPrice(item.price) }}</div>
+              <!-- 根據狀態顯示不同內容 -->
+              <div v-if="getItemState(item).type === 'ENROLLED'" class="item-status enrolled">
+                已購買
+              </div>
+              <div v-else-if="getItemState(item).type === 'UNAVAILABLE'" class="item-status unavailable">
+                已下架
+              </div>
+              <div v-else class="item-price">{{ wishlistStore.formatPrice(item.price) }}</div>
             </div>
 
-            <!-- 加入購物車按鈕 -->
-            <div class="item-action">
+            <!-- 加入購物車按鈕 (只在正常狀態顯示) -->
+            <div v-if="getItemState(item).type === 'NORMAL'" class="item-action">
               <el-button
                 type="primary"
                 :icon="ShoppingCart"
@@ -104,6 +111,7 @@ import { ElMessage } from 'element-plus'
 import { Star, ShoppingCart, Picture, Loading } from '@element-plus/icons-vue'
 import { useWishlistStore } from '@/stores/wishlist'
 import { useUserStore } from '@/stores/user'
+import { getItemState } from '@/composable/useCourseState.js'
 
 // ==================== Composables ====================
 
@@ -280,6 +288,14 @@ watch(visible, async (newVal) => {
   background-color: var(--capy-bg-elevated);
 }
 
+.wishlist-item.is-disabled {
+  opacity: 0.6;
+}
+
+.wishlist-item.is-disabled:hover {
+  background-color: transparent;
+}
+
 /* 課程縮圖 */
 .item-thumbnail {
   flex-shrink: 0;
@@ -329,6 +345,19 @@ watch(visible, async (newVal) => {
   font-size: var(--capy-font-size-xs);
   font-weight: var(--capy-font-weight-semibold);
   color: var(--capy-primary);
+}
+
+.item-status {
+  font-size: var(--capy-font-size-xs);
+  font-weight: var(--capy-font-weight-medium);
+}
+
+.item-status.enrolled {
+  color: var(--el-color-success);
+}
+
+.item-status.unavailable {
+  color: var(--el-color-danger);
 }
 
 /* 操作按鈕 */

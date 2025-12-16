@@ -64,6 +64,11 @@ import { ElMessage } from 'element-plus'
 import { Sort } from '@element-plus/icons-vue'
 import ExploreCourseCard from '@/components/student/Explore/ExploreCard/ExploreCourseCard.vue'
 import { useWishlistStore } from '@/stores/wishlist'
+import {
+  getItemState,
+  getItemButtonType,
+  getItemButtonText
+} from '@/composable/useCourseState.js'
 
 const router = useRouter()
 const wishlistStore = useWishlistStore()
@@ -79,24 +84,33 @@ const sortLabels = {
 }
 
 // 將 wishlist store 的資料轉換為 ExploreCourseCard 需要的格式
+// 並加入課程狀態資訊
 const wishlistCourses = computed(() => {
-  return wishlistStore.items.map(item => ({
-    id: item.courseId,
-    title: item.title,
-    instructorName: item.instructor, // 使用 instructorName 欄位
-    instructor_name: item.instructor, // 相容舊欄位名稱
-    coverImageUrl: item.coverImageUrl,
-    averageRating: item.averageRating || 0, // 使用正確的欄位名稱
-    reviewCount: item.reviewCount || 0, // 使用後端資料
-    enrollmentCount: item.enrollmentCount || 0, // 使用後端資料
-    price: item.price,
-    originalPrice: item.price * 1.5, // 預設原價
-    isWishlisted: true,
-    tags: item.tags || [], // 使用後端資料
-    categories: item.categories || [], // 使用後端資料
-    status: item.status,
-    publishDate: item.publishDate
-  }))
+  return wishlistStore.items.map(item => {
+    const state = getItemState(item)
+    return {
+      id: item.courseId,
+      title: item.title,
+      instructorName: item.instructor, // 使用 instructorName 欄位
+      instructor_name: item.instructor, // 相容舊欄位名稱
+      coverImageUrl: item.coverImageUrl,
+      averageRating: item.averageRating || 0, // 使用正確的欄位名稱
+      reviewCount: item.reviewCount || 0, // 使用後端資料
+      enrollmentCount: item.enrollmentCount || 0, // 使用後端資料
+      price: item.price,
+      originalPrice: item.price * 1.5, // 預設原價
+      isWishlisted: true,
+      tags: item.tags || [], // 使用後端資料
+      categories: item.categories || [], // 使用後端資料
+      status: item.status,
+      publishDate: item.publishDate,
+      isEnrolled: item.isEnrolled,
+      // 加入狀態資訊供卡片使用
+      courseState: state,
+      buttonType: getItemButtonType(item),
+      buttonText: getItemButtonText(item)
+    }
+  })
 })
 
 // 使用後端分頁，直接顯示當前頁的課程

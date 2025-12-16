@@ -168,7 +168,7 @@ import RatingOptions from '@/components/student/Explore/FilterDrawer/RatingOptio
 import ActiveFiltersBar from '@/components/student/Explore/ActiveFiltersBar.vue'
 import { useWishlistStore } from '@/stores/wishlist'
 import { useUserStore } from '@/stores/user'
-import { searchCourses, getCategories } from '@/api/student/explore'
+import { useExploreStore } from '@/stores/explore'
 
 // Router
 const route = useRoute()
@@ -177,6 +177,7 @@ const router = useRouter()
 // Stores
 const wishlistStore = useWishlistStore()
 const userStore = useUserStore()
+const exploreStore = useExploreStore()
 
 // Responsive state
 const isMobile = ref(false)
@@ -189,12 +190,12 @@ const selectedTags = ref([])
 const searchQuery = ref('')
 const sortBy = ref('popular') // 'popular' or 'latest'
 
-// 分類資料狀態
-const categories = ref([])
-const categoriesLoading = ref(false)
+// 分類資料狀態（使用 computed 從 store 取得）
+const categories = computed(() => exploreStore.cachedCategories || [])
+const categoriesLoading = computed(() => exploreStore.categoriesLoading)
 
-// API 相關狀態
-const loading = ref(false)
+// API 相關狀態（使用 computed 從 store 取得載入狀態）
+const loading = computed(() => exploreStore.coursesLoading)
 const coursesData = ref({
   content: [],
   number: 0,
@@ -205,22 +206,6 @@ const coursesData = ref({
   last: true,
   empty: true
 })
-
-// 載入分類資料
-const loadCategories = async () => {
-  categoriesLoading.value = true
-  try {
-    const result = await getCategories()
-    categories.value = result
-    console.log('載入分類樹成功:', result)
-  } catch (error) {
-    console.error('載入分類樹失敗:', error)
-    ElMessage.error('載入分類資料失敗，請稍後再試')
-    categories.value = []
-  } finally {
-    categoriesLoading.value = false
-  }
-}
 
 // 建立 category ID 到 name 的映射
 const buildCategoryIdToNameMap = () => {
@@ -233,7 +218,8 @@ const buildCategoryIdToNameMap = () => {
       }
     })
   }
-  traverse(categories.value)
+  const cats = categories.value || []
+  traverse(cats)
   return map
 }
 
@@ -284,9 +270,8 @@ const filteredCourses = computed(() => allCourses.value)
 // 後端已處理分頁，直接使用 API 回傳的資料
 const paginatedCourses = computed(() => allCourses.value)
 
-// 載入課程資料
+// 載入課程資料（使用 Store 的快取功能）
 const loadCourses = async () => {
-  loading.value = true
   try {
     const params = {
       page: currentPage.value - 1, // API 從 0 開始
@@ -307,20 +292,11 @@ const loadCourses = async () => {
       params.categoryIds = selectedCategories.value
     }
 
-    // 標籤篩選（支援多選，傳遞 tagIds 陣列）
-    // 注意：目前 selectedTags 存的是標籤名稱字串，需要轉換為 ID
-    // 如果後端需要 tagIds，這裡需要維護 tag name 到 ID 的映射
-    // 暫時保留此邏輯，等後端確認後再調整
-    // if (selectedTags.value.length > 0) {
-    //   params.tagIds = selectedTags.value
-    // }
+    // 注意：後端 CourseSearchDto 只支援 keyword 和 categoryIds
+    // tagIds 和 maxRatings 不在後端 API 規格中，已移除
 
-    // 評分篩選（支援多選，傳遞 maxRatings 陣列）
-    if (selectedRating.value > 0) {
-      params.maxRatings = [selectedRating.value]
-    }
-
-    const result = await searchCourses(params)
+    // 使用 Store 的快取載入方法
+    const result = await exploreStore.loadCourses(params)
     coursesData.value = result
   } catch (error) {
     console.error('載入課程失敗:', error)
@@ -336,8 +312,6 @@ const loadCourses = async () => {
       last: true,
       empty: true
     }
-  } finally {
-    loading.value = false
   }
 }
 
@@ -496,9 +470,6 @@ onMounted(async () => {
   // 先從 localStorage 載入願望清單資料（快速顯示）
   wishlistStore.loadFromStorage()
 
-  // 載入分類樹資料
-  await loadCategories()
-
   // 讀取 URL query 參數
   const query = route.query
 
@@ -517,21 +488,36 @@ onMounted(async () => {
     }
   }
 
-  // 載入課程資料
-  await loadCourses()
-
-  // 如果已登入，從後端載入最新資料
-  const userStore = useUserStore()
-  if (userStore.isAuthenticated) {
-    try {
-      await wishlistStore.loadWishlistFromAPI({
-        page: 0,
-        size: 100, // 載入較多項目以便檢查課程是否在願望清單中
-        sort: 'id,desc'
-      })
-    } catch (error) {
-      console.error('載入願望清單失敗:', error)
+  // 🚀 並行載入分類樹和課程資料（效能優化）
+  try {
+    const courseParams = {
+      page: currentPage.value - 1,
+      size: pageSize.value,
+      sort: sortBy.value
     }
+
+    // 添加篩選參數
+    if (searchQuery.value) {
+      courseParams.keyword = searchQuery.value
+    }
+    if (selectedCategories.value.length > 0) {
+      courseParams.categoryIds = selectedCategories.value
+    }
+    // 注意：後端不支援 maxRatings 參數
+
+    // 使用 Store 的並行載入方法
+    const { courses } = await exploreStore.loadAllData(courseParams)
+    coursesData.value = courses
+  } catch (error) {
+    console.error('並行載入失敗:', error)
+    ElMessage.error('載入資料失敗，請稍後再試')
+  }
+
+  // 如果已登入，從後端載入最新資料（不阻塞主流程）
+  if (userStore.isAuthenticated) {
+    wishlistStore.loadWishlistItems().catch(error => {
+      console.error('載入願望清單失敗:', error)
+    })
   }
 })
 

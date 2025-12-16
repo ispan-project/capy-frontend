@@ -25,11 +25,11 @@
       </span>
       <span class="stat-item">
         <el-icon><Document /></el-icon>
-        {{ sections }} sections
+        {{ sections }} 個章節
       </span>
       <span class="stat-item">
         <el-icon><VideoPlay /></el-icon>
-        {{ attachments }} attachments
+        {{ attachments }} 個附件
       </span>
     </div>
 

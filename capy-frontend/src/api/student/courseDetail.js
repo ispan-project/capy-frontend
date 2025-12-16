@@ -53,8 +53,9 @@ import request from '@/utils/http'
  *         totalStudents: number,
  *         totalCourses: number
  *       },
- *       totalHours: number,
+ *       totalHours: number,  // 課程總時長（小時，已由後端將秒數轉換並向上取整）
  *       totalSections: number,
+ *       attachmentCount: number,  // 課程所有單元的附件總數
  *       isEnrolled: boolean
  *     },
  *     sections: [  // 章節列表
@@ -66,7 +67,7 @@ import request from '@/utils/http'
  *           {
  *             lessonId: number,
  *             lessonTitle: string,  // 單元標題
- *             lessonDurationMinutes: number,  // 單元時長（分鐘）
+ *             lessonDurationText: string,  // 單元時長（格式：「8分14秒」）
  *             freePreview: boolean,  // 是否為免費試看單元
  *             displayOrder: number,
  *             description: string  // 單元描述

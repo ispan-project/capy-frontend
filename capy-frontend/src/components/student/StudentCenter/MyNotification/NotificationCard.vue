@@ -1,11 +1,11 @@
 <template>
-  <div 
+  <div
     class="notification-card"
     :class="{ unread: !notification.isRead }"
     @click="handleClick"
   >
     <!-- Icon -->
-    <div 
+    <div
       class="notification-icon"
       :style="{
         color: notificationStyle.color,
@@ -33,13 +33,16 @@
 
 <script setup>
 import { computed } from 'vue'
-import { 
-  BellFilled, 
-  ChatDotRound, 
-  Postcard, 
+import {
+  BellFilled,
+  ChatDotRound,
+  Postcard,
   CircleCloseFilled,
   CircleCheckFilled,
-  Reading
+  Reading,
+  SuccessFilled,
+  WarningFilled,
+  CircleClose
 } from '@element-plus/icons-vue'
 import { NotificationType } from '@/types/notification'
 
@@ -66,7 +69,29 @@ const notificationStyle = computed(() => {
       backgroundColor: 'var(--el-color-danger-light-9)',
       icon: CircleCloseFilled
     },
-    
+    [NotificationType.TranscodingFailed]: {
+      color: 'var(--capy-warning)',
+      backgroundColor: 'var(--el-color-warning-light-9)',
+      icon: WarningFilled
+    },
+    [NotificationType.PayoutFailed]: {
+      color: 'var(--capy-warning)',
+      backgroundColor: 'var(--el-color-warning-light-9)',
+      icon: CircleClose
+    },
+
+    // Success / Positive - Green
+    [NotificationType.AccountRestored]: {
+      color: 'var(--capy-success)',
+      backgroundColor: 'var(--el-color-success-light-9)',
+      icon: CircleCheckFilled
+    },
+    [NotificationType.InstructorApplicationApproved]: {
+      color: 'var(--capy-success)',
+      backgroundColor: 'var(--el-color-success-light-9)',
+      icon: SuccessFilled
+    },
+
     // Info / Interaction - Teal
     [NotificationType.QuestionAnswered]: {
       color: 'var(--capy-primary)',
@@ -78,12 +103,7 @@ const notificationStyle = computed(() => {
       backgroundColor: 'var(--el-color-primary-light-9)',
       icon: ChatDotRound
     },
-    [NotificationType.AccountRestored]: {
-      color: 'var(--capy-success)',
-      backgroundColor: 'var(--el-color-success-light-9)',
-      icon: CircleCheckFilled
-    },
-    
+
     // Announcements - Brown/Beige
     [NotificationType.InstructorAnnouncement]: {
       color: 'var(--capy-brand)',
@@ -100,7 +120,7 @@ const notificationStyle = computed(() => {
       backgroundColor: '#F5F0EB',
       icon: BellFilled
     },
-    
+
     // Course Updates
     [NotificationType.CourseUpdate]: {
       color: 'var(--capy-primary)',
@@ -108,7 +128,7 @@ const notificationStyle = computed(() => {
       icon: Reading
     }
   }
-  
+
   return styleMap[props.notification.notificationType] || {
     color: 'var(--capy-info)',
     backgroundColor: 'var(--el-color-info-light-9)',
@@ -119,17 +139,20 @@ const notificationStyle = computed(() => {
 // Format notification type for display
 const notificationTypeLabel = computed(() => {
   const typeMap = {
-    [NotificationType.CourseUpdate]: 'Course Update',
-    [NotificationType.InstructorReply]: 'Instructor Reply',
-    [NotificationType.SystemAnnouncement]: 'System Announcement',
-    [NotificationType.QuestionAnswered]: 'Question Answered',
-    [NotificationType.PlatformAnnouncement]: 'Platform Announcement',
-    [NotificationType.InstructorAnnouncement]: 'Instructor Announcement',
-    [NotificationType.AccountSuspended]: 'Account Suspended',
-    [NotificationType.AccountRestored]: 'Account Restored',
-    [NotificationType.CourseForceUnpublished]: 'Course Unpublished'
+    [NotificationType.CourseUpdate]: '課程更新',
+    [NotificationType.InstructorReply]: '講師回覆',
+    [NotificationType.SystemAnnouncement]: '系統公告',
+    [NotificationType.QuestionAnswered]: '問題已回答',
+    [NotificationType.PlatformAnnouncement]: '平台公告',
+    [NotificationType.InstructorAnnouncement]: '講師公告',
+    [NotificationType.AccountSuspended]: '帳號已停用',
+    [NotificationType.AccountRestored]: '帳號已恢復',
+    [NotificationType.CourseForceUnpublished]: '課程已下架',
+    [NotificationType.InstructorApplicationApproved]: '申請已批准',
+    [NotificationType.TranscodingFailed]: '轉碼失敗',
+    [NotificationType.PayoutFailed]: '付款失敗'
   }
-  return typeMap[props.notification.notificationType] || 'Notification'
+  return typeMap[props.notification.notificationType] || '通知'
 })
 
 // Format time
@@ -137,13 +160,13 @@ const formattedTime = computed(() => {
   const date = new Date(props.notification.createdAt)
   const now = new Date()
   const diffInSeconds = Math.floor((now - date) / 1000)
-  
-  if (diffInSeconds < 60) return 'Just now'
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`
-  
-  return date.toLocaleDateString()
+
+  if (diffInSeconds < 60) return '剛剛'
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} 分鐘前`
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} 小時前`
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} 天前`
+
+  return date.toLocaleDateString('zh-TW')
 })
 
 const handleClick = () => {

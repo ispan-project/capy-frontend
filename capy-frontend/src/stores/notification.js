@@ -329,11 +329,21 @@ export const useNotificationStore = defineStore('notification', () => {
         isSSEConnected.value = false
         connectionState.value = 'error'
 
-        // 處理認證錯誤
-        if (error.type === 'auth_error') {
-          ElMessage.error('通知連線失敗，請重新登入')
-          // 可以在這裡觸發登出或重新導向到登入頁面
-          // 例如: router.push('/login')
+        // 根據錯誤類型顯示不同訊息
+        if (error.type === 'max_retries_reached') {
+          // 達到最大重連次數
+          ElMessage({
+            message: '通知連線失敗，請重新整理頁面',
+            type: 'warning',
+            duration: 0, // 不自動關閉
+            showClose: true
+          })
+        } else if (error.type === 'connection_error') {
+          // 一般連線錯誤（會自動重連，不需要顯示訊息）
+          console.log('連線錯誤，系統將自動重試...')
+        } else {
+          // 其他錯誤
+          console.error('未知的 SSE 錯誤:', error)
         }
       },
       // 連線狀態變更回調

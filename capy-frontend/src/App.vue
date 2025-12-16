@@ -56,24 +56,16 @@ const scrollToTop = () => {
 onMounted(async () => {
   console.log('App.vue mounted')
 
-  await userStore.init()
+  // 頁面重整時使用驗證模式（呼叫 /auth/verify）
+  await userStore.init(false)
 
   // 只有在已登入時才從 localStorage 載入購物車和願望清單
   if (userStore.isAuthenticated) {
     cartStore.loadFromStorage()
     wishlistStore.loadFromStorage()
 
-    // 初始載入通知列表（用於 Popover 顯示）
-    await notificationStore.fetchStudentNotifications({
-      page: 0,
-      size: 10  // 載入最近 10 條通知
-    })
-
-    // 獲取未讀通知數量
-    await notificationStore.fetchUnreadCount()
-
-    // 啟動 SSE 通知服務
-    notificationStore.startSSE()
+    // 注意：通知列表、未讀數量和 SSE 連線會由 watch 監聽器統一處理
+    // 這裡不需要重複呼叫，避免 API 重複請求
   }
 
   // 添加滾動監聽 - 同時監聽 window 和 document

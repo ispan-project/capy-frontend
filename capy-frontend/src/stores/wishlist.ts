@@ -10,6 +10,7 @@ import {
   removeFromWishlist as apiRemoveFromWishlist
 } from '@/api/student/wishlist'
 import { ElMessage } from 'element-plus'
+import { getItemState } from '@/composable/useCourseState.js'
 
 /**
  * 願望清單項目介面
@@ -30,6 +31,7 @@ interface WishlistItem {
   categories?: string[]
   status?: string
   publishDate?: string
+  isEnrolled?: boolean
 }
 
 /**
@@ -135,8 +137,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
         enrollmentCount: course.enrollmentCount || 0,
         tags: course.tags || [],
         categories: course.categories || [],
-        status: course.status,
-        publishDate: course.publishDate
+        status: course.status?.toUpperCase() || 'PUBLISHED',
+        publishDate: course.publishDate,
+        isEnrolled: course.isEnrolled || false
       }))
 
       // 同步到 localStorage
@@ -188,7 +191,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
           addedAt: Date.now(),
           // 包含評價資訊
           averageRating: item.averageRating || 0,
-          reviewCount: item.reviewCount || 0
+          reviewCount: item.reviewCount || 0,
+          status: item.status?.toUpperCase() || 'PUBLISHED',
+          isEnrolled: item.isEnrolled || false
         }
       })
 
@@ -237,8 +242,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
         return false
       }
 
-      // 2. 檢查課程上架狀態
-      if (course.status && course.status !== 'published') {
+      // 2. 檢查課程上架狀態（不區分大小寫）
+      if (course.status && course.status.toUpperCase() !== 'PUBLISHED') {
         ElMessage({
           message: '此課程尚未上架，無法加入願望清單',
           type: 'error',
@@ -271,7 +276,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
         instructor: course.instructor,
         price: course.price,
         coverImageUrl: course.cover_image_url,
-        addedAt: Date.now()
+        addedAt: Date.now(),
+        status: course.status?.toUpperCase() || 'PUBLISHED',
+        isEnrolled: false
       })
 
       saveToStorage()

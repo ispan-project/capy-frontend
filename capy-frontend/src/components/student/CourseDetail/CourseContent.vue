@@ -13,7 +13,7 @@
 
     <!-- Course Content Section (可獨立移動) -->
     <div v-if="showContent" class="course-content">
-      <h2 class="section-title-student">Course Content</h2>
+      <h2 class="section-title-student">課程內容</h2>
     <el-collapse v-model="activeNames" accordion>
       <el-collapse-item
         v-for="(section, index) in sections"
@@ -22,7 +22,7 @@
       >
         <template #title>
           <div class="section-header">
-            <span class="section-name">{{ section.name }}</span>
+            <span class="section-name">{{ formatSectionName(section.name) }}</span>
             <el-icon class="collapse-icon"><ArrowRight /></el-icon>
           </div>
         </template>
@@ -35,7 +35,7 @@
             @click="handleLessonItemClick(lesson, index, lessonIndex)"
           >
             <span class="lesson-number">{{ lessonIndex + 1 }}.</span>
-            <span class="lesson-title">{{ lesson.title }}</span>
+            <span class="lesson-title">{{ formatLessonTitle(lesson.title) }}</span>
             <span class="lesson-duration">{{ lesson.duration }}</span>
             <a
               v-if="!isEnrolled && lesson.preview"
@@ -57,6 +57,24 @@
 <script setup>
 import { ref } from 'vue'
 import { ArrowRight } from '@element-plus/icons-vue'
+
+/**
+ * 格式化章節標題，將 Module 替換為章節
+ */
+const formatSectionName = (name) => {
+  if (!name) return ''
+  // 將 "Module X" 替換為 "章節 X"
+  return name.replace(/Module\s+(\d+)/gi, '章節 $1')
+}
+
+/**
+ * 格式化單元標題，將 Lesson 替換為單元
+ */
+const formatLessonTitle = (title) => {
+  if (!title) return ''
+  // 將 "Lesson X-Y" 替換為 "單元 X-Y"
+  return title.replace(/Lesson\s+([\d-]+)/gi, '單元 $1')
+}
 
 const props = defineProps({
   title: {

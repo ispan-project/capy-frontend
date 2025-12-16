@@ -1,7 +1,7 @@
 <template>
   <div class="legal-content">
     <h1>CapyCourse 隱私權政策</h1>
-    <p class="update-date">最後更新日期：2024年1月1日</p>
+    <p class="update-date">最後更新日期：2025年8月7日</p>
 
     <section>
       <h2>1. 政策概述</h2>

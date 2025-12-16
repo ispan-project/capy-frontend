@@ -88,7 +88,7 @@ const studentCenterStore = useStudentCenterStore()
 // 狀態管理
 const filterStatus = ref('all')
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(5)
 const sortBy = ref('lastWatch,desc')
 
 // Rating dialog state

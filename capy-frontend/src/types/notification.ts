@@ -4,20 +4,27 @@
 export enum NotificationType {
   // Interaction - 互動類型
   QuestionAnswered = 'question_answered',
-  
+
   // Announcements - 公告類型
   PlatformAnnouncement = 'platform_announcement',
   InstructorAnnouncement = 'instructor_announcement',
-  
+  SystemAnnouncement = 'system_announcement',
+
   // Account / Critical - 帳號/重要通知
   AccountSuspended = 'account_suspended',
   AccountRestored = 'account_restored',
   CourseForceUnpublished = 'course_force_unpublished',
-  
+
   // Course Updates - 課程更新
   CourseUpdate = 'course_update',
   InstructorReply = 'instructor_reply',
-  SystemAnnouncement = 'system_announcement'
+
+  // Instructor - 講師相關
+  InstructorApplicationApproved = 'instructor_application_approved',
+
+  // System Errors - 系統錯誤
+  TranscodingFailed = 'transcoding_failed',
+  PayoutFailed = 'payout_failed'
 }
 
 /**

@@ -20,20 +20,20 @@
         <div class="tabs">
           <button
             :class="['tab', { active: activeTab === 'login' }]"
-            @click="activeTab = 'login'"
+            @click="handleTabChange('login')"
           >
             登入
           </button>
           <button
             :class="['tab', { active: activeTab === 'register' }]"
-            @click="activeTab = 'register'"
+            @click="handleTabChange('register')"
           >
             註冊
           </button>
         </div>
 
         <!-- 登入表單 -->
-        <div v-if="activeTab === 'login'" class="form-content">
+        <div v-show="activeTab === 'login'" class="form-content">
           <div class="form-group">
             <label class="form-label">電子郵件</label>
             <input
@@ -70,6 +70,11 @@
             <router-link to="/forgot-password" class="link">忘記密碼？</router-link>
           </div>
 
+          <!-- Turnstile Widget -->
+          <div class="turnstile-container">
+            <div ref="loginTurnstileRef"></div>
+          </div>
+
           <button
             class="submit-button"
             @click="handleLogin"
@@ -93,7 +98,7 @@
         </div>
 
         <!-- 註冊表單 -->
-        <div v-else class="form-content">
+        <div v-show="activeTab === 'register'" class="form-content">
           <!-- 註冊成功狀態 -->
           <div v-if="isRegisterSuccess" class="success-state">
             <div class="success-icon">
@@ -219,6 +224,11 @@
             </el-checkbox>
           </div>
 
+          <!-- Turnstile Widget -->
+          <div class="turnstile-container">
+            <div ref="registerTurnstileRef"></div>
+          </div>
+
           <button
             class="submit-button"
             @click="handleRegister"
@@ -289,6 +299,99 @@ import { useUserStore } from '@/stores/user';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+
+// Turnstile 配置
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+const loginTurnstileRef = ref(null);
+const registerTurnstileRef = ref(null);
+const loginTurnstileToken = ref('');
+const registerTurnstileToken = ref('');
+const loginWidgetId = ref(null);
+const registerWidgetId = ref(null);
+
+// Turnstile 回調函數
+const onLoginTurnstileVerify = (token) => {
+  loginTurnstileToken.value = token;
+};
+
+const onLoginTurnstileExpire = () => {
+  loginTurnstileToken.value = '';
+  console.log('登入 Turnstile token 已過期');
+};
+
+const onRegisterTurnstileVerify = (token) => {
+  registerTurnstileToken.value = token;
+  console.log('註冊 Turnstile 驗證成功:', token);
+};
+
+const onRegisterTurnstileExpire = () => {
+  registerTurnstileToken.value = '';
+  console.log('註冊 Turnstile token 已過期');
+};
+
+// 渲染 Turnstile Widget
+const renderLoginTurnstile = () => {
+  if (!window.turnstile || !loginTurnstileRef.value) {
+    console.log('Turnstile 尚未載入或元素不存在');
+    return;
+  }
+
+  try {
+    loginWidgetId.value = window.turnstile.render(loginTurnstileRef.value, {
+      sitekey: turnstileSiteKey,
+      callback: onLoginTurnstileVerify,
+      'expired-callback': onLoginTurnstileExpire,
+      theme: 'light',
+    });
+    console.log('登入 Turnstile Widget 已渲染，ID:', loginWidgetId.value);
+  } catch (error) {
+    console.error('渲染登入 Turnstile 失敗:', error);
+  }
+};
+
+const renderRegisterTurnstile = () => {
+  if (!window.turnstile || !registerTurnstileRef.value) {
+    console.log('Turnstile 尚未載入或元素不存在');
+    return;
+  }
+
+  try {
+    registerWidgetId.value = window.turnstile.render(registerTurnstileRef.value, {
+      sitekey: turnstileSiteKey,
+      callback: onRegisterTurnstileVerify,
+      'expired-callback': onRegisterTurnstileExpire,
+      theme: 'light',
+    });
+    console.log('註冊 Turnstile Widget 已渲染，ID:', registerWidgetId.value);
+  } catch (error) {
+    console.error('渲染註冊 Turnstile 失敗:', error);
+  }
+};
+
+// 重置 Turnstile Widget
+const resetLoginTurnstile = () => {
+  if (window.turnstile && loginWidgetId.value !== null) {
+    try {
+      window.turnstile.reset(loginWidgetId.value);
+      loginTurnstileToken.value = '';
+      console.log('登入 Turnstile 已重置');
+    } catch (error) {
+      console.error('重置登入 Turnstile 失敗:', error);
+    }
+  }
+};
+
+const resetRegisterTurnstile = () => {
+  if (window.turnstile && registerWidgetId.value !== null) {
+    try {
+      window.turnstile.reset(registerWidgetId.value);
+      registerTurnstileToken.value = '';
+      console.log('註冊 Turnstile 已重置');
+    } catch (error) {
+      console.error('重置註冊 Turnstile 失敗:', error);
+    }
+  }
+};
 
 // Hero Section 隨機化
 const heroOptions = [
@@ -505,8 +608,22 @@ onUnmounted(() => {
 
 // 處理登入
 const handleLogin = async () => {
+  console.log('=== 開始登入流程 ===');
+  console.log('Email:', loginForm.email);
+  console.log('Password:', loginForm.password ? '***已填寫***' : '未填寫');
+  console.log('Turnstile Token:', loginTurnstileToken.value);
+  console.log('Token 長度:', loginTurnstileToken.value ? loginTurnstileToken.value.length : 0);
+  console.log('Token 類型:', typeof loginTurnstileToken.value);
+
   if (!loginForm.email || !loginForm.password) {
     ElMessage.error('請填寫所有欄位');
+    return;
+  }
+
+  // 驗證 Turnstile
+  if (!loginTurnstileToken.value) {
+    console.error('❌ Turnstile token 是空的！');
+    ElMessage.error('請完成人機驗證');
     return;
   }
 
@@ -518,12 +635,22 @@ const handleLogin = async () => {
   // 開始載入
   isLoggingIn.value = true;
 
+  const loginData = {
+    email: loginForm.email,
+    password: loginForm.password,
+    turnstileToken: loginTurnstileToken.value
+  };
+
+  console.log('準備送出的登入資料:', {
+    email: loginData.email,
+    password: '***',
+    turnstileToken: loginData.turnstileToken ? `${loginData.turnstileToken.substring(0, 20)}...` : 'null'
+  });
+
   try {
     // 呼叫登入 API（後端會自動設定 Cookie）
-    const response = await login({
-      email: loginForm.email,
-      password: loginForm.password
-    });
+    const response = await login(loginData);
+    console.log('✅ 登入 API 回應成功');
 
     // 後端回傳格式: { user: { id, email, nickname, role, avatarUrl }, roles: [...] }
     const { user, roles } = response;
@@ -579,12 +706,15 @@ const handleLogin = async () => {
     if (status === 403 || errorMessage.includes('未驗證') || errorMessage.includes('停用') ||
         errorMessage.includes('not active') || errorMessage.includes('suspended')) {
       ElMessage.warning('您的帳號尚未啟用，請檢查您的電子郵件以完成驗證');
+    } else if (status === 400 && errorMessage.includes('Turnstile')) {
+      ElMessage.error('人機驗證失敗，請重試');
     } else {
       ElMessage.error(errorMessage || '登入失敗，請檢查您的帳號密碼');
     }
 
-    // 登入失敗時重置載入狀態
+    // 登入失敗時重置載入狀態和 Turnstile
     isLoggingIn.value = false;
+    resetLoginTurnstile();
   }
 };
 
@@ -617,6 +747,12 @@ const handleRegister = async () => {
   // 驗證其他欄位
   if (!registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
     ElMessage.error('請填寫所有欄位');
+    return;
+  }
+
+  // 驗證 Turnstile
+  if (!registerTurnstileToken.value) {
+    ElMessage.error('請完成人機驗證');
     return;
   }
 
@@ -680,7 +816,8 @@ const handleRegister = async () => {
       email: registerForm.email,
       password: registerForm.password,
       nickname: registerForm.username.trim(),
-      googleId: registerForm.googleId || undefined // 如果有 Google ID 則一併送出
+      googleId: registerForm.googleId || undefined, // 如果有 Google ID 則一併送出
+      turnstileToken: registerTurnstileToken.value
     });
 
     // 判斷是否為 Google OAuth 註冊
@@ -711,12 +848,12 @@ const handleRegister = async () => {
         // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+        // 註冊後自動登入成功，使用登入模式載入完整資料（呼叫 /student/user）
         try {
-          await userStore.init();
-          console.log('Cookie 驗證成功，使用者已認證');
+          await userStore.init(true);
+          console.log('✅ 使用者完整資料載入成功');
         } catch (verifyError) {
-          console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+          console.warn('⚠️ 載入完整資料失敗，但繼續跳轉:', verifyError);
         }
 
         // 跳轉到學生中心
@@ -735,7 +872,18 @@ const handleRegister = async () => {
     }
   } catch (error) {
     console.error('註冊失敗:', error);
-    ElMessage.error(error.response?.data?.message || error.message || '註冊失敗，請稍後再試');
+    const errorMessage = error.response?.data?.message || error.message || '註冊失敗，請稍後再試';
+    const status = error.response?.status;
+
+    // 如果是 Turnstile 驗證失敗
+    if (status === 400 && errorMessage.includes('Turnstile')) {
+      ElMessage.error('人機驗證失敗，請重試');
+      resetRegisterTurnstile();
+    } else {
+      ElMessage.error(errorMessage);
+      // 其他錯誤也重置 Turnstile
+      resetRegisterTurnstile();
+    }
   } finally {
     // 無論成功或失敗，都重置載入狀態
     isRegistering.value = false;
@@ -749,6 +897,20 @@ const handleRegister = async () => {
 const handleGoogleLogin = () => {
   console.log(userStore);
   initiateGoogleOAuth();
+};
+
+// 處理 tab 切換
+const handleTabChange = (tab) => {
+  activeTab.value = tab;
+
+  // 等待 DOM 更新後渲染對應的 widget
+  setTimeout(() => {
+    if (tab === 'login' && loginWidgetId.value === null) {
+      renderLoginTurnstile();
+    } else if (tab === 'register' && registerWidgetId.value === null) {
+      renderRegisterTurnstile();
+    }
+  }, 100);
 };
 
 /**
@@ -786,6 +948,26 @@ onMounted(() => {
     router.replace({ path: '/login', query: {} });
     return;
   }
+
+  // 等待 Turnstile script 載入後渲染 widgets
+  const initTurnstile = () => {
+    if (window.turnstile) {
+      console.log('Turnstile 已載入，Site Key:', turnstileSiteKey);
+      // 根據當前 tab 渲染對應的 widget
+      setTimeout(() => {
+        if (activeTab.value === 'login') {
+          renderLoginTurnstile();
+        } else {
+          renderRegisterTurnstile();
+        }
+      }, 100);
+    } else {
+      console.log('等待 Turnstile 載入...');
+      setTimeout(initTurnstile, 100);
+    }
+  };
+
+  initTurnstile();
 });
 </script>
 
@@ -1274,6 +1456,19 @@ onMounted(() => {
 .password-hint .el-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+/* Turnstile 容器 */
+.turnstile-container {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
+.turnstile-container .cf-turnstile {
+  display: flex;
+  justify-content: center;
 }
 
 /* Google 按鈕 */

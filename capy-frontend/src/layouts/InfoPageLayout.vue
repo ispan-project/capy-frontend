@@ -4,19 +4,11 @@
       <!-- 側邊欄導航 -->
       <el-aside width="280px" class="sidebar">
         <div class="sidebar-content">
-          <h2 class="sidebar-title">幫助中心</h2>
+          <h2 class="sidebar-title">客服中心</h2>
 
           <nav class="nav-menu">
             <div class="nav-section">
               <h3 class="nav-section-title">支援服務</h3>
-              <router-link
-                to="/support"
-                class="nav-item"
-                :class="{ active: isActive('/support') }"
-              >
-                <el-icon><QuestionFilled /></el-icon>
-                <span>客服中心</span>
-              </router-link>
               <router-link
                 to="/support/faq"
                 class="nav-item"

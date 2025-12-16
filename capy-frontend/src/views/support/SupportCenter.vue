@@ -269,10 +269,9 @@ const instructorFaqs = ref([
     id: 'i6',
     question: '可以下架或刪除課程嗎？',
     answer: `
-      <p>是的，您可以隨時下架或刪除課程：</p>
+      <p>是的，您可以隨時下架課程：</p>
       <ul>
         <li><strong>下架</strong>：課程不再對新學員開放，但已購買的學員仍可觀看</li>
-        <li><strong>刪除</strong>：完全移除課程，已購買的學員將失去存取權限（需退款）</li>
       </ul>
       <p><strong>重要提醒</strong>：刪除課程前，請先聯絡客服處理退款事宜。</p>
     `

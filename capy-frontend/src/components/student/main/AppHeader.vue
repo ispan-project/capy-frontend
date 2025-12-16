@@ -15,19 +15,34 @@
 
       <!-- 只在非申請頁面顯示搜尋框 -->
       <div v-if="!isApplicationPage" class="header-center">
-        <el-input
+        <el-autocomplete
           v-model="searchText"
+          :fetch-suggestions="fetchSuggestions"
           placeholder="搜尋課程、標籤或講師..."
           :prefix-icon="Search"
           class="search-input"
           size="large"
           clearable
+          :trigger-on-focus="false"
+          :debounce="300"
+          popper-class="search-autocomplete-popper"
+          @select="handleSuggestionSelect"
           @keyup.enter="handleSearch"
         >
           <template #append>
             <el-button :icon="Search" @click="handleSearch" />
           </template>
-        </el-input>
+          <template #default="{ item }">
+            <div v-if="item.value === '__no_results__'" class="no-results-item">
+              <el-icon class="no-results-icon"><InfoFilled /></el-icon>
+              <span class="no-results-text">找不到相關建議，按 Enter 直接搜尋</span>
+            </div>
+            <div v-else class="autocomplete-item">
+              <el-icon class="item-icon"><Search /></el-icon>
+              <span class="item-label">{{ item.value }}</span>
+            </div>
+          </template>
+        </el-autocomplete>
       </div>
 
       <!-- 在申請頁面時顯示佔位元素，保持 Logo 和使用者選單的間距 -->
@@ -110,11 +125,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Reading, ShoppingCart, Star, Bell } from '@element-plus/icons-vue'
+import { Search, Reading, ShoppingCart, Star, Bell, InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useWishlistStore } from '@/stores/wishlist'
 import { useNotificationStore } from '@/stores/notification'
+import { getSuggestions } from '@/api/student/explore'
 import TheCartDrawer from '@/components/student/cart/TheCartDrawer.vue'
 import TheWishlistPopover from '@/components/student/wishlist/TheWishlistPopover.vue'
 import TheNotificationPopover from '@/components/student/notifications/TheNotificationPopover.vue'
@@ -129,6 +145,61 @@ const wishlistStore = useWishlistStore()
 const notificationStore = useNotificationStore()
 const searchText = ref('')
 const showCartDrawer = ref(false)
+
+/**
+ * 獲取搜尋建議
+ * @param {string} queryString - 使用者輸入的關鍵字
+ * @param {Function} cb - 回調函數，用於返回建議列表
+ */
+const fetchSuggestions = async (queryString, cb) => {
+  // 如果輸入為空，不顯示建議
+  if (!queryString || queryString.trim().length === 0) {
+    cb([])
+    return
+  }
+
+  try {
+    // 呼叫 API 獲取建議
+    const suggestions = await getSuggestions({
+      keyword: queryString.trim(),
+      size: 10 // 最多顯示 10 個建議
+    })
+
+    // 如果沒有建議結果，顯示提示訊息
+    if (!suggestions || suggestions.length === 0) {
+      cb([{
+        value: '__no_results__', // 特殊標記，用於識別無結果狀態
+        disabled: true // 禁用選擇
+      }])
+      return
+    }
+
+    // 將字串陣列轉換為 el-autocomplete 需要的格式
+    const formattedSuggestions = suggestions.map(item => ({
+      value: item // el-autocomplete 需要 value 屬性
+    }))
+
+    cb(formattedSuggestions)
+  } catch (error) {
+    console.error('獲取搜尋建議失敗:', error)
+    // API 失敗時也顯示提示訊息
+    cb([{
+      value: '__no_results__',
+      disabled: true
+    }])
+  }
+}
+
+/**
+ * 處理選擇建議項目
+ * @param {Object} item - 選中的建議項目
+ */
+const handleSuggestionSelect = (item) => {
+  if (item && item.value) {
+    searchText.value = item.value
+    handleSearch() // 自動執行搜尋
+  }
+}
 
 /**
  * 處理搜尋
@@ -326,6 +397,26 @@ const handleNotifications = () => {
 
 .item-type {
   font-size: 12px;
+}
+
+/* 無結果提示樣式 */
+.no-results-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  color: var(--el-text-color-secondary);
+  cursor: default;
+}
+
+.no-results-icon {
+  font-size: 18px;
+  color: var(--el-color-info);
+}
+
+.no-results-text {
+  font-size: 14px;
+  font-style: italic;
 }
 
 .header-actions {

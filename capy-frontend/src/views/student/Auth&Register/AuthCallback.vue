@@ -24,18 +24,13 @@ const userStore = useUserStore()
 
 /**
  * 處理 OAuth 回調邏輯
- * 後端在 OAuth 成功後會設定 Cookie 並重導向到此頁面
- * 前端嘗試透過 Cookie 獲取使用者資訊來判斷是否登入成功
+ * 後端在 OAuth 成功後會設定 HttpOnly Cookie 並重導向到此頁面
+ * 前端透過呼叫 /student/user API（帶 Cookie）來獲取使用者資訊
  *
- * 四種情境：
+ * 三種情境：
  * 1. /oauth-callback - 登入成功（Cookie 已由後端設定）
- * 2. /oauth-callback?googleId=... - Google 綁定流程（需要密碼驗證）
- * 3. /login?email=...&googleId=... - 未綁定，需要註冊
- * 4. /login?oauthError=... - 錯誤或帳號停用
- *
- * 注意：情境 2 和 3 會直接 redirect 到 /login，由 LoginPage.vue 處理
- *
- * 修復：加入延遲和重試機制，確保 Cookie 在瀏覽器重導向後已完全設定
+ * 2. /oauth-callback?googleId=...&flow=bind - Google 綁定流程
+ * 3. /oauth-callback?error=true - OAuth 錯誤
  */
 onMounted(async () => {
   console.log('🔍 [AuthCallback] onMounted 觸發')
@@ -84,12 +79,13 @@ onMounted(async () => {
     // 給予瀏覽器時間同步 Cookie
     await new Promise(resolve => setTimeout(resolve, 500))
 
-    // 嘗試初始化使用者資訊
+    // OAuth 登入成功後，後端已設定 HttpOnly Cookie
+    // 直接呼叫 /student/user API（帶 withCredentials: true）載入完整資料
     try {
-      await userStore.init()
+      await userStore.init(true)
 
       if (userStore.isAuthenticated) {
-        console.log('✅ [AuthCallback] 登入成功')
+        console.log('✅ [AuthCallback] OAuth 登入成功，使用者資料已載入')
         ElMessage.success('登入成功!')
 
         const redirectPath = route.query.redirect || '/'
@@ -99,10 +95,10 @@ onMounted(async () => {
     } catch (initError) {
       console.error('❌ [AuthCallback] 初始化失敗:', initError)
 
-      // 如果是 401，表示未綁定或未註冊
+      // 如果是 401，表示 Cookie 無效或未設定（未綁定/未註冊）
       if (initError.response?.status === 401 || initError.status === 401) {
-        console.log('🔍 [AuthCallback] 401 錯誤，重導向到登入頁')
-        ElMessage.info('請完成帳號註冊')
+        console.log('🔍 [AuthCallback] 401 錯誤，Cookie 無效，重導向到登入頁')
+        ElMessage.info('請完成帳號註冊或重新登入')
         await router.replace('/login')
         return
       }

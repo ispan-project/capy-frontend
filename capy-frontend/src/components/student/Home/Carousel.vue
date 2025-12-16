@@ -25,34 +25,34 @@ onUnmounted(() => {
 const slides = ref([
   {
     id: 1,
-    url: "/instruction/封面圖.png",
-    badge: "精選課程",
-    title: "Vue 3 完整開發指南",
-    subtitle: "從零開始掌握現代前端框架",
-    courseId: 1
+    url: "/水豚滑手機.png",
+    badge: "學生專區",
+    title: "隨時隨地，掌握 AI 時代新技能",
+    subtitle: "從程式設計到商業管理，開啟你的學習旅程",
+    route: "/Explore"
   },
   {
     id: 2,
-    url: "https://picsum.photos/id/1016/1200/600",
-    badge: "熱門推薦",
-    title: "Python 數據科學實戰",
-    subtitle: "AI 時代必備技能",
-    courseId: 2
+    url: "/水豚教課程.png",
+    badge: "講師招募",
+    title: "將你的專業變現，影響全世界",
+    subtitle: "建立課程、追蹤收益，成為 CapyCourse 合作講師",
+    route: "/instructor/apply"
   },
   {
     id: 3,
-    url: "https://picsum.photos/id/1018/1200/600",
-    badge: "新課上架",
-    title: "全端開發訓練營",
-    subtitle: "從零開始，打造你的第一個職涯代表作",
-    courseId: 3
+    url: "/水豚介紹網站.png",
+    badge: "品牌理念",
+    title: "像水豚一樣自在的學習節奏",
+    subtitle: "加入我們，體驗最清新的線上學習平台",
+    route: "/support/about"
   }
 ])
 
 const activeIndex = ref(0)
 
-const goToCourse = (courseId) => {
-  router.push(`/courses/${courseId}`)
+const goToCourse = (route) => {
+  router.push(route)
 }
 
 const handleChange = (index) => {
@@ -112,7 +112,7 @@ const setActiveSlide = (index) => {
             <!-- CTA Button -->
             <button
               class="view-details-btn"
-              @click.stop="goToCourse(slide.courseId)"
+              @click.stop="goToCourse(slide.route)"
             >
               查看詳情
             </button>

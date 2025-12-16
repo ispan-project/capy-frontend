@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import InfoPageLayout from '@/layouts/InfoPageLayout.vue'
 import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent.vue'
@@ -56,14 +56,27 @@ const currentComponent = computed(() => {
 
 // 生成目錄
 const generateToc = () => {
-  nextTick(() => {
+  // 使用 setTimeout 確保 DOM 完全渲染
+  setTimeout(() => {
     const content = document.querySelector('.legal-content')
-    if (!content) return
+    if (!content) {
+      // 如果內容還沒載入，再試一次
+      setTimeout(generateToc, 100)
+      return
+    }
 
     const headings = content.querySelectorAll('h2, h3')
+    if (headings.length === 0) {
+      // 如果還沒有標題，再試一次
+      setTimeout(generateToc, 100)
+      return
+    }
+
     tocItems.value = Array.from(headings).map((heading, index) => {
       const id = `heading-${index}`
       heading.id = id
+      // 添加 scroll-margin-top 以改善滾動體驗
+      heading.style.scrollMarginTop = '100px'
 
       return {
         id,
@@ -74,21 +87,21 @@ const generateToc = () => {
 
     // 只在有足夠內容時顯示目錄
     showToc.value = tocItems.value.length > 3
-  })
+  }, 50)
 }
 
 // 滾動到指定標題
 const scrollToHeading = (id) => {
   const element = document.getElementById(id)
   if (element) {
-    const offset = 80 // 預留頂部空間
-    const elementPosition = element.getBoundingClientRect().top
-    const offsetPosition = elementPosition + window.pageYOffset - offset
-
-    window.scrollTo({
-      top: offsetPosition,
-      behavior: 'smooth'
+    // 使用 scrollIntoView 提供更好的滾動體驗
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
     })
+
+    // 更新活動標題
+    activeHeading.value = id
   }
 }
 
@@ -122,9 +135,15 @@ onUnmounted(() => {
 })
 
 // 監聽路由變化重新生成目錄
-import { watch } from 'vue'
 watch(() => route.path, () => {
+  // 重置狀態
+  tocItems.value = []
+  showToc.value = false
+  activeHeading.value = ''
+  // 重新生成目錄
   generateToc()
+  // 滾動到頂部
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 })
 </script>
 

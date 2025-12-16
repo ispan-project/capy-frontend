@@ -140,6 +140,17 @@
                           </div>
                         </div>
                         <div class="qa-content">{{ qa.question }}</div>
+                        <!-- 章節和單元資訊 -->
+                        <div v-if="qa.sectionTitle || qa.lessonName" class="qa-location">
+                          <el-tag v-if="qa.sectionTitle" size="small" type="info" effect="plain">
+                            <el-icon><Folder /></el-icon>
+                            {{ formatSectionTitle(qa.sectionTitle) }}
+                          </el-tag>
+                          <el-tag v-if="qa.lessonName" size="small" type="info" effect="plain">
+                            <el-icon><VideoPlay /></el-icon>
+                            {{ formatLessonName(qa.lessonName) }}
+                          </el-tag>
+                        </div>
                       </div>
 
                       <!-- 講師回答（縮排） -->
@@ -179,6 +190,17 @@
                           </div>
                         </div>
                         <div class="qa-content">{{ qa.question }}</div>
+                        <!-- 章節和單元資訊 -->
+                        <div v-if="qa.sectionTitle || qa.lessonName" class="qa-location">
+                          <el-tag v-if="qa.sectionTitle" size="small" type="info" effect="plain">
+                            <el-icon><Folder /></el-icon>
+                            {{ formatSectionTitle(qa.sectionTitle) }}
+                          </el-tag>
+                          <el-tag v-if="qa.lessonName" size="small" type="info" effect="plain">
+                            <el-icon><VideoPlay /></el-icon>
+                            {{ formatLessonName(qa.lessonName) }}
+                          </el-tag>
+                        </div>
                       </div>
 
                       <!-- 講師回答 -->
@@ -315,7 +337,9 @@ import {
   User,
   Clock,
   DArrowLeft,
-  Edit
+  Edit,
+  Folder,
+  VideoPlay
 } from '@element-plus/icons-vue'
 import DOMPurify from 'dompurify'
 
@@ -603,6 +627,9 @@ const loadQAData = async (loadMore = false) => {
     const formattedItems = (data.items || []).map(item => ({
       id: item.questionId,
       lessonId: params.lessonId || null,
+      sectionId: item.sectionId,
+      sectionTitle: item.sectionTitle,
+      lessonName: item.lessonName,
       student: {
         id: item.userId,
         name: item.userName,
@@ -658,7 +685,10 @@ const loadMyQuestions = async (loadMore = false) => {
     // 轉換後端資料格式為前端格式
     const formattedItems = (data.items || []).map(item => ({
       id: item.questionId,
-      lessonId: null, // 我的提問不需要 lessonId
+      lessonId: item.lessonId,
+      sectionId: item.sectionId,
+      sectionTitle: item.sectionTitle,
+      lessonName: item.lessonName,
       student: {
         id: item.userId,
         name: item.userName,
@@ -705,6 +735,22 @@ const formatDateTime = (isoString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+/**
+ * 格式化章節標題（將 Module 替換為 章節）
+ */
+const formatSectionTitle = (title) => {
+  if (!title) return ''
+  return title.replace(/Module/gi, '章節')
+}
+
+/**
+ * 格式化單元名稱（將 Lesson 替換為 單元）
+ */
+const formatLessonName = (name) => {
+  if (!name) return ''
+  return name.replace(/Lesson/gi, '單元')
 }
 
 /**
@@ -1480,6 +1526,25 @@ onMounted(async () => {
   line-height: 1.6;
   color: #606266;
   white-space: pre-wrap;
+}
+
+.qa-location {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBEEF5;
+
+  .el-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .el-icon {
+      font-size: 14px;
+    }
+  }
 }
 
 // 附件樣式

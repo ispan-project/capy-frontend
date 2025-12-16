@@ -132,31 +132,17 @@ class NotificationSSEService {
       this.eventSource.onerror = (error) => {
         console.error('❌ SSE 連線錯誤:', error)
 
-        // 檢查是否為認證錯誤（401/403）
-        // EventSource 在遇到 HTTP 錯誤時會自動關閉並觸發 error 事件
-        // readyState 會變成 CLOSED (2)
-        if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
-          console.warn('⚠️ SSE 連線已關閉，可能是認證失敗 (401/403)')
-          this.updateConnectionState('error')
-
-          // 不再嘗試重連，因為可能是認證問題
-          this.isManualClose = true
-
-          if (this.onErrorCallback) {
-            this.onErrorCallback({
-              type: 'auth_error',
-              message: '連線失敗，請重新登入',
-              error
-            })
-          }
-
-          return
-        }
-
+        // 更新連線狀態
         this.updateConnectionState('error')
 
+        // 觸發錯誤回調
         if (this.onErrorCallback) {
-          this.onErrorCallback(error)
+          this.onErrorCallback({
+            type: 'connection_error',
+            message: 'SSE 連線發生錯誤',
+            error,
+            readyState: this.eventSource?.readyState
+          })
         }
 
         // 如果不是手動關閉且網路正常，則嘗試重連
@@ -195,6 +181,17 @@ class NotificationSSEService {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error(`❌ 已達到最大重連次數 (${this.maxReconnectAttempts})，停止重連`)
       this.updateConnectionState('error')
+
+      // 通知使用者達到最大重連次數
+      if (this.onErrorCallback) {
+        this.onErrorCallback({
+          type: 'max_retries_reached',
+          message: '通知連線失敗次數過多，請重新整理頁面或檢查網路連線',
+          reconnectAttempts: this.reconnectAttempts,
+          maxReconnectAttempts: this.maxReconnectAttempts
+        })
+      }
+
       return
     }
 

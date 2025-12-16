@@ -1,7 +1,7 @@
 <template>
   <div class="legal-content">
     <h1>CapyCourse 退款政策</h1>
-    <p class="update-date">最後更新日期：2024年1月1日</p>
+    <p class="update-date">最後更新日期：2025年8月7日</p>
 
     <div class="important-notice">
       <el-alert
@@ -121,7 +121,7 @@
       </p>
       <ol>
         <li>
-          <strong>聯絡客服</strong>：發送電子郵件至 
+          <strong>聯絡客服</strong>：發送電子郵件至
           <a href="mailto:support@capycourse.com">support@capycourse.com</a>
         </li>
         <li>

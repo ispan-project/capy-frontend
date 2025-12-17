@@ -219,7 +219,7 @@ const handleNotifications = () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/styles/breakpoints" as *;
+@import "@/styles/breakpoints";
 
 .mobile-menu-btn {
   display: none;

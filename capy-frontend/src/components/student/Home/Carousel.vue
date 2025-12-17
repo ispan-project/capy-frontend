@@ -134,7 +134,7 @@ const setActiveSlide = (index) => {
 </template>
 
 <style lang="scss" scoped>
-@use '@/styles/breakpoints' as *;
+@import '@/styles/breakpoints';
 
 .hero-carousel-wrapper {
   position: relative;

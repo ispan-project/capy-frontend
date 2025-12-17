@@ -262,8 +262,8 @@ watch(isLoggedIn, async (newValue, oldValue) => {
 </template>
 
 <style lang="scss" scoped>
-@use '@/styles/breakpoints' as *;
-@use '@/styles/project-mixins' as *;
+@import '@/styles/breakpoints';
+@import '@/styles/project-mixins';
 
 .home-page {
   width: 100%;

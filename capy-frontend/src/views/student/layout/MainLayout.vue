@@ -170,8 +170,8 @@ const handleLogout = async () => {
 </script>
 
 <style lang="scss" scoped>
-@use "@/styles/breakpoints" as *;
-@use "@/styles/typography" as *;
+@import "@/styles/breakpoints";
+@import "@/styles/typography";
 
 .main-layout {
   min-height: 100vh;

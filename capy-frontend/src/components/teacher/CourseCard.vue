@@ -23,7 +23,9 @@
       <!-- Title -->
       <h3 class="course-title">{{ course.title }}</h3>
       <p>
-        <el-tag>{{ formatCourseStatusTag(course.status) }}</el-tag>
+        <el-tag size="large" round effect="plain" :type="formatTagType(course.status)">{{
+          formatCourseStatusTag(course.status)
+        }}</el-tag>
       </p>
       <!-- Rating -->
       <div class="course-rating">
@@ -93,13 +95,13 @@ const formatTagType = (status) => {
   const tag = switchCourseStatus(status);
   switch (tag) {
     case "draft":
-      return "草稿";
+      return "info";
     case "published":
-      return "已上架";
+      return "success";
     case "review":
-      return "審核中";
+      return "warning";
     case "banned":
-      return "強制下架";
+      return "danger";
   }
 };
 </script>
@@ -163,7 +165,7 @@ const formatTagType = (status) => {
 
 .course-title {
   font-size: 16px;
-  flex: 1;
+  /* flex: 2; */
   font-weight: 600;
   color: #2c3e50;
   /* margin: 0 0 12px 0; */
@@ -173,8 +175,9 @@ const formatTagType = (status) => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* height: 30px; */
   text-overflow: ellipsis;
-  /* min-height: 44px; */
+  min-height: 44px;
 }
 
 .course-rating {

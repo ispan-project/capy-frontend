@@ -90,7 +90,7 @@ const goToCourseDetail = () => {
 .course-card {
   border-radius: var(--capy-radius-lg);
   overflow: hidden;
-  transition: all var(--capy-transition-base);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease, border-color 0.3s ease;
   cursor: pointer;
   height: 100%;
   display: flex;
@@ -99,8 +99,8 @@ const goToCourseDetail = () => {
   border: 1px solid var(--capy-border-lighter);
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--capy-shadow-lg);
+    transform: scale(1.01);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     border-color: var(--capy-primary);
   }
 }

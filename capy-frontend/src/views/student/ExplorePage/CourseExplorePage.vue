@@ -140,7 +140,7 @@
           <CategoryTreeMulti
             v-model="selectedCategories"
             :categories="categories"
-            @filter-change="() => {}" 
+            @filter-change="() => {}"
           />
           <!-- Mobile: Don't trigger filter-change immediately, wait for Apply button -->
         </div>
@@ -297,8 +297,18 @@ const loadCourses = async () => {
       params.categoryIds = selectedCategories.value
     }
 
-    // 注意：後端 CourseSearchDto 只支援 keyword 和 categoryIds
-    // tagIds 和 maxRatings 不在後端 API 規格中，已移除
+    // 評分篩選（支援，傳遞 maxRatings 陣列，OR 條件）
+    if (selectedRating.value > 0) {
+      // 將單一 rating 值轉換為陣列（後端期望 BigDecimal[]）
+      // 例如：選擇 4 星表示 >= 4.0 的課程
+      params.maxRatings = [selectedRating.value.toFixed(1)]
+    }
+
+    // 標籤篩選（支援多選，傳遞 tagIds 陣列）
+    // 注意：目前 selectedTags 儲存的是 tag 名稱，未來如需使用 tagIds 需要轉換
+    // if (selectedTags.value.length > 0) {
+    //   params.tagIds = selectedTags.value
+    // }
 
     // 使用 Store 的快取載入方法
     const result = await exploreStore.loadCourses(params)
@@ -515,7 +525,10 @@ onMounted(async () => {
     if (selectedCategories.value.length > 0) {
       courseParams.categoryIds = selectedCategories.value
     }
-    // 注意：後端不支援 maxRatings 參數
+    // 添加評分篩選參數
+    if (selectedRating.value > 0) {
+      courseParams.maxRatings = [selectedRating.value.toFixed(1)]
+    }
 
     // 使用 Store 的並行載入方法
     const { courses } = await exploreStore.loadAllData(courseParams)

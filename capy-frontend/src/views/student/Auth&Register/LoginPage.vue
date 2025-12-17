@@ -119,7 +119,16 @@
           <!-- 註冊表單 -->
           <div v-else>
           <div class="form-group">
-            <label class="form-label">暱稱</label>
+            <div class="label-with-tooltip">
+              <label class="form-label">暱稱</label>
+              <el-tooltip
+                content="僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白"
+                placement="right"
+                effect="light"
+              >
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="input-with-icon">
               <input
                 v-model="registerForm.username"
@@ -138,9 +147,6 @@
             </div>
             <div v-show="nicknameValidation.message" :class="['validation-message', nicknameValidation.type]">
               {{ nicknameValidation.message || '&nbsp;' }}
-            </div>
-            <div v-if="!nicknameValidation.message && registerForm.username" class="nickname-hint">
-              僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白
             </div>
           </div>
 
@@ -282,7 +288,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { View, Hide, Message, Loading, InfoFilled } from '@element-plus/icons-vue';
+import { View, Hide, Message, Loading, InfoFilled, QuestionFilled } from '@element-plus/icons-vue';
 import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent.vue';
 import PrivacyPolicyContent from '@/components/legal/PrivacyPolicyContent.vue';
 import {
@@ -1193,12 +1199,35 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.label-with-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
 .form-label {
   display: block;
   font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
+  margin-bottom: 0; /* 改為 0，由 label-with-tooltip 控制間距 */
+}
+
+/* 針對非 tooltip 包裹的 label 恢復間距 */
+.form-group > .form-label {
   margin-bottom: 6px;
+}
+
+.help-icon {
+  font-size: 14px;
+  color: var(--capy-text-secondary);
+  cursor: help;
+  transition: color 0.3s ease;
+}
+
+.help-icon:hover {
+  color: var(--capy-primary);
 }
 
 .form-input {

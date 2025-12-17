@@ -175,8 +175,6 @@ const handleTeacherClick = (event, instructorId) => {
             :class="{ 'is-wishlisted': isInWishlist(course.id) }"
           >
             <svg
-              width="20"
-              height="20"
               viewBox="0 0 24 24"
               :fill="isInWishlist(course.id) ? '#ff4757' : 'none'"
               :stroke="isInWishlist(course.id) ? '#ff4757' : '#fff'"
@@ -324,7 +322,7 @@ const handleTeacherClick = (event, instructorId) => {
   border-radius: var(--capy-radius-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease, border-color 0.3s ease;
   box-shadow: var(--capy-shadow-sm);
   border: 1px solid var(--capy-border-lighter);
   height: 100%;
@@ -332,8 +330,8 @@ const handleTeacherClick = (event, instructorId) => {
   flex-direction: column;
 
   &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    transform: scale(1.01);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     border-color: var(--capy-primary);
 
     .course-img {
@@ -396,8 +394,8 @@ const handleTeacherClick = (event, instructorId) => {
   position: absolute;
   top: var(--capy-spacing-sm);
   left: var(--capy-spacing-sm);
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
@@ -405,9 +403,16 @@ const handleTeacherClick = (event, instructorId) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease;
   z-index: 3;
   opacity: 0;
+  will-change: transform;
+  transform-origin: center center;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 
   &:hover {
     background: rgba(0, 0, 0, 0.7);
@@ -531,11 +536,11 @@ const handleTeacherClick = (event, instructorId) => {
 
   :deep(.el-rate__icon) {
     font-size: 14px;
-    
+
     &.is-active {
       color: var(--capy-warning);
     }
-    
+
     &:not(.is-active) {
       color: #d0d0d0;
     }

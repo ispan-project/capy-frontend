@@ -37,7 +37,7 @@ class NotificationSSEService {
       }
     })
 
-    // 監聽網路斷線
+    // 監聯網路斷線
     window.addEventListener('offline', () => {
       console.log('🌐 網路已斷開')
       this.isOnline = false
@@ -47,6 +47,37 @@ class NotificationSSEService {
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer)
         this.reconnectTimer = null
+      }
+    })
+
+    // 🔥 頁面卸載/reload 前關閉連線，避免殘留連線
+    window.addEventListener('beforeunload', () => {
+      console.log('🔌 頁面即將卸載，關閉 SSE 連線')
+      if (this.eventSource) {
+        this.isManualClose = true
+        this.eventSource.close()
+        this.eventSource = null
+      }
+    })
+
+    // 🔥 頁面隱藏時也關閉連線（手機切換 App 等情況）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('👁️ 頁面已隱藏，暫停 SSE 連線')
+        if (this.eventSource) {
+          this.eventSource.close()
+          this.eventSource = null
+          this.updateConnectionState('disconnected')
+        }
+      } else if (document.visibilityState === 'visible') {
+        console.log('👁️ 頁面已顯示，嘗試重新連線')
+        if (!this.isManualClose && !this.isConnected() && this.onNotificationCallback) {
+          this.reconnectAttempts = 0
+          // 延遲一點再連線，避免頁面還沒完全載入
+          setTimeout(() => {
+            this.connect(this.onNotificationCallback, this.onErrorCallback, this.onConnectionStateChangeCallback)
+          }, 500)
+        }
       }
     })
   }

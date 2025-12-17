@@ -135,6 +135,23 @@ class NotificationSSEService {
     // 更新狀態為連線中
     this.updateConnectionState('connecting')
 
+    // 🔥 新增：延遲連線，確保 JWT Cookie 已經準備好
+    // 頁面載入時 Cookie 可能還沒被完全設定
+    const initialDelay = this.reconnectAttempts === 0 ? 500 : 0
+    
+    if (initialDelay > 0) {
+      console.log(`⏳ 延遲 ${initialDelay}ms 後建立 SSE 連線，確保認證資訊已就緒...`)
+    }
+
+    setTimeout(() => {
+      this.doConnect()
+    }, initialDelay)
+  }
+
+  /**
+   * 實際執行連線
+   */
+  doConnect() {
     const url = 'http://localhost:8080/api/notifications/stream'
 
     try {

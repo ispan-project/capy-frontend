@@ -562,9 +562,6 @@ onUnmounted(() => {
 
 .explore-page {
   min-height: 100vh;
-
-  background: #fcf9f4;
-
   background: var(--capy-bg-base); /* 使用變數 #FCF9F4 */
 }
 

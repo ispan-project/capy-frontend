@@ -169,16 +169,21 @@
           ></video>
           <!-- 購買課程覆蓋層 -->
           <div v-if="showBuyOverlay" class="buy-overlay">
-            <div class="buy-overlay-content">
-              <el-icon class="buy-icon"><Lock /></el-icon>
-              <h3 class="buy-title">試看結束</h3>
-              <p class="buy-text">購買課程以繼續學習完整內容</p>
-              <el-button type="warning" size="large" class="buy-now-btn">
-                立即購買課程
-              </el-button>
+              <div class="buy-overlay-content">
+                <el-icon class="buy-icon"><Lock /></el-icon>
+                <h3 class="buy-title">試看結束</h3>
+                <p class="buy-text">購買課程以繼續學習完整內容</p>
+                <el-button
+                  type="warning"
+                  size="large"
+                  class="buy-now-btn"
+                  @click="handleBuyNow"
+                >
+                  立即購買課程
+                </el-button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
     </el-dialog>
   </div>
@@ -505,6 +510,13 @@ const handleBuyNow = async () => {
 
   if (!course.value.id) {
     ElMessage.error('課程資訊錯誤')
+    return
+  }
+
+  // 已擁有課程就直接帶去學習頁，避免觸發 400
+  if (course.value.isEnrolled) {
+    ElMessage.info('您已擁有此課程，帶您回到學習頁')
+    navigateToLearning()
     return
   }
 

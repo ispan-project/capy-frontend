@@ -162,10 +162,7 @@ export const getPreviewVideoUrl = (lessonId) => {
 
   // 從 http.js 的 axios instance 獲取 baseURL
   // 移除末尾的 '/api' 因為我們需要完整路徑
-  const apiBaseURL = 'http://localhost:8080'
-
-  // 也可以從環境變數讀取（如果有設定）
-  // const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+  const apiBaseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
   // 組合完整的 HLS master.m3u8 URL
   return `${apiBaseURL}/api/student/preview/${lessonId}/master`

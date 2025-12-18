@@ -152,7 +152,8 @@ class NotificationSSEService {
    * 實際執行連線
    */
   doConnect() {
-    const url = 'http://localhost:8080/api/notifications/stream'
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+    const url = `${baseURL}/api/notifications/stream`
 
     try {
       this.eventSource = new EventSource(url, {

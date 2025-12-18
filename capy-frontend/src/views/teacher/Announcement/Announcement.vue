@@ -35,14 +35,19 @@ const formRef = ref(null);
 const formRule = {
   title: [
     { required: true, message: "標題為必填項", trigger: "blur" },
-    { min: 10, max: 20, message: "標題需在10到15字內", trigger: "blur" },
+    { min: 2, max: 30, message: "標題需在2到30字內", trigger: "blur" },
   ],
   content: [
     { required: true, message: "內容為必填項", trigger: "blur" },
     { max: 50, message: "公告內容不得超過100字", trigger: "blur" },
   ],
 };
+let isRequesting = false
 const handleCreateAnnouncement = async () => {
+  if(isRequesting){
+    ElMessage.error("公告發送中，請稍後")
+    return
+  }
   try {
     await formRef.value.validate();
   } catch (e) {
@@ -50,6 +55,7 @@ const handleCreateAnnouncement = async () => {
     return;
   }
   try {
+    isRequesting=true
     await createAnnouncement(formModel.value);
     ElMessage.success("發布成功");
   } catch (e) {
@@ -59,6 +65,7 @@ const handleCreateAnnouncement = async () => {
     currentPage.value = 1;
     await fetchAnnouncementList();
     addDialogVisible.value = false;
+    isRequesting=false
   }
 };
 watch(addDialogVisible, (val) => {

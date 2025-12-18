@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { ElMessage } from "element-plus";
 import ChangeUserStatusDialog from "./ChangeUserStatusDialog.vue";
 import { searchUsers } from "@/api/admin/user";
 import dayjs from "dayjs";
@@ -141,11 +142,10 @@ onMounted(() => {
   <h2 class="section-heading">用戶狀態管理</h2>
   <div class="wrapper" style="margin-bottom: 24px">
     <!-- 篩選與搜尋區 -->
-    <div class="filter-bar">
+    <div class="admin-filter-row">
       <el-select
         v-model="currentRole"
-        size="large"
-        placeholder="全部身分"
+                placeholder="全部身分"
         clearable
         style="width: 150px"
         @change="handleRoleChange"
@@ -160,8 +160,7 @@ onMounted(() => {
 
       <el-select
         v-model="currentStatus"
-        size="large"
-        placeholder="全部狀態"
+                placeholder="全部狀態"
         clearable
         style="width: 150px"
         @change="handleStatusChange"
@@ -176,8 +175,7 @@ onMounted(() => {
 
       <el-input
         v-model="searchKeyword"
-        size="large"
-        placeholder="搜尋用戶暱稱、Email..."
+                placeholder="搜尋用戶暱稱、Email..."
         style="width: 300px"
         clearable
         @keyup.enter="handleSearch"
@@ -188,44 +186,43 @@ onMounted(() => {
         </template>
       </el-input>
 
-      <el-button type="primary" size="large" @click="handleSearch">
+      <el-button type="primary" @click="handleSearch">
         <el-icon style="margin-right: 4px"><Search /></el-icon>
         搜尋
       </el-button>
     </div>
   </div>
 
-  <div class="wrapper">
+  <div class="wrapper admin-table-container">
     <el-table
       v-loading="loading"
       stripe
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="dataWithIndex"
+            :data="dataWithIndex"
       style="width: 100%"
       empty-text="暫無用戶"
     >
       <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
-          <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+          <span class="admin-index">#{{ row.index }}</span>
         </template>
       </el-table-column>
       <el-table-column min-width="280" label="用戶資訊">
         <template #default="{ row }">
-          <div class="user-info-cell">
+          <div class="admin-user-info-cell">
             <el-avatar :size="50" :src="row.avatarUrl" />
-            <div class="user-details">
-              <p class="user-name">{{ row.nickname }}</p>
-              <p class="user-sub">{{ row.email }}</p>
+            <div class="admin-user-details">
+              <p class="admin-user-name">{{ row.nickname }}</p>
+              <p class="admin-user-sub">{{ row.email }}</p>
             </div>
           </div>
         </template>
       </el-table-column>
       <el-table-column label="身分" min-width="120" align="center">
         <template #default="{ row }">
-          <el-tag type="info" effect="plain" size="large" round>
+          <el-tag type="info" effect="plain" round>
             {{ formatRole(row.role) }}
           </el-tag>
         </template>
@@ -235,8 +232,7 @@ onMounted(() => {
           <div class="status-cell">
             <el-switch
               :before-change="() => handleChangeStatus(row)"
-              size="large"
-              v-model="row.isActive"
+                            v-model="row.isActive"
             />
             <p class="status-text">{{ row.isActive ? "活動中" : "已停權" }}</p>
           </div>
@@ -244,14 +240,13 @@ onMounted(() => {
       </el-table-column>
       <el-table-column label="最後更新時間" min-width="180" align="center">
         <template #default="{ row }">
-          <span class="date-text">{{ formatDate(row.updatedAt) }}</span>
+          <span class="admin-date-text">{{ formatDate(row.updatedAt) }}</span>
         </template>
       </el-table-column>
     </el-table>
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :total="totalElements"
         :page-size="pageSize"
@@ -345,18 +340,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .status-text {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-/* 日期樣式 */
-.date-text {
-  font-style: italic;
-  font-weight: 500;
+  font-size: 11px;
+  color: #6B7280;
 }
 
 .el-tag {

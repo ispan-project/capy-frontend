@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { ElMessage } from "element-plus";
 import { getInstructorApplications } from "@/api/admin/instructor";
 import dayjs from "dayjs";
 
@@ -92,11 +93,10 @@ onMounted(() => {
 <template>
   <h2 class="section-heading">教師申請列表</h2>
   <div class="wrapper" style="margin-bottom: 24px">
-    <div class="filter-bar">
+    <div class="admin-filter-row">
       <el-select
         v-model="currentSort"
-        size="large"
-        placeholder="排序方式"
+                placeholder="排序方式"
         style="width: 200px"
         @change="handleSortChange"
       >
@@ -110,40 +110,37 @@ onMounted(() => {
     </div>
   </div>
 
-  <div class="wrapper">
+  <div class="wrapper admin-table-container">
     <el-table
       v-loading="loading"
       stripe
       :row-class-name="() => 'table-row'"
       :cell-class-name="() => 'tbody-cell'"
       :header-cell-class-name="() => 'table-head'"
-      size="large"
-      :data="dataWithIndex"
+            :data="dataWithIndex"
       style="width: 100%"
       empty-text="暫無申請"
     >
       <el-table-column label="序號" width="100" align="center">
         <template #default="{ row }">
-          <span class="index"><span style="margin-right: 8px">#</span>{{ row.index }}</span>
+          <span class="admin-index">#{{ row.index }}</span>
         </template>
       </el-table-column>
 
       <el-table-column label="申請者" min-width="280">
         <template #default="{ row }">
-          <div style="width: 80%">
-            <div class="user-info-cell">
-              <el-avatar :size="50" :src="row.avatarUrl" />
-              <div class="user-details">
-                <p class="user-name">{{ row.nickname }}</p>
-                <p class="user-sub">{{ row.fullName }}</p>
-              </div>
+          <div class="admin-user-info-cell">
+            <el-avatar :size="50" :src="row.avatarUrl" />
+            <div class="admin-user-details">
+              <p class="admin-user-name">{{ row.nickname }}</p>
+              <p class="admin-user-sub">{{ row.fullName }}</p>
             </div>
           </div>
         </template>
       </el-table-column>
       <el-table-column label="申請時間" min-width="180" align="center">
         <template #default="{ row }">
-          <span class="date-text">{{ formatDate(row.appliedAt) }}</span>
+          <span class="admin-date-text">{{ formatDate(row.appliedAt) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="是否為第一次申請" min-width="160" align="center">
@@ -166,8 +163,7 @@ onMounted(() => {
     </el-table>
     <div class="pagination-btn" style="justify-content: center">
       <el-pagination
-        size="large"
-        background
+                background
         layout="total, prev, pager, next"
         :total="totalElements"
         :page-size="pageSize"
@@ -249,25 +245,12 @@ onMounted(() => {
 
 /* 首次申請標記 */
 .first-application-badge {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
 }
 
 .highlight-record {
   color: #4f46e5;
   font-weight: 600;
-}
-
-.pagination-btn {
-  margin-top: 48px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
 }
 </style>

@@ -10,6 +10,7 @@ import {
   removeFromWishlist as apiRemoveFromWishlist
 } from '@/api/student/wishlist'
 import { ElMessage } from 'element-plus'
+import { getItemState } from '@/composable/useCourseState.js'
 
 /**
  * 願望清單項目介面
@@ -21,14 +22,16 @@ interface WishlistItem {
   price: number
   coverImageUrl: string
   addedAt: number // 時間戳記，用於排序
-  // Student Center 完整資料欄位
+  // 評價資訊（簡版和完整版都需要）
   averageRating?: number
   reviewCount?: number
+  // Student Center 完整資料欄位
   enrollmentCount?: number
   tags?: string[]
   categories?: string[]
   status?: string
   publishDate?: string
+  isEnrolled?: boolean
 }
 
 /**
@@ -134,8 +137,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
         enrollmentCount: course.enrollmentCount || 0,
         tags: course.tags || [],
         categories: course.categories || [],
-        status: course.status,
-        publishDate: course.publishDate
+        status: course.status?.toUpperCase() || 'PUBLISHED',
+        publishDate: course.publishDate,
+        isEnrolled: course.isEnrolled || false
       }))
 
       // 同步到 localStorage
@@ -181,10 +185,15 @@ export const useWishlistStore = defineStore('wishlist', () => {
         return {
           courseId: item.courseId || item.id,
           title: item.courseTitle || item.title,
-          instructor: item.instructorName || '',
+          instructor: item.instructorName || item.instructor || '',
           price: item.price,
           coverImageUrl: item.coverImageUrl,
-          addedAt: Date.now()
+          addedAt: Date.now(),
+          // 包含評價資訊
+          averageRating: item.averageRating || 0,
+          reviewCount: item.reviewCount || 0,
+          status: item.status?.toUpperCase() || 'PUBLISHED',
+          isEnrolled: item.isEnrolled || false
         }
       })
 
@@ -233,8 +242,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
         return false
       }
 
-      // 2. 檢查課程上架狀態
-      if (course.status && course.status !== 'published') {
+      // 2. 檢查課程上架狀態（不區分大小寫）
+      if (course.status && course.status.toUpperCase() !== 'PUBLISHED') {
         ElMessage({
           message: '此課程尚未上架，無法加入願望清單',
           type: 'error',
@@ -267,7 +276,9 @@ export const useWishlistStore = defineStore('wishlist', () => {
         instructor: course.instructor,
         price: course.price,
         coverImageUrl: course.cover_image_url,
-        addedAt: Date.now()
+        addedAt: Date.now(),
+        status: course.status?.toUpperCase() || 'PUBLISHED',
+        isEnrolled: false
       })
 
       saveToStorage()
@@ -335,6 +346,30 @@ export const useWishlistStore = defineStore('wishlist', () => {
           name: 'Login',
           query: { redirect: router.currentRoute.value.fullPath }
         })
+        return false
+      }
+
+      // 處理 400 錯誤（可能是已購買課程或其他業務邏輯錯誤）
+      if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || ''
+
+        // 檢查是否為已購買課程的錯誤
+        if (errorMessage.includes('已購買') || errorMessage.includes('已擁有') || errorMessage.includes('enrolled')) {
+          ElMessage({
+            message: '您已購買此課程，無需加入願望清單',
+            type: 'info',
+            grouping: true,
+            duration: 3000
+          })
+        } else {
+          // 其他 400 錯誤，顯示後端訊息
+          ElMessage({
+            message: errorMessage || '無法加入願望清單',
+            type: 'warning',
+            grouping: true,
+            duration: 3000
+          })
+        }
         return false
       }
 

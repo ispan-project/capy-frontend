@@ -248,7 +248,7 @@
               >
                 <el-icon class="file-icon"><Document /></el-icon>
                 <span class="file-name">{{ file.name }}</span>
-                <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                <span class="file-size">{{ file.isExisting ? '已上傳' : formatFileSize(file.size) }}</span>
                 <el-button
                   type="danger"
                   :icon="Delete"
@@ -374,13 +374,20 @@
         {{ submitting ? '正在上傳文件...' : (isResubmission ? '重新送出' : '送出申請') }}
       </el-button>
     </div>
+
+    <!-- Custom Confirm Dialog -->
+    <SubmitConfirmDialog
+      ref="confirmDialogRef"
+      @confirm="handleConfirmSubmit"
+      @cancel="handleCancelSubmit"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import {
   User,
   CreditCard,
@@ -391,6 +398,7 @@ import {
   Plus
 } from '@element-plus/icons-vue'
 import { becomeTeacher } from '@/api/student/becomTeacher.js'
+import SubmitConfirmDialog from './SubmitConfirmDialog.vue'
 
 // Props
 const props = defineProps({
@@ -412,6 +420,7 @@ const router = useRouter()
 const profileFormRef = ref(null)
 const documentsFormRef = ref(null)
 const uploadRef = ref(null)
+const confirmDialogRef = ref(null)
 const activeStep = ref(0)
 const submitting = ref(false)
 const isBankConfirmed = ref(false)
@@ -565,7 +574,7 @@ const handleRemoveFile = (index) => {
 
 // Format file size
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
+  if (!bytes || bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -612,27 +621,20 @@ const disabledEndDate = (date, startDate) => {
 }
 
 // Handle Submit
-const handleSubmit = async () => {
+const handleSubmit = () => {
+  // Check bank confirmation
+  if (!isBankConfirmed.value) {
+    ElMessage.warning('請確認銀行帳戶資訊正確')
+    return
+  }
+
+  // Show custom confirm dialog
+  confirmDialogRef.value?.show()
+}
+
+// Handle Confirm Submit (after dialog confirmation)
+const handleConfirmSubmit = async () => {
   try {
-    // Check bank confirmation
-    if (!isBankConfirmed.value) {
-      ElMessage.warning('請確認銀行帳戶資訊正確')
-      return
-    }
-
-    // Confirm submission
-    await ElMessageBox.confirm(
-      '確定要送出申請嗎？送出後銀行資訊將無法修改。',
-      '確認送出',
-      {
-        confirmButtonText: '確定送出',
-        cancelButtonText: '再檢查一次',
-        type: 'warning',
-        customClass: 'instructor-application-confirm-dialog',
-        center: false
-      }
-    )
-
     submitting.value = true
 
     // Prepare application data
@@ -651,8 +653,11 @@ const handleSubmit = async () => {
       }))
     }
 
-    // Prepare certificate files
-    const certificates = applicationForm.value.files.map(file => file.raw)
+    // Prepare certificate files - 只提交新上傳的檔案（有 raw 屬性的）
+    // 已存在的檔案（isExisting: true）不需要重新上傳
+    const certificates = applicationForm.value.files
+      .filter(file => !file.isExisting && file.raw)
+      .map(file => file.raw)
 
     // Call API
     const response = await becomeTeacher(applicationData, certificates)
@@ -669,13 +674,16 @@ const handleSubmit = async () => {
     }, 1500)
 
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Submit error:', error)
-      ElMessage.error(error.message || '申請送出失敗，請稍後再試')
-    }
+    console.error('Submit error:', error)
+    ElMessage.error(error.message || '申請送出失敗，請稍後再試')
   } finally {
     submitting.value = false
   }
+}
+
+// Handle Cancel Submit (dialog cancelled)
+const handleCancelSubmit = () => {
+  // Do nothing, just close the dialog
 }
 
 // Add work experience
@@ -716,6 +724,9 @@ defineExpose({
 </script>
 
 <style scoped>
+.instructor-application-confirm-dialog{
+  width: 600px !important;
+}
 .instructor-application-wizard {
   max-width: 900px;
   margin: 0 auto;

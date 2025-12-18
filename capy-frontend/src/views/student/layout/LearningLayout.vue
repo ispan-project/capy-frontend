@@ -22,21 +22,17 @@
             <div class="user-avatar-wrapper">
               <el-avatar
                 :size="36"
-                :src="userAvatar"
+                :src="userStore.userInfo.avatarUrl"
                 class="user-avatar"
               >
-                <el-icon><User /></el-icon>
+                {{ userStore.userInfo.nickname?.charAt(0) || 'U' }}
               </el-avatar>
             </div>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>
+                <el-dropdown-item @click="goToStudentCenter">
                   <el-icon><User /></el-icon>
-                  個人資料
-                </el-dropdown-item>
-                <el-dropdown-item>
-                  <el-icon><Setting /></el-icon>
-                  設定
+                  學生中心
                 </el-dropdown-item>
                 <el-dropdown-item divided @click="handleLogout">
                   <el-icon><SwitchButton /></el-icon>
@@ -57,9 +53,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { User, Setting, SwitchButton } from '@element-plus/icons-vue'
+import { User, SwitchButton } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 
@@ -67,15 +63,18 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-// 使用者資訊
-const userAvatar = ref('')
-const userName = ref('使用者')
-
 // 從路由或 store 取得課程標題
 const courseTitle = computed(() => {
   // 這裡可以從 route.meta 或 Pinia store 取得實際課程標題
   return route.meta?.courseTitle || '課程學習'
 })
+
+/**
+ * 前往學生中心
+ */
+const goToStudentCenter = () => {
+  router.push('/student/my-learning')
+}
 
 /**
  * 處理登出

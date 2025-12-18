@@ -295,10 +295,17 @@ const loadOrders = async () => {
     // 注意：currentPage 是 1-based，但 API 需要 0-based
     // 當狀態為 'all' 時，不傳遞 status 參數，讓後端回傳全部訂單
     const status = currentStatus.value === 'all' ? undefined : currentStatus.value
+
+    // 根據 currentSort 決定排序參數
+    // 'newest' (預設) -> 不傳 sort 或傳 'createdAt,desc'
+    // 'oldest' -> 傳 'createdAt,asc'
+    const sort = currentSort.value === 'oldest' ? 'createdAt,asc' : null
+
     const response = await getOrdersList(
       status,
       currentPage.value - 1,
-      pageSize.value
+      pageSize.value,
+      sort
     )
 
     // 後端回傳的資料在 data 欄位中

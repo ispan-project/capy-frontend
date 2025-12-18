@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import AppSidebar from '@/components/layout/AppSidebar.vue';
-
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import AppSidebar from "@/components/layout/AppSidebar.vue";
+import { logout } from "@/api/oauth/oauth";
+const router = useRouter();
 const route = useRoute();
 const scrollbarRef = ref(null);
 const sidebarRef = ref(null);
@@ -12,17 +12,17 @@ watch(
   () => route.fullPath,
   () => {
     const wrap = scrollbarRef.value?.wrapRef;
-    if (wrap) wrap.scrollTo({ top: 0, behavior: 'smooth' });
+    if (wrap) wrap.scrollTo({ top: 0, behavior: "smooth" });
   }
 );
 
 // 管理員選單配置
 const adminMenuItems = [
   {
-    type: 'item',
-    route: 'adminWorkspace',
-    icon: 'House',
-    label: '工作台'
+    type: "item",
+    route: "adminWorkspace",
+    icon: "House",
+    label: "工作台",
   },
   {
     type: 'submenu',
@@ -34,57 +34,54 @@ const adminMenuItems = [
       { route: 'course_application_list', label: '上架申請列表' },
       { route: 'courseManagement', label: '課程狀態管理', activeRoutes: ['viewCourseDetail'] }
     ]
+
   },
   {
-    type: 'submenu',
-    key: 'user',
-    icon: 'UserFilled',
-    label: '用戶管理',
+    type: "submenu",
+    key: "user",
+    icon: "UserFilled",
+    label: "用戶管理",
     children: [
-      { route: 'instructor_application_list', label: '教師申請列表' },
-      { route: 'userManagement', label: '用戶狀態管理' }
-    ]
+      { route: "instructor_application_list", label: "教師申請列表" },
+      { route: "userManagement", label: "用戶狀態管理" },
+    ],
   },
   {
-    type: 'submenu',
-    key: 'platform',
-    icon: 'Management',
-    label: '平台管理',
+    type: "submenu",
+    key: "platform",
+    icon: "Management",
+    label: "平台管理",
     children: [
-      { route: 'platform_announcement', label: '平台公告' },
-      { route: 'category_management', label: '標籤管理' }
-    ]
+      { route: "platform_announcement", label: "平台公告" },
+      { route: "category_management", label: "標籤管理" },
+    ],
   },
   {
-    type: 'item',
-    route: 'datastatic',
-    icon: 'DataAnalysis',
-    label: '數據分析'
+    type: "item",
+    route: "datastatic",
+    icon: "DataAnalysis",
+    label: "數據分析",
   },
   {
-    type: 'item',
-    route: 'operationrecord',
-    icon: 'SetUp',
-    label: '操作紀錄查詢'
-  }
+    type: "item",
+    route: "operationrecord",
+    icon: "SetUp",
+    label: "操作紀錄查詢",
+  },
 ];
 
 const userProfile = {
-  name: 'Admin User',
-  avatar: 'https://picsum.photos/seed/capy-admin/80',
+  name: "Admin User",
+  avatar: "https://picsum.photos/seed/capy-admin/80",
 };
 
-const handleUserCommand = (command) => {
-  if (command === 'logout') {
-    ElMessage.info('已登出（待串接 API）');
-    return;
-  }
-  if (command === 'switch-teacher') {
-    ElMessage.info('切換至講師端（待串接路由）');
-    return;
-  }
-  if (command === 'switch-student') {
-    ElMessage.info('切換至學生端（待串接路由）');
+const handleUserCommand = async (command) => {
+  if (command === "logout") {
+    await logout();
+    router.push("/");
+  } else if (command === "switch-student") {
+    router.push("/student");
+    ElMessage.success("已切換至學生中心");
   }
 };
 </script>
@@ -100,10 +97,7 @@ const handleUserCommand = (command) => {
         home-route="adminWorkspace"
       />
 
-      <el-container
-        class="main-wrapper"
-        :class="{ 'is-pinned': sidebarRef?.isPinned }"
-      >
+      <el-container class="main-wrapper" :class="{ 'is-pinned': sidebarRef?.isPinned }">
         <el-scrollbar ref="scrollbarRef" style="height: 100vh; width: 100%">
           <el-header>
             <div class="header-actions">
@@ -114,12 +108,13 @@ const handleUserCommand = (command) => {
                   <el-icon class="arrow"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
-                  <el-dropdown-menu style="width: 180px">
-                    <el-dropdown-item command="switch-teacher">切換至講師端</el-dropdown-item>
+                  <el-dropdown-menu style="width: 200px">
                     <el-dropdown-item command="switch-student">切換至學生端</el-dropdown-item>
                     <el-dropdown-item divided command="logout">
                       <span>
-                        <el-icon style="vertical-align: middle"><SwitchButton /></el-icon>
+                        <el-icon size="large" style="vertical-align: middle"
+                          ><SwitchButton
+                        /></el-icon>
                         退出登入
                       </span>
                     </el-dropdown-item>
@@ -139,6 +134,9 @@ const handleUserCommand = (command) => {
     </el-container>
   </div>
 </template>
+
+<style src="@/styles/element-plus-override.css"></style>
+<style src="@/styles/admin-dashboard.css"></style>
 
 <style scoped>
 /* ==================== Main Wrapper ==================== */
@@ -165,7 +163,7 @@ const handleUserCommand = (command) => {
 
 /* ==================== Main Content ==================== */
 .el-main {
-  background-color: #F5F7FA;
+  background-color: #f5f7fa;
   min-height: 100vh;
   padding: 20px 24px;
 }
@@ -178,10 +176,10 @@ const handleUserCommand = (command) => {
 /* ==================== Footer ==================== */
 .el-footer {
   text-align: center;
-  color: #6B7280;
+  color: #6b7280;
   font-size: 13px;
   font-weight: 400;
-  background-color: #F5F7FA;
+  background-color: #f5f7fa;
   padding: 24px;
 }
 
@@ -199,8 +197,8 @@ const handleUserCommand = (command) => {
   gap: 12px;
   padding: 4px 10px;
   border-radius: 50px;
-  background-color: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
   color: #374151;
   font-weight: 500;
   cursor: pointer;
@@ -209,8 +207,8 @@ const handleUserCommand = (command) => {
 }
 
 .user-chip:hover {
-  background-color: #F3F4F6;
-  border-color: #D1D5DB;
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .user-name {
@@ -236,7 +234,7 @@ const handleUserCommand = (command) => {
 }
 
 :deep(.el-dropdown-menu__item:hover) {
-  background-color: #EEF2FF;
-  color: #4F46E5;
+  background-color: #eef2ff;
+  color: #4f46e5;
 }
 </style>

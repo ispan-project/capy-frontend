@@ -1,6 +1,6 @@
 <template>
   <div class="instructor-card">
-    <h3 class="card-title">Instructor</h3>
+    <h3 class="card-title">講師介紹</h3>
     <div class="instructor-info">
       <el-avatar :size="80" :src="instructor.avatar" class="instructor-avatar" />
       <div class="instructor-details">
@@ -9,19 +9,35 @@
       </div>
     </div>
     <p class="instructor-bio">{{ instructor.bio }}</p>
-    <el-button text type="primary" class="view-profile-btn">
-      View Profile
+    <el-button text type="primary" class="view-profile-btn" @click="handleViewProfile">
+      查看講師資料
     </el-button>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const props = defineProps({
   instructor: {
     type: Object,
     required: true
   }
 })
+
+/**
+ * 處理查看講師資料按鈕點擊
+ */
+const handleViewProfile = () => {
+  if (props.instructor.id) {
+    router.push({
+      name: 'teacherDetail',
+      params: { id: props.instructor.id }
+    })
+  }
+}
 </script>
 
 <style scoped>

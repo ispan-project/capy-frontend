@@ -1,7 +1,9 @@
- // ====================================
+// ====================================
 // Student Router Configuration
 // 使用 LazyLoad 方式載入所有頁面組件
 // ====================================
+
+import { searchCourses } from "@/api/student/explore";
 
 const studentRoutes = [
   // ====================================
@@ -48,7 +50,7 @@ const studentRoutes = [
         path: "instructor/apply",
         name: "becomeInstructor",
         component: () => import("@/views/student/instructorApply/BecomeInstructorPage.vue"),
-        meta: { requiresAuth: true }
+        meta: { requiresAuth: true },
       },
       // 講師介紹頁面
       {
@@ -56,33 +58,59 @@ const studentRoutes = [
         name: "instructorLanding",
         component: () => import("@/views/student/instructorApply/InstructorLanding.vue"),
       },
+
       // ====================================
-      // 其他頁面路由
+      // 支援與幫助頁面路由
       // ====================================
       {
-        path: "about",
-        name: "about",
-        component: () => import("@/views/student/Others/About.vue"),
+        path: "support",
+        name: "supportCenter",
+        component: () => import("@/views/support/SupportCenter.vue"),
       },
       {
-        path: "contact",
-        name: "contact",
-        component: () => import("@/views/student/Others/contact.vue"),
+        path: "support/faq",
+        name: "faq",
+        component: () => import("@/views/support/SupportCenter.vue"),
       },
       {
-        path: "privacy",
-        name: "privacy",
-        component: () => import("@/views/student/Others/Privacy.vue"),
+        path: "support/about",
+        name: "aboutUs",
+        component: () => import("@/views/support/AboutUs.vue"),
+      },
+
+      // ====================================
+      // 法律條款頁面路由
+      // ====================================
+      {
+        path: "legal/terms",
+        name: "termsOfService",
+        component: () => import("@/views/legal/LegalView.vue"),
+      },
+      {
+        path: "legal/privacy",
+        name: "privacyPolicy",
+        component: () => import("@/views/legal/LegalView.vue"),
+      },
+      {
+        path: "legal/refund",
+        name: "refundPolicy",
+        component: () => import("@/views/legal/LegalView.vue"),
       },
 
       // ====================================
       // 結帳路由
       // ====================================
       {
-        path: 'checkout/success',
-        name: 'checkoutSuccess',
-        component: () => import('@/views/student/Checkout/Success.vue'),
-        meta: { requiresAuth: true }
+        path: "checkout/success",
+        name: "checkoutSuccess",
+        component: () => import("@/views/student/Checkout/Success.vue"),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: "checkout/fail",
+        name: "checkoutFail",
+        component: () => import("@/views/student/Checkout/Success.vue"),
+        meta: { requiresAuth: true },
       },
 
       // ====================================
@@ -91,7 +119,7 @@ const studentRoutes = [
       {
         path: "/student",
         component: () => import("@/views/student/layout/StudentCenterLayout.vue"),
-        meta: { requiresAuth: true, role: "student" },
+        meta: { requiresAuth: true },
         children: [
           // 我的學習
           {
@@ -126,10 +154,10 @@ const studentRoutes = [
   // 購物車路由 (Checkout)
   // ====================================
   {
-    path: '/checkout',
-    name: 'checkout',
-    component: () => import('@/views/student/Checkout/Checkout.vue'),
-    meta: { requiresAuth: true }
+    path: "/checkout",
+    name: "checkout",
+    component: () => import("@/views/student/Checkout/Checkout.vue"),
+    meta: { requiresAuth: true },
   },
   // ====================================
   // 學習佈局路由 (LearningLayout)
@@ -178,23 +206,23 @@ const studentRoutes = [
     component: () => import("@/views/student/Auth&Register/VerifyEmail.vue"),
   },
   {
-    path: '/reset-password',
-    name: 'resetPassword',
-    component: () => import('@/views/student/Auth&Register/ResetPassword.vue')
+    path: "/reset-password",
+    name: "resetPassword",
+    component: () => import("@/views/student/Auth&Register/ResetPassword.vue"),
   },
 
   // ====================================
   // 錯誤頁面路由
   // ====================================
   {
-    path: '/403',
-    name: 'forbidden',
-    component: () => import('@/views/student/Errors/ForbiddenPage.vue')
+    path: "/403",
+    name: "forbidden",
+    component: () => import("@/views/student/Errors/ForbiddenPage.vue"),
   },
   {
-    path: '/500',
-    name: 'serverError',
-    component: () => import('@/views/student/Errors/ServerError.vue')
+    path: "/500",
+    name: "serverError",
+    component: () => import("@/views/student/Errors/ServerError.vue"),
   },
 
   // ====================================

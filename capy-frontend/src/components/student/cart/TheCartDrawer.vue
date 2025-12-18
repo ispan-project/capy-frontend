@@ -27,7 +27,7 @@
         <div
           v-for="item in cartStore.items"
           :key="item.courseId"
-          class="cart-item"
+          :class="['cart-item', { 'is-disabled': !getItemState(item).canBuy }]"
         >
           <!-- 課程縮圖 -->
           <div class="item-thumbnail">
@@ -48,6 +48,23 @@
           <div class="item-info">
             <h4 class="item-title">{{ item.title }}</h4>
             <p class="item-instructor">{{ item.instructor }}</p>
+            <!-- 狀態標籤 -->
+            <el-tag
+              v-if="getItemState(item).type === 'UNAVAILABLE'"
+              type="danger"
+              size="small"
+              class="item-status-tag"
+            >
+              已下架
+            </el-tag>
+            <el-tag
+              v-else-if="getItemState(item).type === 'ENROLLED'"
+              type="info"
+              size="small"
+              class="item-status-tag"
+            >
+              已擁有
+            </el-tag>
           </div>
 
           <!-- 價格和操作按鈕 -->
@@ -143,6 +160,7 @@ import { ElMessage } from 'element-plus'
 import { ShoppingCart, Delete, Picture } from '@element-plus/icons-vue'
 import { useCartStore } from '@/stores/cart'
 import { useWishlistStore } from '@/stores/wishlist'
+import { getItemState } from '@/composable/useCourseState.js'
 
 // ==================== Props & Emits ====================
 
@@ -354,6 +372,15 @@ loadCart()
   background-color: var(--capy-bg-elevated);
 }
 
+.cart-item.is-disabled {
+  opacity: 0.6;
+  background-color: var(--capy-bg-base);
+}
+
+.cart-item.is-disabled:hover {
+  background-color: var(--capy-bg-base);
+}
+
 /* 課程縮圖 */
 .item-thumbnail {
   flex-shrink: 0;
@@ -404,10 +431,14 @@ loadCart()
 .item-instructor {
   font-size: var(--capy-font-size-sm);
   color: var(--capy-text-secondary);
-  margin: 0;
+  margin: 0 0 var(--capy-spacing-xs) 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.item-status-tag {
+  margin-top: var(--capy-spacing-xs);
 }
 
 /* 價格和操作 */

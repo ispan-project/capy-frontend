@@ -1,7 +1,7 @@
 <template>
   <div class="filter-tabs">
-    <button 
-      v-for="tab in tabs" 
+    <button
+      v-for="tab in tabs"
       :key="tab.value"
       class="filter-tab"
       :class="{ active: modelValue === tab.value }"
@@ -23,9 +23,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const tabs = [
-  { label: 'All', value: 'all' },
-  { label: 'Unread', value: 'unread' },
-  { label: 'Read', value: 'read' }
+  { label: '全部', value: 'all' },
+  { label: '未讀', value: 'unread' },
+  { label: '已讀', value: 'read' }
 ]
 
 const handleTabClick = (value) => {

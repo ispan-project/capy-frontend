@@ -257,7 +257,85 @@ onMounted(() => {
   </div>
 </template>
 <style scoped>
-/* Page-specific styles */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  margin-top: 48px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+:deep(.el-table) {
+  --el-table-header-bg-color: #f9fafb;
+  --el-table-row-hover-bg-color: #f5f3ff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+:deep(.tbody-cell .cell) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+}
+
+:deep(.table-head .cell) {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #374151;
+  padding: 16px 12px;
+}
+
+/* 用戶資訊欄位 */
+.user-info-cell {
+  width: 100%;
+  /* padding-left: 20%; */
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.user-sub {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 索引樣式 */
+.index {
+  font-style: italic;
+  font-weight: 600;
+  font-size: 20px;
+  color: #9ca3af;
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.table-row:hover .index {
+  opacity: 1;
+  color: #4f46e5;
+}
+
+/* 狀態欄位 */
 .status-cell {
   display: flex;
   flex-direction: column;
@@ -271,7 +349,6 @@ onMounted(() => {
 }
 
 .el-tag {
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
 }
 </style>
-

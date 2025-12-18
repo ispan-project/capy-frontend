@@ -25,7 +25,8 @@
     "swiper": "^12.0.3",
     "vue": "^3.5.22",
     "vue-draggable-plus": "^0.6.0",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "vue-turnstile": "^1.0.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",

@@ -1,8 +1,9 @@
 import { useVideo } from "@/composable/useVideo";
-import useCourseSwitch from "@/hooks/useCourseSwitch";
+import { switchCourseStatus } from "@/hooks/useCourseSwitch";
 import { useCourseStore } from "@/stores/course";
+import { useInstructorNotificationStore } from "@/stores/instructorNotification";
 
-const { switchCourseStatus } = useCourseSwitch();
+// const { switchCourseStatus } = useCourseSwitch();
 
 export default [
   {
@@ -28,23 +29,27 @@ export default [
         beforeEnter: async (to, from, next) => {
           const courseStore = useCourseStore();
           courseStore.setCurrentCourseId(to.params.courseId);
-
-          await courseStore.fetchCourseOverview();
+          courseStore.fetchCategoryData();
+          courseStore.fetchTagListData();
           //取代查詢參數獲得課程狀態
           // const status =courseStore.courseInfo
-          if (to.query.status !== "draft") {
+          const status = switchCourseStatus(to.query.status);
+          if (status !== "draft") {
+            await courseStore.fetchCourseOverview();
             next({
               name: "coursedetail",
               params: {
                 courseId: to.params.courseId,
               },
               query: {
-                status: switchCourseStatus(to.query.status),
+                status,
               },
             });
           } else {
             const { allUploadingFailed } = useVideo();
-            allUploadingFailed();
+            await allUploadingFailed();
+
+            await courseStore.fetchCourseOverview();
             next();
           }
         },
@@ -54,6 +59,18 @@ export default [
         name: "coursedetail",
         component: () => import("@/views/teacher/CourseDetail/CourseDetailReadonly.vue"),
         props: (route) => ({ status: route.query?.status }),
+        beforeEnter: async (to, from, next) => {
+          const courseStore = useCourseStore();
+          if (from.name !== "mycourse") {
+            courseStore.setCurrentCourseId(to.params.courseId);
+            await courseStore.fetchCategoryData();
+            await courseStore.fetchTagListData();
+            await courseStore.fetchCourseOverview();
+          }
+          // console.log(from);
+          // console.log(5555555555);
+          next();
+        },
       },
       {
         path: "createcourse",
@@ -62,6 +79,8 @@ export default [
         beforeEnter: (to, from, next) => {
           const courseStore = useCourseStore();
           courseStore.setCurrentCourseId(null);
+          courseStore.fetchCategoryData();
+          courseStore.fetchTagListData();
           next();
         },
       },
@@ -70,6 +89,10 @@ export default [
         path: "notification",
         name: "notification",
         component: () => import("@/views/teacher/Notification/Notification.vue"),
+        beforeEnter: async () => {
+          const instructorNotificationStore = useInstructorNotificationStore();
+          await instructorNotificationStore.fetchUnreadNotifications();
+        },
       },
       {
         path: "coursecomment",

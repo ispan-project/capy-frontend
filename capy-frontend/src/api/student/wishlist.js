@@ -112,11 +112,11 @@ export const fetchWishlistItems = () => {
  * @param {Object} params - 查詢參數
  * @param {number} [params.page=0] - 頁碼（從 0 開始）
  * @param {number} [params.size=6] - 每頁筆數
- * @param {string} [params.sort='addedAt,desc'] - 排序方式（支援：addedAt,desc | addedAt,asc | title,asc | title,desc）
+ * @param {string} [params.sort='desc'] - 排序方式（僅支援：asc 或 desc，對應 addedAt 時間排序，預設 desc 最新在前）
  * @returns {Promise<Object>}
  *
  * @example
- * const wishlist = await fetchCenterWishlist({ page: 0, size: 6, sort: 'addedAt,desc' })
+ * const wishlist = await fetchCenterWishlist({ page: 0, size: 6, sort: 'desc' })
  */
 export const fetchCenterWishlist = (params = {}) => {
   return request({
@@ -125,12 +125,13 @@ export const fetchCenterWishlist = (params = {}) => {
     params: {
       page: params.page ?? 0,
       size: params.size ?? 6,
-      sort: params.sort ?? 'addedAt,desc'
+      sort: params.sort ?? 'desc'
     }
   }).then(response => {
-    // 後端返回的結構是 { data: { myWishlist: {...} } }
-    // 提取 myWishlist 物件
-    return response?.data?.myWishlist || response?.myWishlist || {
+    console.log('🔍 fetchCenterWishlist 原始回應:', response)
+
+    // 預設空結果
+    const emptyResult = {
       totalPages: 0,
       totalElements: 0,
       size: 0,
@@ -150,6 +151,33 @@ export const fetchCenterWishlist = (params = {}) => {
       },
       empty: true
     }
+
+    // 格式 1: response 直接是分頁物件 { content: [...], totalPages, ... }
+    if (response?.content && Array.isArray(response.content)) {
+      console.log('✅ 找到分頁資料 (格式1)，項目數:', response.content.length)
+      return response
+    }
+
+    // 格式 2: { myWishlist: { content: [...] } }
+    if (response?.myWishlist?.content) {
+      console.log('✅ 找到 myWishlist (格式2)，項目數:', response.myWishlist.content.length)
+      return response.myWishlist
+    }
+
+    // 格式 3: { data: { myWishlist: { content: [...] } } }
+    if (response?.data?.myWishlist?.content) {
+      console.log('✅ 找到 data.myWishlist (格式3)，項目數:', response.data.myWishlist.content.length)
+      return response.data.myWishlist
+    }
+
+    // 格式 4: { data: { content: [...] } } (直接在 data 下)
+    if (response?.data?.content && Array.isArray(response.data.content)) {
+      console.log('✅ 找到 data.content (格式4)，項目數:', response.data.content.length)
+      return response.data
+    }
+
+    console.warn('⚠️ 無法解析願望清單分頁資料，返回空結果', response)
+    return emptyResult
   })
 }
 

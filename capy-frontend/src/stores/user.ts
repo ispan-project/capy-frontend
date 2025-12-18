@@ -3,7 +3,13 @@ import { ref, computed } from 'vue'
 // @ts-ignore - home.js 是 JavaScript 檔案
 import { getUserData } from '@/api/student/home.js'
 // @ts-ignore - oauth.js 是 JavaScript 檔案
-import { logout as logoutApi } from '@/api/oauth/oauth.js'
+import { logout as logoutApi, verifyAuth } from '@/api/oauth/oauth.js'
+// @ts-ignore - studentCenter.js 是 JavaScript 檔案
+import { useStudentCenterStore } from './studentCenter.js'
+// @ts-ignore - cart.ts 是 TypeScript 檔案
+import { useCartStore } from './cart'
+// @ts-ignore - wishlist.ts 是 TypeScript 檔案
+import { useWishlistStore } from './wishlist'
 
 /**
  * 使用者資訊介面
@@ -42,7 +48,8 @@ export const useUserStore = defineStore('user', () => {
     userId: null,
     nickname: '',
     email: '',
-    avatarUrl: ''
+    avatarUrl: '',
+    roles: []
   })
 
   /**
@@ -110,16 +117,42 @@ export const useUserStore = defineStore('user', () => {
       userId: null,
       nickname: '',
       email: '',
-      avatarUrl: ''
+      avatarUrl: '',
+      roles: []
     }
     cartQuantity.value = 0
     wishlistQuantity.value = 0
     notifyQuantity.value = 0
+
+    // 清除所有相關 Store 的快取
+    try {
+      const studentCenterStore = useStudentCenterStore()
+      studentCenterStore.clearAll()
+      console.log('✅ 已清除 Student Center Store 快取')
+    } catch (error) {
+      console.warn('清除 Student Center Store 快取時發生錯誤:', error)
+    }
+
+    try {
+      const cartStore = useCartStore()
+      cartStore.clearCart({ skipAPICall: true }) // 因為 Cookie 已被清除
+    } catch (error) {
+      // 靜默處理錯誤
+    }
+
+    try {
+      const wishlistStore = useWishlistStore()
+      wishlistStore.clearWishlist()
+      console.log('✅ 已清除 Wishlist Store 快取')
+    } catch (error) {
+      console.warn('清除 Wishlist Store 快取時發生錯誤:', error)
+    }
   }
 
   /**
    * 初始化使用者資訊
-   * 當頁面重新整理時，透過 Cookie 驗證並獲取使用者資料
+   * 統一使用 /student/user API 獲取完整資料（包含購物車、願望清單、通知數量）
+   *
    * 防止重複呼叫機制：如果正在初始化或已初始化，直接返回
    *
    * @returns {Promise<void>}
@@ -138,11 +171,11 @@ export const useUserStore = defineStore('user', () => {
     // 建立初始化 Promise
     initPromise = (async () => {
       try {
-        // 呼叫後端 API 驗證 Cookie 並獲取使用者資料
+        // 統一使用完整的 user API
+        console.log('🔐 呼叫 /student/user 獲取完整使用者資料')
         const response = await getUserData()
 
         // 檢查回應資料是否有效
-        // http.js 攔截器已經返回 response.data，所以 response 本身就是 data
         if (!response || !response.userInfo) {
           console.warn('後端回應資料格式不正確:', response)
           throw new Error('無效的回應資料格式')
@@ -155,7 +188,8 @@ export const useUserStore = defineStore('user', () => {
           userId: data.userInfo.userId,
           nickname: data.userInfo.nickname,
           email: data.userInfo.email,
-          avatarUrl: data.userInfo.avatarUrl || ''
+          avatarUrl: data.userInfo.avatarUrl || '',
+          roles: data.userInfo.roles || []
         }
 
         // 更新數量資訊
@@ -163,7 +197,10 @@ export const useUserStore = defineStore('user', () => {
         wishlistQuantity.value = data.wishlistQuantity
         notifyQuantity.value = data.notifyQuantity
 
-        console.log('✅ 使用者資訊初始化成功:', userInfo.value.nickname)
+        console.log('✅ 使用者完整資訊載入成功:', userInfo.value.nickname)
+        console.log('📊 購物車數量:', cartQuantity.value)
+        console.log('📊 願望清單數量:', wishlistQuantity.value)
+        console.log('📊 通知數量:', notifyQuantity.value)
       } catch (error: any) {
         // 靜默處理 401 錯誤（未登入狀態）
         if (error.status === 401 ||
@@ -189,7 +226,8 @@ export const useUserStore = defineStore('user', () => {
             userId: null,
             nickname: '',
             email: '',
-            avatarUrl: ''
+            avatarUrl: '',
+            roles: []
           }
           cartQuantity.value = 0
           wishlistQuantity.value = 0

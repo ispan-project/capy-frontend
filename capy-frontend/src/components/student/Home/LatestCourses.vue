@@ -85,25 +85,23 @@ const handleTagClick = (tag) => {
       pauseOnMouseEnter: true
     }"
     :breakpoints="{
-      1280: { slidesPerView: 3, spaceBetween: 30 },
-      1024: { slidesPerView: 2, spaceBetween: 24 },
+      320: { slidesPerView: 1.2, spaceBetween: 16 },
+      480: { slidesPerView: 1.2, spaceBetween: 16 },
       768: { slidesPerView: 2, spaceBetween: 20 },
-      480: { slidesPerView: 1, spaceBetween: 10 }
+      1024: { slidesPerView: 2, spaceBetween: 24 },
+      1280: { slidesPerView: 3, spaceBetween: 30 }
     }"
     class="course-swiper"
   >
     <swiper-slide v-for="course in displayCourses" :key="course.id">
       <ExploreCourseCard
         :course="course"
+        :hide-tags-on-mobile="true"
         @toggle-wishlist="toggleWishlist"
         @tag-click="handleTagClick"
       />
     </swiper-slide>
   </swiper>
-
-  <!-- Navigation Buttons -->
-  <div class="swiper-button-prev"></div>
-  <div class="swiper-button-next"></div>
 </template>
 
 <style scoped>
@@ -179,10 +177,24 @@ const handleTagClick = (tag) => {
   }
 }
 
-/* Mobile Breakpoint */
+/* Mobile Breakpoint - Hide Navigation Arrows */
 @media (max-width: 768px) {
   .course-swiper {
-    padding: 0 20px;
+    padding: 0 var(--capy-spacing-md);
+    margin: 20px auto;
+  }
+
+  /* Hide navigation arrows on mobile - rely on touch swipe */
+  .course-swiper :deep(.swiper-button-next),
+  .course-swiper :deep(.swiper-button-prev) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .course-swiper {
+    padding: 0 var(--capy-spacing-sm);
+    margin: 16px auto;
   }
 }
 </style>

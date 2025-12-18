@@ -1,6 +1,11 @@
 <template>
   <el-header class="header" :class="{ 'header-minimal': isApplicationPage }">
     <div class="header-content">
+      <!-- 手機版漢堡選單按鈕 -->
+      <div class="mobile-menu-btn" @click="handleMobileMenuToggle">
+        <el-icon :size="24" color="#fff"><Menu /></el-icon>
+      </div>
+
       <router-link to="/" class="logo">
         <el-icon :size="24" color="#fff"><Reading /></el-icon>
         <span class="logo-text">CapyCourse</span>
@@ -8,26 +13,15 @@
 
       <!-- 只在非申請頁面顯示 Explore 按鈕 -->
       <div v-if="!isApplicationPage" class="explore">
-        <router-link to="/explore">
-          <el-button class="btn-glass" >explore</el-button>
+        <router-link to="/explore" class="header-nav-link">
+          <el-icon><Compass /></el-icon>
+          <span>探索</span>
         </router-link>
       </div>
 
       <!-- 只在非申請頁面顯示搜尋框 -->
       <div v-if="!isApplicationPage" class="header-center">
-        <el-input
-          v-model="searchText"
-          placeholder="搜尋課程、標籤或講師..."
-          :prefix-icon="Search"
-          class="search-input"
-          size="large"
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #append>
-            <el-button :icon="Search" @click="handleSearch" />
-          </template>
-        </el-input>
+        <SearchInput />
       </div>
 
       <!-- 在申請頁面時顯示佔位元素，保持 Logo 和使用者選單的間距 -->
@@ -37,8 +31,9 @@
         <!-- 未登入時顯示按鈕 -->
         <template v-if="!userStore.isAuthenticated">
           <!-- 只在非申請頁面顯示 Become a Teacher 按鈕 -->
-          <router-link v-if="!isApplicationPage" to="/instructor/landing">
-            <el-button class="btn-glass" plain>Become a Teacher</el-button>
+          <router-link v-if="!isApplicationPage" to="/instructor/landing" class="header-nav-link">
+            <el-icon><School /></el-icon>
+            <span>成為老師</span>
           </router-link>
           <router-link to="/login">
             <el-button class="btn-white-pop">Log In</el-button>
@@ -51,8 +46,10 @@
           <router-link
             v-if="!isApplicationPage && !isInstructor"
             to="/instructor/landing"
+            class="header-nav-link"
           >
-            <el-button class="btn-ghost-teacher">Become a Teacher</el-button>
+            <el-icon><School /></el-icon>
+            <span>成為老師</span>
           </router-link>
 
           <!-- 只在非申請頁面顯示購物車、收藏、通知按鈕 -->
@@ -102,7 +99,7 @@
     </div>
 
     <!-- 購物車抽屜 -->
-    <TheCartDrawer v-model="showCartDrawer" />
+    <TheCartDrawer v-model="cartStore.isCartOpen" />
   </el-header>
 </template>
 
@@ -110,7 +107,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Search, Reading, ShoppingCart, Star, Bell } from '@element-plus/icons-vue'
+import { Search, Reading, ShoppingCart, Star, Bell, InfoFilled, Menu, Compass, School } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
 import { useWishlistStore } from '@/stores/wishlist'
@@ -120,44 +117,22 @@ import TheWishlistPopover from '@/components/student/wishlist/TheWishlistPopover
 import TheNotificationPopover from '@/components/student/notifications/TheNotificationPopover.vue'
 import ConnectionStatusIndicator from '@/components/student/notifications/ConnectionStatusIndicator.vue'
 import TheUserDropdown from '@/components/student/main/TheUserDropdown.vue'
+import SearchInput from './SearchInput.vue'
 
-const router = useRouter()
+const emit = defineEmits(['toggle-mobile-menu'])
+
+/**
+ * 處理手機版選單切換
+ */
+const handleMobileMenuToggle = () => {
+  emit('toggle-mobile-menu')
+}
+
 const route = useRoute()
 const userStore = useUserStore()
 const cartStore = useCartStore()
 const wishlistStore = useWishlistStore()
 const notificationStore = useNotificationStore()
-const searchText = ref('')
-const showCartDrawer = ref(false)
-
-/**
- * 處理搜尋
- * 導航到探索頁面並帶上搜尋關鍵字
- */
-const handleSearch = () => {
-  if (!searchText.value || searchText.value.trim() === '') {
-    ElMessage.warning('請輸入搜尋關鍵字')
-    return
-  }
-
-  const keyword = searchText.value.trim()
-
-  // 如果已經在探索頁面，直接更新 query
-  if (route.path === '/explore') {
-    router.push({
-      path: '/explore',
-      query: { search: keyword }
-    })
-  } else {
-    // 如果不在探索頁面，導航過去
-    router.push({
-      path: '/explore',
-      query: { search: keyword }
-    })
-  }
-
-  ElMessage.success(`搜尋：${keyword}`)
-}
 
 // ==================== 初始化資料 ====================
 
@@ -165,13 +140,13 @@ const handleSearch = () => {
 onMounted(async () => {
   // 注意：userStore.init() 已在 App.vue 和 router 中呼叫，這裡不需要重複呼叫
 
-  // 只有在已登入時才載入通知
+  // 只有在已登入時才載入願望清單
   if (userStore.isAuthenticated) {
     // 從 localStorage 載入願望清單（快速顯示，不呼叫 API）
     wishlistStore.loadFromStorage()
 
-    // 載入通知資料
-    notificationStore.fetchNotifications()
+    // 通知資料已由 App.vue 透過 SSE 自動維護，不需要在這裡重複載入
+    // notificationStore 的 unreadCount 和 notifications 會自動更新
   }
 })
 
@@ -232,7 +207,7 @@ const isInstructor = computed(() => {
  * 處理購物車點擊
  */
 const handleCart = () => {
-  showCartDrawer.value = true
+  cartStore.toggleCart()
 }
 
 /**
@@ -243,7 +218,22 @@ const handleNotifications = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "@/styles/breakpoints";
+
+.mobile-menu-btn {
+  display: none;
+  cursor: pointer;
+  padding: 8px;
+  margin-right: 8px;
+
+  @include mobile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 .header {
   background: var(--capy-primary);
   padding: 0;
@@ -291,43 +281,6 @@ const handleNotifications = () => {
   justify-content: space-between;
 }
 
-.search-input {
-  width: 100%;
-}
-
-.search-input :deep(.el-input__wrapper) {
-  background-color: rgba(255, 255, 255, 0.95);
-  transition: all var(--capy-transition-base);
-}
-
-.search-input :deep(.el-input__wrapper:hover) {
-  background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* 自動完成下拉樣式 */
-.autocomplete-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.item-icon {
-  color: var(--capy-primary);
-  font-size: 16px;
-}
-
-.item-label {
-  flex: 1;
-  font-size: 14px;
-  color: var(--capy-text-primary);
-}
-
-.item-type {
-  font-size: 12px;
-}
-
 .header-actions {
   display: flex;
   align-items: center;
@@ -335,47 +288,41 @@ const handleNotifications = () => {
   white-space: nowrap;
 }
 
-/* --- 1. 玻璃擬態按鈕 (Explore - 未登入狀態) --- */
-.btn-glass {
-  /* 預設狀態：半透明白底 + 白字 */
-  --el-button-bg-color: rgba(255, 255, 255, 0.15);
-  --el-button-border-color: rgba(255, 255, 255, 0.4);
-  --el-button-text-color: #ffffff;
-
-  /* Hover 狀態：變實心白底 + 藍字 */
-  --el-button-hover-bg-color: #ffffff;
-  --el-button-hover-border-color: #ffffff;
-  --el-button-hover-text-color: var(--capy-primary); /* 天藍色 #54CDF2 */
-
-  /* Active (點擊) 狀態 */
-  --el-button-active-bg-color: rgba(255, 255, 255, 0.9);
-  --el-button-active-border-color: #ffffff;
-
-  /* 額外特效 */
-  backdrop-filter: blur(4px); /* 磨砂玻璃效果 */
+/* --- New Header Nav Link Style (Button-like) --- */
+.header-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px; /* Slightly reduced height for better proportions */
+  padding: 0 16px;
+  border-radius: 20px; /* Pill shape */
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
   font-weight: 500;
-  transition: all 0.3s ease;
+
+  /* Glassmorphism Base */
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
 }
 
-/* --- 2. 半透明玻璃按鈕 (Become a Teacher - 已登入學生) --- */
-.btn-ghost-teacher {
-  /* 預設狀態：半透明白底 + 白色邊框 + 白字 */
-  --el-button-bg-color: rgba(255, 255, 255, 0.25); /* 半透明白色背景 */
-  --el-button-border-color: rgba(255, 255, 255, 0.6); /* 較明顯的白色邊框 */
-  --el-button-text-color: #ffffff;
+.header-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-  /* Hover 狀態：實心白底 + 主色文字 */
-  --el-button-hover-bg-color: #ffffff; /* 實心白色 */
-  --el-button-hover-border-color: #ffffff;
-  --el-button-hover-text-color: var(--capy-primary); /* 主色天空藍 */
+.header-nav-link:active {
+  transform: translateY(0);
+  background-color: rgba(255, 255, 255, 0.15);
+}
 
-  /* Active 狀態 */
-  --el-button-active-bg-color: #f5f5f5;
-  --el-button-active-border-color: #ffffff;
-  --el-button-active-text-color: var(--capy-primary);
-
-  font-weight: 600; /* 半粗體，提升可讀性 */
-  transition: all 0.3s ease;
+.header-nav-link .el-icon {
+  font-size: 16px; /* Slightly adjusted icon size */
 }
 
 /* --- 3. 純白跳色按鈕 (Log In) --- */
@@ -438,13 +385,75 @@ const handleNotifications = () => {
 
 @media (max-width: 768px) {
   .header-content {
-    flex-wrap: wrap;
+    flex-wrap: nowrap !important;
+    gap: 12px !important;
+    justify-content: space-between !important;
   }
 
+  /* FORCE Hide search bar on mobile */
   .header-center {
-    order: 3;
-    width: 100%;
-    max-width: 100%;
+    display: none !important;
+  }
+
+  /* FORCE Hide Explore button on mobile */
+  .explore {
+    display: none !important;
+  }
+
+  /* FORCE Hide "Become a Teacher" and other nav links on mobile */
+  .header-nav-link {
+    display: none !important;
+  }
+
+  /* FORCE Hide transaction group (cart, wishlist) on mobile */
+  .transaction-group,
+  .icon-group.transaction-group {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide notification group on mobile */
+  .notification-group,
+  .icon-group.notification-group {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide icon divider on mobile */
+  .icon-divider {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* FORCE Hide all icon badges on mobile */
+  .icon-badge {
+    display: none !important;
+  }
+
+  /* Adjust header actions for mobile - only show login/user dropdown */
+  .header-actions {
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Keep logo visible and adjust size */
+  .logo {
+    font-size: 18px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .logo-text {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0 12px !important;
+  }
+
+  .logo {
+    font-size: 16px !important;
   }
 }
 </style>

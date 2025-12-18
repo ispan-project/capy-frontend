@@ -9,7 +9,7 @@ import LessonFormDialog from "./LessonFormDialog.vue";
 import { getVideoUrl } from "@/api/teacher/video";
 import { createLesson, updateLesson } from "@/api/teacher/course";
 import { useVideoStore } from "@/stores/video";
-
+import transformSeconds from "@/utils/timetransform";
 const props = defineProps({
   sectionInfo: {
     type: Object,
@@ -17,7 +17,10 @@ const props = defineProps({
   },
 });
 const courseStore = useCourseStore();
-const { deleteSection, updateSection } = useLesson(props.sectionInfo);
+const { deleteSection, updateSection, deleteCourseLesson, reorderCourseLesson } = useLesson(
+  props.sectionInfo
+);
+
 const sectionTitle = ref(props.sectionInfo.title);
 const showSectionEditDialog = ref(false);
 const handleEditSection = async (val) => {
@@ -37,18 +40,13 @@ const handleCreateLesson = () => {
   isEditLesson.value = false;
   lessonVideoUrl.value = null;
   showLessonDialog.value = true;
-  // form.value = {
-  //   name: "",
-  //   isFree: false,
-  //   cate: "",
-  // };
 };
 const handleEditLesson = async (lessonInfo) => {
   isEditLesson.value = true;
   currentLesson.value = lessonInfo;
   const res = await getVideoUrl(lessonInfo.lessonId);
   console.log(res);
-  if (res.signedUrl) {
+  if (res?.signedUrl) {
     lessonVideoUrl.value = res.signedUrl;
   }
   showLessonDialog.value = true;
@@ -79,6 +77,9 @@ const handleSaveLesson = async (data) => {
         //加入上傳列表 開始上傳
         const videoStore = useVideoStore();
         videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
+        const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
+        console.log(1);
+        await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
       } else {
         // const message = isEditLesson.value ? "更新成功" : "創建成功";
         ElMessage.success("創建成功");
@@ -94,6 +95,7 @@ const handleSaveLesson = async (data) => {
         videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
         // uploadToGCP()
         const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
+        console.log(1);
         await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
       } else {
         // const message = isEditLesson.value ? "更新成功" : "創建成功";
@@ -107,152 +109,156 @@ const handleSaveLesson = async (data) => {
   }
 };
 const checkIsUploading = (lessonId) => {
-  return true;
-};
-const checkIsUploading = (lessonId) => {
-  return true;
-};
-/////////////////////////
-const tableData = ref([
-  {
-    date: "2016-05-03",
-    name: "Tom",
-    isFree: true,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-  {
-    date: "2016-05-02",
-    name: "Tom",
-    isFree: false,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-  {
-    date: "2016-05-04",
-    name: "Tom",
-    isFree: false,
-    address: "No. 189, Grove St, Los Angeles",
-  },
-]);
+  const { isUploading } = useVideo();
 
-// const modelMode = computed(() => {
-//   return isEdit.value ? "編輯單元影片" : "添加單元影片";
-// });
-// const dialogFormVisible = ref(false);
-// const editChapterDialog = ref(false);
-// const editChapter = () => {
-//   editChapterDialog.value = true;
-// };
-// const deleteChapter = () => {
-//   if (props.sectionInfo?.lessons.length > 0) {
-//     ElMessage.error("該章節尚有單元影片");
-//     return;
-//   }
-//   //刪除api
-// };
-
-const editLessonVid = (lesson) => {
-  isEdit.value = true;
-  dialogFormVisible.value = true;
-  form.value = lesson;
+  return isUploading(lessonId);
 };
-const deleteLessonVid = async () => {
-  try {
-    await ElMessageBox.confirm("即將刪除此單元影片!", "提醒", {
-      confirmButtonText: "確定",
-      cancelButtonText: "取消",
-      type: "warning",
-      center: true,
-    });
-    ElMessage.success("刪除成功");
-  } catch (e) {
-    ElMessage.info("已取消刪除");
+
+const handleDeleteLesson = async (lessonId) => {
+  await deleteCourseLesson(lessonId);
+};
+
+const lessonOrderList = computed(() => {
+  return props.sectionInfo.lessons.map((lesson) => lesson.lessonId);
+});
+let reverseFlag = false;
+watch(lessonOrderList, async (newVal, oldVal) => {
+  if (reverseFlag) {
+    reverseFlag = false;
+    return;
   }
+  const map = new Map(props.sectionInfo.lessons.map((s) => [s.lessonId, s]));
+  const verify = () => {
+    return newVal.every((val, index) => val === oldVal[index]);
+  };
+  if (newVal.length < 1) {
+    return;
+  }
+  if (newVal.length === oldVal.length && verify()) {
+    return;
+  }
+
+  try {
+    await reorderCourseLesson(newVal);
+
+    ElMessage.success("單元影片順序更新!");
+  } catch (e) {
+    ElMessage.error("影片順序更新失敗!");
+    reverseFlag = true;
+    props.sectionInfo.lessons = oldVal.map((id) => map.get(id)).filter((item) => item);
+  }
+});
+
+const handleStartDrag = () => {
+  ElMessage.primary("托拽以調整單元影片順序");
 };
 </script>
 <template>
-  <TextInputDialog
-    @confirm="handleEditSection"
-    v-model:visible="showSectionEditDialog"
-    v-model:inputValue="sectionTitle"
-    title="編輯章節名稱"
-    placeholder="輸入章節名稱"
-  />
-  <AlertDialog
-    @confirm="handleDeleteSection"
-    v-model:visible="showSectionDeleteDialog"
-    title="刪除章節"
-    alert-text="確定要刪除"
-    :highlight="props.sectionInfo.title"
-  />
-  <!-- //添加單元影片dialog form -->
-  <LessonFormDialog
-    :sectionInfo="props.sectionInfo"
-    :videoUrl="lessonVideoUrl"
-    @confirm="handleSaveLesson"
-    ref="lessonDialogRef"
-    v-model:visible="showLessonDialog"
-    :isEdit="isEditLesson"
-    :lessonInfo="currentLesson"
-  />
+  <div>
+    <TextInputDialog
+      @confirm="handleEditSection"
+      v-model:visible="showSectionEditDialog"
+      v-model:inputValue="sectionTitle"
+      title="編輯章節名稱"
+      placeholder="輸入章節名稱"
+    />
+    <AlertDialog
+      @confirm="handleDeleteSection"
+      v-model:visible="showSectionDeleteDialog"
+      title="刪除章節"
+      alert-text="確定要刪除"
+      :highlight="props.sectionInfo.title"
+    />
+    <!-- //添加單元影片dialog form -->
+    <LessonFormDialog
+      :sectionInfo="props.sectionInfo"
+      v-model:videoUrl="lessonVideoUrl"
+      @confirm="handleSaveLesson"
+      ref="lessonDialogRef"
+      v-model:visible="showLessonDialog"
+      :isEdit="isEditLesson"
+      :lessonInfo="currentLesson"
+    />
 
-
-  <el-collapse-item>
-    <template #icon="{ isActive }">
-      <el-icon size="large" v-show="isActive"><ArrowDownBold /></el-icon>
-      <el-icon size="large" v-show="!isActive"><ArrowRightBold /></el-icon>
-    </template>
-    <template #title>
-      <div style="display: flex; align-items: center; gap: 12px">
-        <p style="font-size: 20px; padding: 5px 0; padding-left: 20px">
-          {{ sectionInfo?.title
-          }}<span v-if="sectionInfo.lessons?.length > 0" style="font-size: 14px">
-            | 共{{ sectionInfo?.lessons?.length }}單元 時長:992分鐘</span
-          >
-        </p>
-        <div>
-          <el-button @click.stop="showSectionEditDialog = true">編輯</el-button
-          ><el-button @click.stop="showSectionDeleteDialog = true" type="info">刪除</el-button>
+    <el-collapse-item :name="sectionInfo.sectionId ?? sectionInfo.id">
+      <template #icon="{ isActive }">
+        <el-icon size="large" v-show="isActive"><ArrowDownBold /></el-icon>
+        <el-icon size="large" v-show="!isActive"><ArrowRightBold /></el-icon>
+      </template>
+      <template #title>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-right: 24px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+          "
+        >
+          <p style="font-size: 20px; padding: 5px 0; padding-left: 20px">
+            {{ sectionInfo?.title
+            }}<span v-if="sectionInfo.lessons?.length > 0" style="font-size: 14px">
+              | 共{{ sectionInfo?.lessons?.length }}單元 時長:992分鐘</span
+            >
+          </p>
+          <div>
+            <el-button @click.stop="showSectionEditDialog = true">編輯</el-button
+            ><el-button @click.stop="showSectionDeleteDialog = true" type="info">刪除</el-button>
+          </div>
         </div>
+      </template>
+      <div>
+        <el-button plain class="upload-btn" @click="handleCreateLesson">
+          <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
+        >
+        <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
+          <Draggable @start="handleStartDrag" v-model="sectionInfo.lessons">
+            <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
+              <div style="display: flex; align-items: center; flex: 2">
+                <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
+                >{{ lesson.lessonTitle
+                }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
+              </div>
+              <div v-if="!checkIsUploading(lesson.lessonId)">
+                {{
+                  lesson.videoAssetStatus === "upload_failed"
+                    ? "暫無影片"
+                    : transformSeconds(lesson.lessonDurationSeconds)
+                }}
+
+                <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"
+                  >編輯
+                </el-button>
+                <el-button type="info" @click="handleDeleteLesson(lesson.lessonId)"
+                  >刪除
+                </el-button>
+              </div>
+              <div v-else style="flex: 1">
+                上傳中...請稍後
+                <el-progress
+                  :percentage="100"
+                  :show-text="false"
+                  :indeterminate="true"
+                  :duration="5"
+                />
+              </div>
+            </li>
+          </Draggable>
+        </ul>
       </div>
-    </template>
-    <div>
-      <el-button plain class="upload-btn" @click="handleCreateLesson">
-        <el-icon><CirclePlus /></el-icon>上傳單元影片</el-button
-      >
-      <ul v-if="sectionInfo.lessons?.length > 0" class="course-playlist">
-        <Draggable v-model="tableData">
-          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
-            <div style="display: flex; align-items: center">
-              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
-              >{{ lesson.lessonTitle
-              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
-            </div>
-            <div v-if="checkIsUploading(lesson.lessonId)">
-              {{ lesson.lessonDurationSeconds }}
-          <li v-for="(lesson, index) in sectionInfo?.lessons" :key="lesson.lessonId">
-            <div style="display: flex; align-items: center">
-              <span class="index">{{ index < 10 ? "0" + (index + 1) : index }}</span
-              >{{ lesson.lessonTitle
-              }}<el-tag v-show="lesson.freePreview" style="margin-left: 8px">試看單元</el-tag>
-            </div>
-            <div v-if="checkIsUploading(lesson.lessonId)">
-              {{ lesson.lessonDurationSeconds }}
-              <el-button style="margin-left: 8px" @click="handleEditLesson(lesson)"
-                >編輯
-              </el-button>
-              <el-button type="info" @click="deleteLessonVid(lesson)">刪除 </el-button>
-            </div>
-          </li>
-        </Draggable>
-      </ul>
-    </div>
-  </el-collapse-item>
+    </el-collapse-item>
+  </div>
 </template>
 <style scoped>
 :deep(.el-collapse-item__header) {
   background-color: rgb(221, 233, 246);
   border-radius: 8px;
 }
+:deep(.el-collapse-item__header.focusing:focus:not(:hover)) {
+  color: #000;
+}
+
 :deep(.el-collapse-item__content) {
   padding: 10px 0;
   background-color: rgb(245, 247, 249);
@@ -284,6 +290,8 @@ const deleteLessonVid = async () => {
   padding: 10px 10px;
   /* border-radius: 8px; */
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
 }
 .course-playlist li .index {
@@ -297,7 +305,6 @@ const deleteLessonVid = async () => {
 .dialogForm {
   padding: 16px;
 }
-
 
 .collapse-chapter-btns {
   position: absolute;

@@ -138,11 +138,12 @@ export const getOrderSuccess = (orderId) => {
 
 /**
  * 取得訂單列表（學生中心）
- * GET /student/center/orders?status=<paid|pending|failed>&page=&size=
+ * GET /student/center/orders?status=<paid|pending|failed>&page=&size=&sort=
  *
  * @param {string} status - 狀態篩選 (paid|pending|failed)，不傳則取得全部
  * @param {number} page - 頁碼（0-based）
  * @param {number} size - 每頁數量
+ * @param {string} sort - 排序參數 (例如: 'createdAt,asc' 或 'createdAt,desc')，不傳則使用後端預設
  * @returns {Promise} 回傳分頁的訂單列表
  * @example
  * Response: {
@@ -171,7 +172,7 @@ export const getOrderSuccess = (orderId) => {
  *   "size": 0
  * }
  */
-export const getOrdersList = (status, page = 0, size = 10) => {
+export const getOrdersList = (status, page = 0, size = 10, sort = null) => {
   // 如果 status 為 undefined 或 null，不傳遞 status 參數
   const params = new URLSearchParams({
     page: page.toString(),
@@ -180,6 +181,11 @@ export const getOrdersList = (status, page = 0, size = 10) => {
 
   if (status) {
     params.append('status', status);
+  }
+
+  // 如果有指定排序參數，加入到查詢字串中
+  if (sort) {
+    params.append('sort', sort);
   }
 
   return instance.get(`/student/center/orders?${params.toString()}`);

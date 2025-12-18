@@ -117,6 +117,17 @@
             加入購物車
           </el-button>
 
+          <!-- 願望清單按鈕：僅訪客用戶顯示，根據狀態切換 -->
+          <el-button
+            v-if="!course.isEnrolled"
+            size="large"
+            :class="isInWishlist ? 'wishlist-btn-active' : 'wishlist-btn'"
+            @click="handleToggleWishlist"
+          >
+            <el-icon><Star :filled="isInWishlist" /></el-icon>
+            {{ isInWishlist ? '移除願望清單' : '加入願望清單' }}
+          </el-button>
+
           <div class="course-includes">
             <h4 class="includes-title">課程總長</h4>
             <div class="include-item">
@@ -158,16 +169,21 @@
           ></video>
           <!-- 購買課程覆蓋層 -->
           <div v-if="showBuyOverlay" class="buy-overlay">
-            <div class="buy-overlay-content">
-              <el-icon class="buy-icon"><Lock /></el-icon>
-              <h3 class="buy-title">試看結束</h3>
-              <p class="buy-text">購買課程以繼續學習完整內容</p>
-              <el-button type="warning" size="large" class="buy-now-btn">
-                立即購買課程
-              </el-button>
+              <div class="buy-overlay-content">
+                <el-icon class="buy-icon"><Lock /></el-icon>
+                <h3 class="buy-title">試看結束</h3>
+                <p class="buy-text">購買課程以繼續學習完整內容</p>
+                <el-button
+                  type="warning"
+                  size="large"
+                  class="buy-now-btn"
+                  @click="handleBuyNow"
+                >
+                  立即購買課程
+                </el-button>
+              </div>
             </div>
           </div>
-        </div>
       </div>
     </el-dialog>
   </div>
@@ -176,7 +192,7 @@
 <script setup>
 import { ref, onMounted, computed, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { List, Download, Clock, VideoPlay, Lock } from '@element-plus/icons-vue'
+import { List, Download, Clock, VideoPlay, Lock, Star } from '@element-plus/icons-vue'
 import { ElMessage, ElLoading } from 'element-plus'
 import CourseContent from '@/components/student/CourseDetail/CourseContent.vue'
 import CourseIntro from '@/components/student/CourseDetail/CourseIntro.vue'
@@ -192,12 +208,14 @@ import {
 } from '@/api/student/courseDetail'
 import { useCartStore } from '@/stores/cart'
 import { useUserStore } from '@/stores/user'
+import { useWishlistStore } from '@/stores/wishlist'
 import { createOrder } from '@/api/student/orders'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 const userStore = useUserStore()
+const wishlistStore = useWishlistStore()
 
 // 載入狀態
 const loading = ref(false)
@@ -243,10 +261,8 @@ const course = computed(() => {
   const { courseInfo } = courseData.value
   const { course: courseBasic, sections, rateTable, userReviews, isEnrolled } = courseInfo
 
-  // 計算總時長
-  const totalDurationMinutes = calculateTotalDuration(sections || [])
-  const totalHours = Math.floor(totalDurationMinutes / 60)
-  const totalMinutes = totalDurationMinutes % 60
+  // 使用後端提供的總時長（已轉換為小時並向上取整）
+  const totalHours = courseBasic?.totalHours || 0
 
   return {
     id: courseBasic?.courseId,
@@ -254,11 +270,11 @@ const course = computed(() => {
     description: courseBasic?.description || '',
     cover: courseBasic?.coverImageUrl || 'https://via.placeholder.com/800x400?text=Course+Image',
     price: courseBasic?.price || 0,
-    duration: `${totalHours}h ${totalMinutes}m`,
+    duration: `${totalHours}h`,
     sections: courseBasic?.totalSections || 0,
-    attachments: 0, // API 未提供此欄位
-    totalLength: `${totalHours} 小時 ${totalMinutes} 分鐘的影片`,
-    resources: 0, // API 未提供此欄位
+    attachments: courseBasic?.attachmentCount || 0,
+    totalLength: `${totalHours} 小時的影片`,
+    resources: courseBasic?.attachmentCount || 0,
     rating: rateTable?.averageRating || 0,
     totalReviews: rateTable?.reviewCount || 0,
     ratingDistribution: (() => {
@@ -282,7 +298,7 @@ const course = computed(() => {
       lessons: (section.lessons || []).map(lesson => ({
         id: lesson.lessonId,
         title: lesson.lessonTitle,
-        duration: `${lesson.lessonDurationMinutes}m`,
+        duration: lesson.lessonDurationText || '0分0秒',
         preview: lesson.freePreview,
         description: lesson.description,
         displayOrder: lesson.displayOrder
@@ -308,6 +324,13 @@ const course = computed(() => {
 })
 
 /**
+ * 檢查課程是否在願望清單中
+ */
+const isInWishlist = computed(() => {
+  return course.value.id ? wishlistStore.hasItem(course.value.id) : false
+})
+
+/**
  * 格式化評論日期
  */
 const formatReviewDate = (dateString) => {
@@ -316,16 +339,25 @@ const formatReviewDate = (dateString) => {
   const date = new Date(dateString)
   const now = new Date()
   const diffTime = Math.abs(now - date)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-  if (diffDays < 30) {
-    return `${diffDays} days ago`
+  const diffMinutes = Math.floor(diffTime / (1000 * 60))
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffMinutes < 1) {
+    return '剛剛'
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} 分鐘前`
+  } else if (diffHours < 24) {
+    return `${diffHours} 小時前`
+  } else if (diffDays < 30) {
+    return `${diffDays} 天前`
   } else if (diffDays < 365) {
     const months = Math.floor(diffDays / 30)
-    return `${months} month${months > 1 ? 's' : ''} ago`
+    return `${months} 個月前`
   } else {
     const years = Math.floor(diffDays / 365)
-    return `${years} year${years > 1 ? 's' : ''} ago`
+    return `${years} 年前`
   }
 }
 
@@ -481,6 +513,13 @@ const handleBuyNow = async () => {
     return
   }
 
+  // 已擁有課程就直接帶去學習頁，避免觸發 400
+  if (course.value.isEnrolled) {
+    ElMessage.info('您已擁有此課程，帶您回到學習頁')
+    navigateToLearning()
+    return
+  }
+
   // 檢查課程是否已在購物車中
   const alreadyInCart = cartStore.hasItem(course.value.id)
 
@@ -557,6 +596,41 @@ const handleAddToCart = async () => {
     price: course.value.price,
     cover_image_url: course.value.cover
   })
+}
+
+/**
+ * 處理願望清單切換（加入/移除）
+ */
+const handleToggleWishlist = async () => {
+  // 檢查登入狀態
+  if (!userStore.isAuthenticated) {
+    ElMessage.warning('請先登入以使用願望清單功能')
+    router.push({
+      name: 'login',
+      query: { redirect: route.fullPath }
+    })
+    return
+  }
+
+  if (!course.value.id) {
+    ElMessage.error('課程資訊錯誤')
+    return
+  }
+
+  // 檢查課程是否已在願望清單中
+  if (isInWishlist.value) {
+    // 從願望清單移除
+    await wishlistStore.removeItem(course.value.id)
+  } else {
+    // 加入願望清單
+    await wishlistStore.addItem({
+      id: course.value.id,
+      title: course.value.title,
+      instructor: course.value.instructor.name,
+      price: course.value.price,
+      cover_image_url: course.value.cover
+    })
+  }
 }
 
 /**
@@ -946,6 +1020,47 @@ onBeforeUnmount(async () => {
 
 .cart-btn:hover {
   background: #f0f9f4;
+}
+
+/* 願望清單按鈕樣式 - 未加入狀態 */
+.wishlist-btn {
+  width: calc(100% - 48px);
+  margin: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #fff;
+  border: 2px solid #FB8C00;
+  color: #FB8C00;
+  transition: all 0.3s ease;
+}
+
+.wishlist-btn:hover {
+  background: #FFF3E0;
+}
+
+.wishlist-btn .el-icon {
+  margin-right: 4px;
+}
+
+/* 願望清單按鈕樣式 - 已加入狀態 */
+.wishlist-btn-active {
+  width: calc(100% - 48px);
+  margin: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #FB8C00;
+  border: 2px solid #FB8C00;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.wishlist-btn-active:hover {
+  background: #E67E00;
+  border-color: #E67E00;
+}
+
+.wishlist-btn-active .el-icon {
+  margin-right: 4px;
 }
 
 .course-includes {

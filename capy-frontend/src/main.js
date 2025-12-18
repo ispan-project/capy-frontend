@@ -1,6 +1,5 @@
 import "./styles/style.css";
 import "./styles/common.css";
-import "./styles/admin-dashboard.css";
 import "./styles/theme-variables.css";
 // import "./styles/learning.scss";
 
@@ -9,7 +8,6 @@ import { createPinia } from "pinia";
 import ElementPlus from "element-plus";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "element-plus/dist/index.css";
-import "./styles/element-plus-override.css";
 import { Icon } from "@iconify/vue";
 import App from "./App.vue";
 import router from "./router";

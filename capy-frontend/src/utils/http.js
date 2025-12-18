@@ -38,13 +38,11 @@ instance.interceptors.response.use(
 
     // 處理 401 未授權錯誤（Cookie 過期或無效）
     if (error.response?.status === 401) {
-      // Cookie 由後端管理，前端不需要手動清除
-
-      // 特殊處理：如果是 /student/verify 端點的 401，這是正常的未登入狀態
-      const isVerifyEndpoint = error.config?.url?.includes("/student/verify");
+      // 特殊處理：如果是 /auth/verify 端點的 401，這是正常的未登入狀態
+      const isVerifyEndpoint = error.config?.url?.includes("/auth/verify");
 
       if (isVerifyEndpoint) {
-        // 這是正常的未登入狀態，完全靜默處理（不記錄任何訊息）
+        // 這是正常的未登入狀態，完全靜默處理
         return Promise.reject({
           handled: true,
           status: 401,
@@ -53,8 +51,26 @@ instance.interceptors.response.use(
         });
       }
 
+      // 清除前端登入狀態
+      // 動態導入 userStore 以避免循環依賴
+      import('@/stores/user').then(({ useUserStore }) => {
+        const userStore = useUserStore();
+        // 清除使用者資訊（不呼叫後端 logout API，因為 Cookie 已失效）
+        userStore.userInfo = {
+          userId: null,
+          nickname: '',
+          email: '',
+          avatarUrl: '',
+          roles: []
+        };
+        userStore.cartQuantity = 0;
+        userStore.wishlistQuantity = 0;
+        userStore.notifyQuantity = 0;
+      }).catch(err => {
+        console.warn('清除使用者狀態時發生錯誤:', err);
+      });
+
       // 公開頁面列表（不需要重導向到登入頁）
-      // 包含所有不需要登入就能訪問的頁面
       const publicPages = [
         '/',                    // 主頁
         '/login',               // 登入頁
@@ -64,28 +80,27 @@ instance.interceptors.response.use(
         '/verify-email',        // 驗證信箱
         '/oauth-callback',      // OAuth 回調
         '/explore',             // 課程探索
-        '/courses/',            // 課程詳情（包含所有課程 ID）
-        '/teacherdetail/',      // 老師詳情（包含所有老師 ID）
+        '/courses/',            // 課程詳情
+        '/teacherdetail/',      // 老師詳情
         '/instructor/landing',  // 講師介紹頁
         '/about',               // 關於我們
         '/contact',             // 聯絡我們
-        '/privacy'              // 隱私政策
+        '/privacy',             // 隱私政策
+        '/legal'                // 法律條款
       ];
       const currentPath = window.location.pathname;
       const isPublicPage = publicPages.some(page => currentPath.startsWith(page) || currentPath === page);
 
       // 如果不是公開頁面，則導向登入頁
       if (!isPublicPage) {
-        console.log("認證已過期，導向登入頁");
-        ElMessage.error("555");
+        console.log("🔒 認證已過期，清除登入狀態並導向登入頁");
         router.push({
           name: "login",
           query: { redirect: window.location.pathname + window.location.search },
         });
-        // window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
       }
 
-      // 401 錯誤已處理，不再拋出到 Console
+      // 401 錯誤已處理
       return Promise.reject({
         handled: true,
         status: 401,

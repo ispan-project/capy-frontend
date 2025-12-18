@@ -48,7 +48,6 @@ const formatDuration = (seconds) => {
 // 打開課程詳情對話框
 const openLessonDetail = async (lesson) => {
   currentLesson.value = lesson;
-  dialogFormVisible.value = true;
 
   // 取得影片簽名 URL
   try {
@@ -61,6 +60,7 @@ const openLessonDetail = async (lesson) => {
     console.error("Failed to get video URL:", error);
   } finally {
     loadingVideo.value = false;
+    dialogFormVisible.value = true;
   }
 };
 
@@ -109,8 +109,10 @@ watch(
   async (value) => {
     await nextTick();
     if (value && videoPlayerRef.value && videoUrl.value) {
+      console.log(videoUrl.value);
+
       await videoPlayerRef.value.init();
-      await videoPlayerRef.value.play();
+      await videoPlayerRef.value.play(videoUrl.value);
     } else if (!value && videoPlayerRef.value) {
       await videoPlayerRef.value.destroy();
       videoUrl.value = "";
@@ -641,7 +643,7 @@ watch(
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   .section-meta {
     width: 100%;
     justify-content: flex-start;

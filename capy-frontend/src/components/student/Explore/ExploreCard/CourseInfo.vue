@@ -3,28 +3,32 @@
     <!-- Title -->
     <h3 class="course-title">{{ course.title }}</h3>
 
-    <!-- Tags (below title) - Limited to 3 tags -->
+    <!-- Tags (Scrollable) -->
     <div class="course-tags" v-if="!hideTags && course.tags && course.tags.length > 0">
       <span
-        v-for="tag in visibleTags"
+        v-for="tag in course.tags"
         :key="tag"
         class="tag-item"
         @click="handleTagClick(tag, $event)"
       >
         {{ tag }}
       </span>
-      <span v-if="remainingTagsCount > 0" class="tag-more">
-        +{{ remainingTagsCount }}
-      </span>
     </div>
 
     <!-- Teacher -->
-    <p class="course-teacher">{{ course.instructorName || course.instructor_name || '未知' }} 老師</p>
+    <p class="course-teacher">
+      <span
+        class="teacher-link"
+        @click="handleTeacherClick"
+      >
+        {{ course.instructorName || course.instructor_name || '未知' }} 老師
+      </span>
+    </p>
 
     <!-- Rating -->
     <div class="course-rating">
       <el-rate
-        :model-value="parseFloat(course.averageRating) || 0"
+        :model-value="parseFloat(course.averageRating || course.rating) || 0"
         disabled
         allow-half
         :max="5"
@@ -32,8 +36,8 @@
         void-color="#d0d0d0"
         disabled-void-color="#d0d0d0"
       />
-      <span class="rating-score">{{ course.averageRating ? Number(course.averageRating).toFixed(1) : '0.0' }}</span>
-      <span class="rating-count">({{ formatCount(course.reviewCount) }})</span>
+      <span class="rating-score">{{ (course.averageRating || course.rating) ? Number(course.averageRating || course.rating).toFixed(1) : '0.0' }}</span>
+      <span class="rating-count">({{ formatCount(course.reviewCount || course.review_count) }})</span>
     </div>
 
     <!-- Price -->
@@ -44,7 +48,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const props = defineProps({
   course: {
@@ -54,30 +60,10 @@ const props = defineProps({
   hideTags: {
     type: Boolean,
     default: false
-  },
-  maxTags: {
-    type: Number,
-    default: 3
   }
 })
 
 const emit = defineEmits(['tag-click'])
-
-// 限制顯示的標籤數量
-const visibleTags = computed(() => {
-  if (!props.course.tags || props.course.tags.length === 0) {
-    return []
-  }
-  return props.course.tags.slice(0, props.maxTags)
-})
-
-// 計算剩餘標籤數量
-const remainingTagsCount = computed(() => {
-  if (!props.course.tags || props.course.tags.length <= props.maxTags) {
-    return 0
-  }
-  return props.course.tags.length - props.maxTags
-})
 
 const formatCount = (count) => {
   if (count == null) {
@@ -107,15 +93,30 @@ const handleTagClick = (tag, event) => {
   event.stopPropagation()
   emit('tag-click', tag)
 }
+
+const handleTeacherClick = (event) => {
+  // 阻止事件冒泡，避免觸發卡片的點擊事件
+  event.stopPropagation()
+
+  const instructorId = props.course.instructorId || props.course.instructor_id
+  if (instructorId) {
+    router.push(`/teacherdetail/${instructorId}`)
+  }
+}
 </script>
 
 
-<style scoped>
+<style lang="scss" scoped>
 .course-info {
   padding: 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* 防止內容溢出撐開寬度 */
+
+  @include mobile {
+    padding: 14px;
+  }
 }
 
 .course-title {
@@ -132,13 +133,32 @@ const handleTagClick = (tag, event) => {
   text-overflow: ellipsis;
   min-height: 48px; /* 2 lines * 24px (16px * 1.5) */
   max-height: 48px;
+
+  @include mobile {
+    font-size: 15px;
+  }
 }
 
 .course-tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* 不換行 */
   gap: 6px;
   margin-bottom: var(--capy-spacing-sm);
+  overflow-x: auto; /* 允許橫向捲動 */
+  -webkit-overflow-scrolling: touch; /* iOS 滑動順暢 */
+  scrollbar-width: none; /* Firefox 隱藏捲軸 */
+  margin-right: -16px; /* 抵消父層 padding，讓標籤可以滑到邊緣 */
+  padding-right: 16px; /* 補回 padding，確保最後一個標籤有空間 */
+  
+  /* Chrome, Safari, Edge 隱藏捲軸 */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include mobile {
+    margin-right: -14px;
+    padding-right: 14px;
+  }
 }
 
 .tag-item {
@@ -152,24 +172,14 @@ const handleTagClick = (tag, event) => {
   border: 1px solid rgba(84, 205, 242, 0.2);
   cursor: pointer;
   transition: all var(--capy-transition-fast);
-}
+  white-space: nowrap; /* 確保標籤內容不換行 */
+  flex-shrink: 0; /* 防止標籤被壓縮 */
 
-.tag-item:hover {
-  background: rgba(84, 205, 242, 0.15);
-  border-color: var(--capy-primary);
-  transform: translateY(-1px);
-}
-
-.tag-more {
-  display: inline-block;
-  padding: 3px 10px;
-  background: rgba(144, 147, 153, 0.1);
-  color: var(--capy-text-secondary);
-  font-size: var(--capy-font-size-xs);
-  font-weight: var(--capy-font-weight-semibold);
-  border-radius: 12px;
-  border: 1px solid rgba(144, 147, 153, 0.2);
-  cursor: default;
+  &:hover {
+    background: rgba(84, 205, 242, 0.15);
+    border-color: var(--capy-primary);
+    transform: translateY(-1px);
+  }
 }
 
 .course-teacher {
@@ -179,15 +189,35 @@ const handleTagClick = (tag, event) => {
   margin: 0 0 12px 0;
 }
 
+.teacher-link {
+  cursor: pointer;
+  transition: color var(--capy-transition-fast);
+
+  &:hover {
+    color: var(--capy-primary);
+    text-decoration: underline;
+  }
+}
+
 .course-rating {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-}
 
-.course-rating :deep(.el-rate) {
-  height: auto;
+  :deep(.el-rate) {
+    height: auto;
+  }
+
+  /* 只對已填滿的星星設定橘色 */
+  :deep(.el-rate__icon.is-active) {
+    color: var(--capy-warning);
+  }
+
+  /* 空星星使用灰色 */
+  :deep(.el-rate__icon:not(.is-active)) {
+    color: #d0d0d0;
+  }
 }
 
 .rating-score {
@@ -197,27 +227,13 @@ const handleTagClick = (tag, event) => {
   margin-left: 4px;
 }
 
-/* 只對已填滿的星星設定橘色 */
-.course-rating :deep(.el-rate__icon.is-active) {
-  color: var(--capy-warning);
-}
-
-/* 空星星使用灰色 */
-.course-rating :deep(.el-rate__icon:not(.is-active)) {
-  color: #d0d0d0;
-}
-
 .rating-count {
   font-size: 13px;
   color: var(--capy-text-secondary);
-}
 
-.rating-count::before {
-  content: '';
-}
-
-.rating-count::after {
-  content: '則評價';
+  &::after {
+    content: '則評價';
+  }
 }
 
 .course-price {
@@ -225,6 +241,11 @@ const handleTagClick = (tag, event) => {
   align-items: center;
   margin-top: auto;
   padding-top: 8px;
+  justify-content: flex-start;
+
+  @include mobile {
+    justify-content: space-between;
+  }
 }
 
 .price {
@@ -232,16 +253,11 @@ const handleTagClick = (tag, event) => {
   font-weight: 700;
   color: var(--capy-danger);
   letter-spacing: 0.5px;
-}
 
-/* RWD */
-@media (max-width: 768px) {
-  .course-title {
-    font-size: 15px;
-  }
-
-  .course-info {
-    padding: 14px;
+  @include mobile {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--capy-text-primary); /* 手機版使用深色文字，視覺上更穩重 */
   }
 }
 </style>

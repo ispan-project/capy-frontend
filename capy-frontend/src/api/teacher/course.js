@@ -18,6 +18,15 @@ export const updateCourseDetail = (data) => {
 export const getCourseOverview = (id) => {
   return axios.get(`teacher/courses/${id}/overview`);
 };
+export const deleteCourse = (courseId) => {
+  return axios.delete(`/teacher/courses/${courseId}/delete-course`);
+};
+export const submitCourse = (courseId) => {
+  return axios.post(`/teacher/courses/${courseId}/submit-review`);
+};
+export const editCoursePrice = (id, data) => {
+  axios.put(`teacher/courses/${id}/price`, data);
+};
 //section
 export const createSection = (data) => {
   return axios.post("/teacher/courses/add-section", data);
@@ -40,4 +49,7 @@ export const updateLesson = (data) => {
 };
 export const deleteLesson = (lessonId) => {
   return axios.delete(`/teacher/courses/${lessonId}/delete-lesson`);
+};
+export const reorderLesson = (sectionId, data) => {
+  return axios.post(`/teacher/courses/sections/${sectionId}/lessons/reorder`, data);
 };

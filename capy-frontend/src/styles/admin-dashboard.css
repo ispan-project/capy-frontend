@@ -260,10 +260,14 @@
 }
 
 .el-radio-group .el-radio-button__inner:hover {
+/* 限定在 admin 路由下才套用,避免影響學生端 */
+.admin-layout .el-radio-group .el-radio-button__inner:hover,
+[class*="admin"] .el-radio-group .el-radio-button__inner:hover {
     color: var(--admin-primary);
 }
 
-.el-radio-group .el-radio-button__original-radio:checked+.el-radio-button__inner {
+.admin-layout .el-radio-group .el-radio-button__original-radio:checked+.el-radio-button__inner,
+[class*="admin"] .el-radio-group .el-radio-button__original-radio:checked+.el-radio-button__inner {
     background-color: var(--admin-primary) !important;
     border-color: var(--admin-primary) !important;
     box-shadow: -1px 0 0 0 var(--admin-primary) !important;
@@ -540,4 +544,5 @@
 
 .admin-dialog-gradient :deep(.el-dialog__body) {
     padding: 24px;
+}
 }

@@ -33,7 +33,7 @@
               :before-upload="beforeAvatarUpload"
               :auto-upload="false"
               :on-change="handleAvatarChange"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg"
             >
               <div class="avatar-container">
                 <img
@@ -626,12 +626,18 @@ watch(
  */
 const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) => {
   return new Promise((resolve, reject) => {
+    // 設定 10 秒超時
+    const timeout = setTimeout(() => {
+      reject(new Error('圖片處理超時，請嘗試較小的圖片'))
+    }, 10000)
+
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (e) => {
       const img = new Image()
       img.src = e.target.result
       img.onload = () => {
+        clearTimeout(timeout)
         const canvas = document.createElement('canvas')
         let width = img.width
         let height = img.height
@@ -660,6 +666,11 @@ const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) =
         const tryCompress = () => {
           canvas.toBlob(
             (blob) => {
+              if (!blob) {
+                reject(new Error('圖片壓縮失敗：無法生成壓縮後的圖片'))
+                return
+              }
+
               const sizeMB = blob.size / 1024 / 1024
 
               if (sizeMB <= maxSizeMB || quality <= 0.1) {
@@ -677,9 +688,15 @@ const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) =
 
         tryCompress()
       }
-      img.onerror = reject
+      img.onerror = (error) => {
+        clearTimeout(timeout)
+        reject(new Error('圖片載入失敗：檔案可能已損壞或格式不支援'))
+      }
     }
-    reader.onerror = reject
+    reader.onerror = (error) => {
+      clearTimeout(timeout)
+      reject(new Error('檔案讀取失敗：無法讀取圖片內容'))
+    }
   })
 }
 
@@ -687,12 +704,31 @@ const compressImage = (file, maxSizeMB = 1, maxWidth = 1024, maxHeight = 1024) =
 const handleAvatarChange = async (file) => {
   if (!file || !file.raw) return
 
+  // 驗證檔案類型
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+  if (!allowedTypes.includes(file.raw.type)) {
+    ElMessage.error('只支援 PNG、JPEG 或 JPG 格式的圖片')
+    return
+  }
+
+  // 驗證檔案大小（10MB 限制）
+  if (file.raw.size > 10 * 1024 * 1024) {
+    ElMessage.error('圖片大小不能超過 10MB')
+    return
+  }
+
+  // 驗證檔案是否為空
+  if (file.raw.size === 0) {
+    ElMessage.error('圖片檔案無效或已損壞')
+    return
+  }
+
   // 清理舊的預覽 URL
   cleanupPreview()
 
   try {
-    // 壓縮圖片到 1MB 以下
-    const compressedBlob = await compressImage(file.raw, 1, 1024, 1024)
+    // 壓縮圖片到 5MB 以下
+    const compressedBlob = await compressImage(file.raw, 5, 2048, 2048)
 
     // 創建壓縮後的 File 物件
     const compressedFile = new File(
@@ -708,14 +744,18 @@ const handleAvatarChange = async (file) => {
     // 顯示壓縮資訊
     const originalSizeMB = (file.raw.size / 1024 / 1024).toFixed(2)
     const compressedSizeMB = (compressedFile.size / 1024 / 1024).toFixed(2)
-    console.log(`圖片已壓縮：${originalSizeMB}MB → ${compressedSizeMB}MB`)
+    console.log(`圖片已處理：${originalSizeMB}MB → ${compressedSizeMB}MB`)
 
+    // 總是顯示處理結果
     if (compressedFile.size < file.raw.size) {
-      ElMessage.success(`圖片已壓縮至 ${compressedSizeMB}MB`)
+      ElMessage.success(`圖片已壓縮：${originalSizeMB}MB → ${compressedSizeMB}MB`)
+    } else {
+      ElMessage.success(`圖片已處理，大小：${compressedSizeMB}MB`)
     }
   } catch (error) {
     console.error('圖片壓縮失敗:', error)
-    ElMessage.error('圖片處理失敗，請重試')
+    // 顯示更詳細的錯誤訊息
+    ElMessage.error(error.message || '圖片處理失敗，請確認檔案格式正確且未損壞')
   }
 }
 
@@ -728,15 +768,17 @@ const handleAvatarUpload = async (file) => {
 
 // Before Avatar Upload Validation
 const beforeAvatarUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
+  // 檢查檔案類型 - 只允許 PNG, JPEG, JPG
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg']
+  const isAllowedType = allowedTypes.includes(file.type)
+  const isLt10M = file.size / 1024 / 1024 < 10
 
-  if (!isImage) {
-    ElMessage.error('只能上傳圖片檔案！')
+  if (!isAllowedType) {
+    ElMessage.error('只能上傳 PNG、JPEG 或 JPG 格式的圖片！')
     return false
   }
-  if (!isLt5M) {
-    ElMessage.error('圖片大小不能超過 5MB！')
+  if (!isLt10M) {
+    ElMessage.error('圖片大小不能超過 10MB！')
     return false
   }
   return true
@@ -1041,38 +1083,59 @@ const handleSave = async () => {
 
     isLoading.value = true
 
-    // 準備更新資料
-    const updateData = {
-      nickname: formData.value.nickname
-    }
-
-    // 如果有待上傳的頭像，先上傳取得 URL
+    // 如果有待上傳的頭像，先上傳
     if (pendingAvatarFile.value) {
       try {
         ElMessage.info('正在上傳頭像...')
 
-        // 步驟 1：上傳頭像取得 URL
+        // 步驟 1：上傳頭像（後端會自動更新使用者的頭像）
         const uploadResult = await uploadStudentAvatar(pendingAvatarFile.value)
 
         // uploadResult 已被攔截器解包，直接是 { avatarUrl }
         if (uploadResult && uploadResult.avatarUrl) {
-          updateData.avatarUrl = uploadResult.avatarUrl
           ElMessage.success('頭像上傳成功')
         } else {
           throw new Error('頭像上傳失敗：未取得 URL')
         }
       } catch (error) {
         console.error('頭像上傳錯誤:', error)
-        ElMessage.error(error.message || '頭像上傳失敗，請稍後再試')
+
+        // 處理不同的錯誤情況
+        let errorMessage = '頭像上傳失敗，請稍後再試'
+
+        if (error.response) {
+          const status = error.response.status
+          const responseData = error.response.data
+
+          if (status === 400) {
+            // 檢查是否為檔案類型錯誤
+            if (responseData?.message?.includes('content type not allowed')) {
+              errorMessage = '不支援的圖片格式！請上傳 PNG、JPEG 或 JPG 格式的圖片'
+            } else if (responseData?.message) {
+              errorMessage = responseData.message
+            } else {
+              errorMessage = '圖片格式不符合要求，請上傳 PNG、JPEG 或 JPG 格式'
+            }
+          } else if (status === 413) {
+            errorMessage = '圖片檔案過大，請上傳小於 5MB 的圖片'
+          } else if (responseData?.message) {
+            errorMessage = responseData.message
+          }
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+
+        ElMessage.error(errorMessage)
         isLoading.value = false
         return
       }
-    } else if (formData.value.avatarUrl) {
-      // 如果沒有新頭像但有現有的 avatarUrl，保留它
-      updateData.avatarUrl = formData.value.avatarUrl
     }
 
-    // 步驟 2：使用 JSON 格式更新 profile
+    // 步驟 2：更新暱稱（只傳送 nickname，不傳送 avatarUrl）
+    const updateData = {
+      nickname: formData.value.nickname
+    }
+
     const result = await updateStudentProfile(updateData)
 
     // result 已經是 data 物件：{ userId, nickname, email, avatarUrl, ... }
@@ -1284,60 +1347,64 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .profile-edit-dialog {
   border-radius: var(--capy-radius-lg);
-}
 
-.profile-edit-dialog :deep(.el-dialog__header) {
-  padding: var(--capy-spacing-lg);
-  border-bottom: 1px solid var(--capy-border-light);
-}
+  :deep(.el-dialog__header) {
+    padding: var(--capy-spacing-lg);
+    border-bottom: 1px solid var(--capy-border-light);
+  }
 
-.profile-edit-dialog :deep(.el-dialog__body) {
-  padding: var(--capy-spacing-md);
-}
+  :deep(.el-dialog__body) {
+    padding: var(--capy-spacing-md);
+  }
 
-.profile-edit-dialog :deep(.el-dialog__footer) {
-  padding: var(--capy-spacing-lg);
-  border-top: 1px solid var(--capy-border-light);
+  :deep(.el-dialog__footer) {
+    padding: var(--capy-spacing-lg);
+    border-top: 1px solid var(--capy-border-light);
+  }
+
+  @include mobile {
+    width: 90% !important;
+  }
 }
 
 /* Tabs */
 .profile-tabs {
   margin: 0;
-}
 
-.profile-tabs :deep(.el-tabs__header) {
-  margin-bottom: 0;
-  padding: 0 var(--capy-spacing-lg);
-}
+  :deep(.el-tabs__header) {
+    margin-bottom: 0;
+    padding: 0 var(--capy-spacing-lg);
+  }
 
-.profile-tabs :deep(.el-tabs__nav-wrap) {
-  padding: 0;
-}
+  :deep(.el-tabs__nav-wrap) {
+    padding: 0;
 
-.profile-tabs :deep(.el-tabs__nav-wrap::after) {
-  height: 1px;
-  background-color: var(--capy-border-light);
-}
+    &::after {
+      height: 1px;
+      background-color: var(--capy-border-light);
+    }
+  }
 
-.profile-tabs :deep(.el-tabs__item) {
-  font-size: var(--capy-font-size-base);
-  font-weight: var(--capy-font-weight-medium);
-  color: var(--capy-text-secondary);
-  padding: var(--capy-spacing-md) var(--capy-spacing-md);
-  height: 48px;
-  line-height: 48px;
-}
+  :deep(.el-tabs__item) {
+    font-size: var(--capy-font-size-base);
+    font-weight: var(--capy-font-weight-medium);
+    color: var(--capy-text-secondary);
+    padding: var(--capy-spacing-md) var(--capy-spacing-md);
+    height: 48px;
+    line-height: 48px;
 
-.profile-tabs :deep(.el-tabs__item.is-active) {
-  color: var(--capy-primary);
-}
+    &.is-active {
+      color: var(--capy-primary);
+    }
+  }
 
-.profile-tabs :deep(.el-tabs__active-bar) {
-  background-color: var(--capy-primary);
-  height: 2px;
+  :deep(.el-tabs__active-bar) {
+    background-color: var(--capy-primary);
+    height: 2px;
+  }
 }
 
 .tab-content {
@@ -1367,10 +1434,19 @@ onUnmounted(() => {
   overflow: hidden;
   border: 3px solid var(--capy-border-light);
   transition: all var(--capy-transition-base);
-}
 
-.avatar-container:hover {
-  border-color: var(--capy-primary);
+  &:hover {
+    border-color: var(--capy-primary);
+
+    .avatar-overlay {
+      opacity: 1;
+    }
+  }
+
+  @include mobile {
+    width: 100px;
+    height: 100px;
+  }
 }
 
 .avatar {
@@ -1407,19 +1483,23 @@ onUnmounted(() => {
   transition: opacity var(--capy-transition-base);
 }
 
-.avatar-container:hover .avatar-overlay {
-  opacity: 1;
-}
-
 .overlay-icon {
   font-size: 32px;
   color: white;
+
+  @include mobile {
+    font-size: 24px;
+  }
 }
 
 .overlay-text {
   font-size: var(--capy-font-size-sm);
   color: white;
   font-weight: var(--capy-font-weight-medium);
+
+  @include mobile {
+    font-size: var(--capy-font-size-xs);
+  }
 }
 
 .avatar-hint {
@@ -1431,26 +1511,28 @@ onUnmounted(() => {
 /* Form Section */
 .profile-form {
   width: 100%;
-}
 
-.profile-form :deep(.el-form-item__label) {
-  font-weight: var(--capy-font-weight-medium);
-  color: var(--capy-text-primary);
+  :deep(.el-form-item__label) {
+    font-weight: var(--capy-font-weight-medium);
+    color: var(--capy-text-primary);
+  }
+
+  :deep(.el-input__prefix) {
+    color: var(--capy-text-secondary);
+  }
 }
 
 /* 改善 Email 輸入框的可讀性 */
-.disabled-email-input :deep(.el-input__wrapper) {
-  background-color: var(--capy-bg-base);
-  cursor: not-allowed;
-}
+.disabled-email-input {
+  :deep(.el-input__wrapper) {
+    background-color: var(--capy-bg-base);
+    cursor: not-allowed;
+  }
 
-.disabled-email-input :deep(.el-input__inner) {
-  color: var(--el-text-color-regular) !important;
-  -webkit-text-fill-color: var(--el-text-color-regular) !important;
-}
-
-.profile-form :deep(.el-input__prefix) {
-  color: var(--capy-text-secondary);
+  :deep(.el-input__inner) {
+    color: var(--el-text-color-regular) !important;
+    -webkit-text-fill-color: var(--el-text-color-regular) !important;
+  }
 }
 
 /* 輸入框帶 icon */
@@ -1469,10 +1551,10 @@ onUnmounted(() => {
   justify-content: center;
   pointer-events: none;
   z-index: 1;
-}
 
-.input-icon-right .is-loading {
-  animation: rotating 1.5s linear infinite;
+  .is-loading {
+    animation: rotating 1.5s linear infinite;
+  }
 }
 
 @keyframes rotating {
@@ -1494,6 +1576,26 @@ onUnmounted(() => {
   animation: slideDown 0.3s ease;
   display: flex;
   align-items: center;
+
+  &.success {
+    color: var(--el-color-success);
+    background: var(--el-color-success-light-9);
+  }
+
+  &.error {
+    color: var(--capy-danger);
+    background: var(--el-color-danger-light-9);
+  }
+
+  &.warning {
+    color: var(--el-color-warning);
+    background: var(--el-color-warning-light-9);
+  }
+
+  &.info {
+    color: var(--capy-primary);
+    background: var(--el-color-primary-light-9);
+  }
 }
 
 @keyframes slideDown {
@@ -1505,26 +1607,6 @@ onUnmounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.validation-message-inline.success {
-  color: var(--el-color-success);
-  background: var(--el-color-success-light-9);
-}
-
-.validation-message-inline.error {
-  color: var(--capy-danger);
-  background: var(--el-color-danger-light-9);
-}
-
-.validation-message-inline.warning {
-  color: var(--el-color-warning);
-  background: var(--el-color-warning-light-9);
-}
-
-.validation-message-inline.info {
-  color: var(--capy-primary);
-  background: var(--el-color-primary-light-9);
 }
 
 /* 暱稱格式提示 */
@@ -1548,16 +1630,16 @@ onUnmounted(() => {
 .save-button {
   background-color: var(--capy-primary);
   border-color: var(--capy-primary);
-}
 
-.save-button:hover {
-  background-color: var(--el-color-primary-light-1);
-  border-color: var(--el-color-primary-light-1);
-}
+  &:hover {
+    background-color: var(--el-color-primary-light-1);
+    border-color: var(--el-color-primary-light-1);
+  }
 
-.save-button:active {
-  background-color: var(--el-color-primary-dark-1);
-  border-color: var(--el-color-primary-dark-1);
+  &:active {
+    background-color: var(--el-color-primary-dark-1);
+    border-color: var(--el-color-primary-dark-1);
+  }
 }
 
 /* Security Tab */
@@ -1589,6 +1671,12 @@ onUnmounted(() => {
   background-color: var(--capy-bg-base);
   border-radius: var(--capy-radius-md);
   border: 1px solid var(--capy-border-light);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--capy-spacing-md);
+  }
 }
 
 .binding-info {
@@ -1625,14 +1713,14 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--capy-spacing-xs);
   font-size: var(--capy-font-size-sm);
-}
 
-.binding-status.bound {
-  color: var(--el-color-success);
-}
+  &.bound {
+    color: var(--el-color-success);
+  }
 
-.binding-status.unbound {
-  color: var(--capy-text-secondary);
+  &.unbound {
+    color: var(--capy-text-secondary);
+  }
 }
 
 .binding-email {
@@ -1640,24 +1728,36 @@ onUnmounted(() => {
   color: var(--capy-text-secondary);
 }
 
-.binding-action .bind-button {
-  color: var(--capy-primary);
-  border-color: var(--capy-primary);
-}
+.binding-action {
+  @include mobile {
+    width: 100%;
+  }
 
-.binding-action .bind-button:hover {
-  background-color: var(--capy-primary);
-  color: white;
-}
+  .bind-button {
+    color: var(--capy-primary);
+    border-color: var(--capy-primary);
 
-.binding-action .unbind-button {
-  color: var(--capy-danger);
-  border-color: var(--capy-danger);
-}
+    &:hover {
+      background-color: var(--capy-primary);
+      color: white;
+    }
+  }
 
-.binding-action .unbind-button:hover {
-  background-color: var(--capy-danger);
-  color: white;
+  .unbind-button {
+    color: var(--capy-danger);
+    border-color: var(--capy-danger);
+
+    &:hover {
+      background-color: var(--capy-danger);
+      color: white;
+    }
+  }
+
+  .el-button {
+    @include mobile {
+      width: 100%;
+    }
+  }
 }
 
 .security-hint {
@@ -1669,10 +1769,10 @@ onUnmounted(() => {
   border-radius: var(--capy-radius-sm);
   font-size: var(--capy-font-size-sm);
   color: var(--capy-text-secondary);
-}
 
-.security-hint .el-icon {
-  color: var(--el-color-info);
+  .el-icon {
+    color: var(--el-color-info);
+  }
 }
 
 /* Password Item */
@@ -1684,6 +1784,16 @@ onUnmounted(() => {
   background-color: var(--capy-bg-base);
   border-radius: var(--capy-radius-md);
   border: 1px solid var(--capy-border-light);
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--capy-spacing-md);
+
+    > .el-button {
+      width: 100%;
+    }
+  }
 }
 
 .password-info {
@@ -1711,10 +1821,10 @@ onUnmounted(() => {
   color: var(--capy-text-secondary);
   cursor: pointer;
   transition: color var(--capy-transition-base);
-}
 
-.back-icon:hover {
-  color: var(--capy-primary);
+  &:hover {
+    color: var(--capy-primary);
+  }
 }
 
 .dialog-title {
@@ -1732,17 +1842,18 @@ onUnmounted(() => {
 .update-password-button {
   background-color: var(--capy-primary);
   border-color: var(--capy-primary);
+
+  &:hover {
+    background-color: var(--el-color-primary-light-1);
+    border-color: var(--el-color-primary-light-1);
+  }
+
+  &:active {
+    background-color: var(--el-color-primary-dark-1);
+    border-color: var(--el-color-primary-dark-1);
+  }
 }
 
-.update-password-button:hover {
-  background-color: var(--el-color-primary-light-1);
-  border-color: var(--el-color-primary-light-1);
-}
-
-.update-password-button:active {
-  background-color: var(--el-color-primary-dark-1);
-  border-color: var(--el-color-primary-dark-1);
-}
 /* Danger Zone Section */
 .danger-zone {
   margin-top: var(--capy-spacing-xl);
@@ -1763,6 +1874,12 @@ onUnmounted(() => {
   background-color: #FEF0F0;
   border-radius: var(--capy-radius-md);
   border: 1px solid #FBC4C4;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--capy-spacing-md);
+  }
 }
 
 .danger-info {
@@ -1799,16 +1916,20 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: var(--capy-spacing-xs);
-}
 
-.delete-account-button:hover {
-  background-color: var(--capy-danger);
-  color: white;
-}
+  &:hover {
+    background-color: var(--capy-danger);
+    color: white;
+  }
 
-.delete-account-button:active {
-  background-color: #F56C6C;
-  border-color: #F56C6C;
+  &:active {
+    background-color: #F56C6C;
+    border-color: #F56C6C;
+  }
+
+  @include mobile {
+    width: 100%;
+  }
 }
 
 .danger-warning {
@@ -1822,54 +1943,12 @@ onUnmounted(() => {
   font-size: var(--capy-font-size-sm);
   color: var(--capy-danger);
   line-height: 1.5;
-}
 
-.danger-warning .el-icon {
-  color: var(--capy-danger);
-  font-size: 16px;
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-
-/* Responsive */
-@media (max-width: 768px) {
-  .profile-edit-dialog {
-    width: 90% !important;
-  }
-
-  .avatar-container {
-    width: 100px;
-    height: 100px;
-  }
-
-  .overlay-icon {
-    font-size: 24px;
-  }
-
-  .overlay-text {
-    font-size: var(--capy-font-size-xs);
-  }
-
-  .binding-item,
-  .password-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--capy-spacing-md);
-  }
-
-  .binding-action,
-  .password-item > .el-button {
-    width: 100%;
-  .danger-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--capy-spacing-md);
-  }
-
-  .delete-account-button {
-    width: 100%;
-  }
+  .el-icon {
+    color: var(--capy-danger);
+    font-size: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
   }
 }
 </style>
@@ -2343,7 +2422,7 @@ onUnmounted(() => {
 }
 </style>
 
-
+<style lang="scss">
 /* Google Bind Password Dialog */
 .google-bind-password-dialog {
   border-radius: var(--capy-radius-lg);
@@ -2433,3 +2512,4 @@ onUnmounted(() => {
   font-size: var(--capy-font-size-sm);
   margin-top: var(--capy-spacing-xs);
 }
+</style>

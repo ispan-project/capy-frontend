@@ -11,6 +11,7 @@
         :src="course.coverImageUrl"
         fit="cover"
         class="cover-image"
+        loading="lazy"
       >
         <template #error>
           <div class="image-placeholder">
@@ -24,6 +25,11 @@
         :is-wishlisted="isWishlisted"
         @toggle="toggleWishlist"
       />
+
+      <!-- Enrolled Badge (右下角) -->
+      <div v-if="course.isEnrolled" class="enrolled-badge-corner">
+        已購買
+      </div>
     </div>
 
     <!-- Course Info -->
@@ -78,23 +84,25 @@ const goToCourseDetail = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+/* 由於 vite.config.js 已配置自動引入，這裡可以直接使用 mixins 和 variables */
+
 .course-card {
   border-radius: var(--capy-radius-lg);
   overflow: hidden;
-  transition: all var(--capy-transition-base);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease, border-color 0.3s ease;
   cursor: pointer;
   height: 100%;
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--capy-border-lighter);
-}
 
-.course-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--capy-shadow-lg);
-  border-color: var(--capy-primary);
+  &:hover {
+    transform: scale(1.01);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    border-color: var(--capy-primary);
+  }
 }
 
 .course-cover {
@@ -111,6 +119,7 @@ const goToCourseDetail = () => {
   left: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 
 .image-placeholder {
@@ -123,7 +132,22 @@ const goToCourseDetail = () => {
 }
 
 .placeholder-icon {
-  font-size: 48px;
+  font-size: $font-3xl; /* 48px */
 }
 
+/* Enrolled Badge - 右下角 */
+.enrolled-badge-corner {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #54CDF2 0%, #0EA5E9 100%);
+  color: #fff;
+  font-size: $font-xs;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(84, 205, 242, 0.3);
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
 </style>

@@ -11,8 +11,8 @@
               v-if="currentLesson"
               :video-url="currentLesson.videoUrl"
               :poster="currentLesson.poster"
-              :autoplay="false"
-              :start-time="0"
+              :autoplay="shouldAutoPlay"
+              :start-time="resumeStartTime"
               @timeupdate="handleTimeUpdate"
               @ended="handleVideoEnded"
               @error="handleVideoError"
@@ -140,6 +140,17 @@
                           </div>
                         </div>
                         <div class="qa-content">{{ qa.question }}</div>
+                        <!-- 章節和單元資訊 -->
+                        <div v-if="qa.sectionTitle || qa.lessonName" class="qa-location">
+                          <el-tag v-if="qa.sectionTitle" size="small" type="info" effect="plain">
+                            <el-icon><Folder /></el-icon>
+                            {{ formatSectionTitle(qa.sectionTitle) }}
+                          </el-tag>
+                          <el-tag v-if="qa.lessonName" size="small" type="info" effect="plain">
+                            <el-icon><VideoPlay /></el-icon>
+                            {{ formatLessonName(qa.lessonName) }}
+                          </el-tag>
+                        </div>
                       </div>
 
                       <!-- 講師回答（縮排） -->
@@ -179,6 +190,17 @@
                           </div>
                         </div>
                         <div class="qa-content">{{ qa.question }}</div>
+                        <!-- 章節和單元資訊 -->
+                        <div v-if="qa.sectionTitle || qa.lessonName" class="qa-location">
+                          <el-tag v-if="qa.sectionTitle" size="small" type="info" effect="plain">
+                            <el-icon><Folder /></el-icon>
+                            {{ formatSectionTitle(qa.sectionTitle) }}
+                          </el-tag>
+                          <el-tag v-if="qa.lessonName" size="small" type="info" effect="plain">
+                            <el-icon><VideoPlay /></el-icon>
+                            {{ formatLessonName(qa.lessonName) }}
+                          </el-tag>
+                        </div>
                       </div>
 
                       <!-- 講師回答 -->
@@ -255,6 +277,7 @@
             :chapters="courseData.sections"
             :current-lesson-id="currentLessonId"
             :is-collapsed="isSidebarCollapsed"
+            :completion-percentage="lessonSummary.completionPercentage"
             @lesson-click="handleLessonClick"
             @toggle-sidebar="toggleSidebar"
           />
@@ -305,7 +328,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -315,7 +338,9 @@ import {
   User,
   Clock,
   DArrowLeft,
-  Edit
+  Edit,
+  Folder,
+  VideoPlay
 } from '@element-plus/icons-vue'
 import DOMPurify from 'dompurify'
 
@@ -335,9 +360,12 @@ import {
   getMyQA,
   postQuestion,
   buildHlsUrl,
-  triggerAttachmentDownload
+  triggerAttachmentDownload,
+  getMyReview,
+  saveLessonProgress
 } from '@/api/student/courseLearning'
 import { rateCourse } from '@/api/student/studentCenter'
+import { fetchCourseDetail } from '@/api/student/courseDetail'
 
 const route = useRoute()
 const router = useRouter()
@@ -359,18 +387,30 @@ const courseData = ref({
   publishedDate: '',
   totalSections: 0,
   totalLessons: 0,
+  coverImageUrl: '', // 課程封面圖
   sections: [] // 章節列表（原 chapters）
 })
 
 // 單元摘要資料
 const lessonSummary = ref({
   lessonDescription: '',
+  completionPercentage: null, // 課程完成百分比（後端回傳）
   course: null,
   instructorInfo: null
 })
 
 // 附件列表
 const attachments = ref([])
+
+// 播放進度／續播相關
+const resumeStartTime = ref(0)
+const lastProgressSyncedAt = ref(0)
+const lastSyncedSeconds = ref(0)
+const lastDuration = ref(0)
+const isSyncingProgress = ref(false)
+const shouldAutoPlay = ref(false)
+const muted = ref(true) // 預設靜音
+const PROGRESS_SYNC_INTERVAL_MS = 8000
 
 // Q&A 資料
 const qaFilter = ref('current')
@@ -442,7 +482,7 @@ const courseInfoForRating = computed(() => {
     courseId: courseData.value.courseId,
     courseTitle: courseData.value.courseTitle,
     instructorName: lessonSummary.value.instructorInfo?.instructorName || '講師',
-    coverImageUrl: currentLesson.value?.poster || 'https://via.placeholder.com/400x225'
+    coverImageUrl: courseData.value.coverImageUrl || '/capybaraProfile.png'
   }
 })
 
@@ -492,6 +532,21 @@ const loadLessonSummary = async () => {
 }
 
 /**
+ * 載入課程封面圖
+ */
+const loadCourseCoverImage = async () => {
+  try {
+    const courseDetail = await fetchCourseDetail(route.params.courseId)
+    if (courseDetail?.courseInfo?.course?.coverImageUrl) {
+      courseData.value.coverImageUrl = courseDetail.courseInfo.course.coverImageUrl
+    }
+  } catch (error) {
+    console.error('載入課程封面圖失敗:', error)
+    // 封面圖載入失敗不影響主要功能，使用預設圖片
+  }
+}
+
+/**
  * 載入課程章節資料
  */
 const loadCourseSections = async () => {
@@ -519,6 +574,30 @@ const loadAttachments = async () => {
 }
 
 /**
+ * 載入我的評論
+ */
+const loadMyReview = async () => {
+  try {
+    const data = await getMyReview(route.params.courseId)
+
+    // 如果有評論資料，更新本地狀態
+    if (data) {
+      userRating.value = data.rating
+      userComment.value = data.comment
+    } else {
+      // 如果沒有評論，重置狀態
+      userRating.value = 0
+      userComment.value = ''
+    }
+  } catch (error) {
+    console.error('載入評論失敗:', error)
+    // 載入評論失敗不影響主要功能，僅記錄錯誤
+    userRating.value = 0
+    userComment.value = ''
+  }
+}
+
+/**
  * 載入課程資料（整合所有資料載入）
  */
 const loadCourseData = async () => {
@@ -529,7 +608,9 @@ const loadCourseData = async () => {
     await Promise.all([
       loadLessonSummary(),
       loadCourseSections(),
-      loadAttachments()
+      loadAttachments(),
+      loadMyReview(),
+      loadCourseCoverImage()
     ])
 
     // 更新路由 meta
@@ -576,7 +657,11 @@ const loadQAData = async (loadMore = false) => {
     // 轉換後端資料格式為前端格式
     const formattedItems = (data.items || []).map(item => ({
       id: item.questionId,
-      lessonId: params.lessonId || null,
+      // 保留後端原始 lessonId，避免「全部課程」篩選時遺失對應
+      lessonId: item.lessonId,
+      sectionId: item.sectionId,
+      sectionTitle: item.sectionTitle,
+      lessonName: item.lessonName,
       student: {
         id: item.userId,
         name: item.userName,
@@ -632,7 +717,10 @@ const loadMyQuestions = async (loadMore = false) => {
     // 轉換後端資料格式為前端格式
     const formattedItems = (data.items || []).map(item => ({
       id: item.questionId,
-      lessonId: null, // 我的提問不需要 lessonId
+      lessonId: item.lessonId,
+      sectionId: item.sectionId,
+      sectionTitle: item.sectionTitle,
+      lessonName: item.lessonName,
       student: {
         id: item.userId,
         name: item.userName,
@@ -682,6 +770,22 @@ const formatDateTime = (isoString) => {
 }
 
 /**
+ * 格式化章節標題（將 Module 替換為 章節）
+ */
+const formatSectionTitle = (title) => {
+  if (!title) return ''
+  return title.replace(/Module/gi, '章節')
+}
+
+/**
+ * 格式化單元名稱（將 Lesson 替換為 單元）
+ */
+const formatLessonName = (name) => {
+  if (!name) return ''
+  return name.replace(/Lesson/gi, '單元')
+}
+
+/**
  * 處理單元點擊
  */
 const handleLessonClick = (lesson) => {
@@ -699,28 +803,88 @@ const handleLessonClick = (lesson) => {
 }
 
 /**
- * 處理影片時間更新
+ * 同步學習進度到後端
  */
+const syncLessonProgress = async ({ seconds, force = false }) => {
+  if (!currentLessonId.value) return
+
+  // 避免重複打 API，除非強制
+  if (isSyncingProgress.value && !force) return
+
+  isSyncingProgress.value = true
+  try {
+    // 呼叫 API 並取得回應
+    const response = await saveLessonProgress({
+      lessonId: currentLessonId.value,
+      lastWatchSeconds: Math.max(0, Math.floor(seconds || 0))
+    })
+    lastSyncedSeconds.value = Math.max(0, Math.floor(seconds || 0))
+    lastProgressSyncedAt.value = Date.now()
+
+    // 根據後端回傳的 completed 欄位決定是否標記完成
+    if (response?.completed) {
+      markLessonCompleted(currentLessonId.value)
+    }
+  } catch (error) {
+    console.error('同步學習進度失敗:', error)
+  } finally {
+    isSyncingProgress.value = false
+  }
+}
+
 const handleTimeUpdate = (data) => {
-  // 可以在這裡記錄學習進度
+  const seconds = Math.max(0, Math.floor(data?.currentTime || 0))
+  const duration = Math.max(0, Math.floor(data?.duration || 0))
+
+  resumeStartTime.value = seconds
+  lastDuration.value = duration
+
+  const now = Date.now()
+
+  // 節流：8 秒內只同步一次
+  if (now - lastProgressSyncedAt.value < PROGRESS_SYNC_INTERVAL_MS) {
+    return
+  }
+
+  syncLessonProgress({ seconds })
+}
+
+/**
+ * 標記單元為已完成（更新原始資料，使側邊欄反應性更新）
+ */
+const markLessonCompleted = (lessonId) => {
+  for (const section of courseData.value.sections) {
+    const lesson = section.lessons?.find(l => l.id == lessonId)
+    if (lesson) {
+      // 設定後端欄位和前端欄位，確保相容性
+      lesson.completed = true
+      lesson.isCompleted = true
+      break
+    }
+  }
 }
 
 /**
  * 處理影片播放結束
  */
-const handleVideoEnded = () => {
-  if (currentLesson.value) {
-    currentLesson.value.isCompleted = true
-  }
+const handleVideoEnded = async () => {
+  // 結束時強制同步最終進度（後端會判斷是否完成）
+  const finalSeconds = lastDuration.value || resumeStartTime.value || 0
+  await syncLessonProgress({ seconds: finalSeconds, force: true })
+
+  // 確保標記為已完成（以防後端尚未回傳 completed）
+  markLessonCompleted(currentLessonId.value)
 
   const nextLesson = getNextLesson()
   if (nextLesson) {
-    ElMessage.success('已完成本單元，即將播放下一單元')
-    setTimeout(() => {
-      handleLessonClick(nextLesson)
-    }, 2000)
+    // 設定自動播放，然後立即跳轉下一單元
+    shouldAutoPlay.value = true
+    resumeStartTime.value = 0
+    ElMessage.success('已完成本單元，自動播放下一單元')
+    handleLessonClick(nextLesson)
   } else {
-    ElMessage.success('恭喜！您已完成本課程所有單元')
+    shouldAutoPlay.value = false
+    ElMessage.success('🎉 恭喜！您已完成本單元')
   }
 }
 
@@ -742,7 +906,8 @@ const getNextLesson = () => {
       if (foundCurrent && !lesson.isLocked) {
         return lesson
       }
-      if (lesson.id === currentLessonId.value) {
+      // 使用寬鬆比較，因為 route params 是字串，lesson.id 可能是數字
+      if (lesson.id == currentLessonId.value) {
         foundCurrent = true
       }
     }
@@ -815,16 +980,10 @@ const handleRatingTextClick = () => {
  */
 const handleReviewSubmitted = async (reviewData) => {
   try {
-    // 判斷是新增還是更新評分
+    // 判斷是新增還是更新評分（僅用於顯示提示文字）
     const isUpdate = userRating.value !== null && userRating.value !== undefined && userRating.value > 0
 
-    if (isUpdate) {
-      // 如果已經評過分，顯示提示（因為新 API 不支援更新）
-      ElMessage.warning('您已經評過此課程，無法重複評分')
-      return
-    }
-
-    // 使用新的 rateCourse API 提交評分
+    // 使用新的 rateCourse API 提交評分（支援重送以更新評價）
     await rateCourse({
       courseId: courseData.value.courseId,
       rating: reviewData.rating,
@@ -835,7 +994,10 @@ const handleReviewSubmitted = async (reviewData) => {
     userRating.value = reviewData.rating
     userComment.value = reviewData.comment
 
-    ElMessage.success('評價提交成功！感謝您的反饋')
+    ElMessage.success(isUpdate ? '已更新您的課程評價' : '評價提交成功！感謝您的反饋')
+
+    // 關閉對話框
+    ratingDialogVisible.value = false
   } catch (error) {
     console.error('提交評價失敗:', error)
 
@@ -843,7 +1005,9 @@ const handleReviewSubmitted = async (reviewData) => {
     if (error.response?.status === 400) {
       ElMessage.error('已購買後才能評價')
     } else if (error.response?.status === 409) {
-      ElMessage.error('已經評過此課程')
+      ElMessage.warning('您已經評過此課程，已為您載入最新評價')
+      // 如果是重複評分錯誤，重新載入評論狀態
+      await loadMyReview()
     } else if (error.response?.status === 401 || error.response?.status === 403) {
       ElMessage.error('請先登入')
     } else {
@@ -936,6 +1100,13 @@ watch(qaFilter, () => {
 watch(activeTab, (newTab) => {
   if (newTab === 'my-questions' && myQuestionsData.value.length === 0) {
     loadMyQuestions()
+  }
+})
+
+// 頁面離開前補送最後進度
+onBeforeUnmount(() => {
+  if (resumeStartTime.value > lastSyncedSeconds.value) {
+    syncLessonProgress({ seconds: resumeStartTime.value, force: true })
   }
 })
 
@@ -1449,6 +1620,25 @@ onMounted(async () => {
   line-height: 1.6;
   color: #606266;
   white-space: pre-wrap;
+}
+
+.qa-location {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #EBEEF5;
+
+  .el-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    .el-icon {
+      font-size: 14px;
+    }
+  }
 }
 
 // 附件樣式

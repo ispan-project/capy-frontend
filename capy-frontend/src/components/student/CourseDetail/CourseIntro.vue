@@ -25,11 +25,11 @@
       </span>
       <span class="stat-item">
         <el-icon><Document /></el-icon>
-        {{ sections }} sections
+        {{ sections }} 個章節
       </span>
       <span class="stat-item">
         <el-icon><VideoPlay /></el-icon>
-        {{ attachments }} attachments
+        {{ attachments }} 個附件
       </span>
     </div>
 
@@ -108,6 +108,9 @@ const handlePreview = () => {
   font-size: 16px;
   line-height: 1.8;
   margin: 0 0 24px 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .preview-section {

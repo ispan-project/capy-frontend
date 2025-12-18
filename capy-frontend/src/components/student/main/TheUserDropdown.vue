@@ -3,6 +3,7 @@
     trigger="click"
     :popper-options="{ placement: 'bottom-end' }"
     popper-class="user-dropdown-popper"
+    @visible-change="handleDropdownVisibleChange"
   >
     <!-- Trigger: Avatar -->
     <el-avatar
@@ -101,7 +102,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   VideoPlay,
@@ -115,7 +116,25 @@ import {
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+
+/**
+ * 處理 Dropdown 顯示狀態變化
+ * 當 dropdown 打開時，重新獲取使用者資訊以更新角色狀態
+ */
+const handleDropdownVisibleChange = async (visible) => {
+  if (visible) {
+    try {
+      // 呼叫 userStore 的方法來更新使用者資訊
+      await userStore.fetchUserInfo()
+      console.log('✅ 使用者資訊已更新:', userStore.userInfo)
+    } catch (error) {
+      console.error('❌ 更新使用者資訊失敗:', error)
+      // 不顯示錯誤訊息給使用者，靜默失敗
+    }
+  }
+}
 
 // 預設頭像
 const defaultAvatar = '/capybaraProfile.png'
@@ -126,39 +145,124 @@ const userEmail = computed(() => {
 })
 
 /**
+ * 取得使用者角色列表
+ */
+const userRoles = computed(() => {
+  return userStore.userInfo.roles || []
+})
+
+/**
+ * 判斷使用者是否有特定角色（不區分大小寫）
+ */
+const hasRole = (role) => {
+  const normalizedRole = role.toLowerCase()
+  return userRoles.value.some(r => r.toLowerCase() === normalizedRole)
+}
+
+/**
+ * 判斷當前所在的路由區域
+ */
+const currentArea = computed(() => {
+  const path = route.path
+  if (path.startsWith('/admin')) return 'admin'
+  if (path.startsWith('/teacher')) return 'teacher'
+  return 'student'
+})
+
+/**
  * 角色切換器顯示邏輯
+ * 只要使用者有講師或管理員角色就顯示切換按鈕
  */
 const showRoleSwitcher = computed(() => {
-  // 暫時隱藏角色切換器，因為 API 響應中沒有 roles 資訊
-  // TODO: 當後端 API 提供 roles 資訊時，更新此邏輯
-  return false
+  const roles = userRoles.value
+
+  // 如果沒有角色，不顯示切換按鈕
+  if (roles.length === 0) {
+    return false
+  }
+
+  // 只要有講師或管理員角色，就顯示切換按鈕
+  return hasRole('instructor') || hasRole('admin')
 })
 
 /**
  * 角色切換器文字
+ * 根據當前所在區域和使用者角色，顯示對應的切換文字
  */
 const roleSwitcherText = computed(() => {
-  // 暫時返回預設值
-  // TODO: 當後端 API 提供 roles 資訊時，更新此邏輯
-  return '成為講師'
+  const area = currentArea.value
+
+  // 在學生區域
+  if (area === 'student') {
+    if (hasRole('admin')) return '切換到管理員'
+    if (hasRole('instructor')) return '切換到講師'
+    return '成為講師'
+  }
+
+  // 在講師區域
+  if (area === 'teacher') {
+    if (hasRole('admin')) return '切換到管理員'
+    return '切換到學生'
+  }
+
+  // 在管理員區域
+  if (area === 'admin') {
+    if (hasRole('instructor')) return '切換到講師'
+    return '切換到學生'
+  }
+
+  return '切換身份'
 })
 
 /**
  * 角色切換器圖示
+ * 根據目標切換的角色顯示對應圖示
  */
 const roleSwitcherIcon = computed(() => {
-  // 暫時返回預設圖示
-  // TODO: 當後端 API 提供 roles 資訊時，更新此邏輯
+  const area = currentArea.value
+
+  // 在學生區域，切換到管理員或講師
+  if (area === 'student') {
+    if (hasRole('admin')) return Monitor
+    if (hasRole('instructor')) return Switch
+  }
+
+  // 在講師或管理員區域，切換回學生或其他角色
+  if (area === 'teacher' || area === 'admin') {
+    if (hasRole('admin') && area === 'teacher') return Monitor
+    return Switch
+  }
+
   return Switch
 })
 
 /**
  * 角色切換器連結
+ * 根據當前區域和使用者角色，決定切換到哪個區域
  */
 const roleSwitcherLink = computed(() => {
-  // 暫時返回預設連結
-  // TODO: 當後端 API 提供 roles 資訊時，更新此邏輯
-  return '/instructor/landing' // 成為講師的落地頁
+  const area = currentArea.value
+
+  // 在學生區域
+  if (area === 'student') {
+    if (hasRole('admin')) return '/admin/workspace'
+    if (hasRole('instructor')) return '/teacher/workspace'
+    return '/instructor/landing' // 成為講師的落地頁
+  }
+
+  // 在講師區域
+  if (area === 'teacher') {
+    if (hasRole('admin')) return '/admin/workspace'
+    return '/' // 回到學生首頁
+  }
+
+  // 在管理員區域
+  if (area === 'admin') {
+    if (hasRole('instructor')) return '/teacher/workspace'
+    return '/' // 回到學生首頁
+  }
+
+  return '/'
 })
 
 /**

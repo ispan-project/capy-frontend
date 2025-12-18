@@ -1,6 +1,8 @@
 <script setup>
 import { number } from 'echarts'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { getCourseSections } from '@/api/student/courseLearning'
 
 const router = useRouter()
 
@@ -47,8 +49,56 @@ const getProgressHint = (enrollment) => {
 }
 
 // 處理卡片點擊，導航到課程學習頁面
-const handleCardClick = (courseId) => {
-  router.push(`/student/course-play/${courseId}`)
+const handleCardClick = async (enrollment) => {
+  try {
+    // 先嘗試從 enrollment 中獲取 lessonId
+    let lessonId = enrollment.lastWatchedLessonId
+      || enrollment.lastLessonId
+      || enrollment.lessonId
+      || enrollment.firstLessonId
+      || enrollment.currentLessonId
+
+    // 如果沒有 lessonId，呼叫 sections API 獲取第一個單元
+    if (!lessonId) {
+      console.log('從 API 獲取課程章節資訊...')
+      const sectionsData = await getCourseSections(enrollment.courseId)
+
+      // 從第一個章節的第一個單元獲取 lessonId
+      if (sectionsData?.section?.length > 0) {
+        const firstSection = sectionsData.section[0]
+        if (firstSection.lessons?.length > 0) {
+          lessonId = firstSection.lessons[0].id
+          console.log('從 sections API 獲取到 lessonId:', lessonId)
+        }
+      }
+    }
+
+    if (!lessonId) {
+      console.error('無法找到 lessonId，enrollment 資料:', enrollment)
+      ElMessage.error('無法開始課程，請稍後再試')
+      return
+    }
+
+    // 使用正確的路由格式：/learning/course/:courseId/lesson/:lessonId
+    router.push({
+      name: 'courseLearning',
+      params: {
+        courseId: enrollment.courseId,
+        lessonId: lessonId
+      }
+    })
+  } catch (error) {
+    console.error('載入課程失敗:', error)
+    ElMessage.error('載入課程失敗，請稍後再試')
+  }
+}
+
+// 處理老師名稱點擊
+const handleTeacherClick = (event, instructorId) => {
+  event.stopPropagation() // 防止觸發卡片點擊事件
+  if (instructorId) {
+    router.push(`/teacherdetail/${instructorId}`)
+  }
 }
 </script>
 
@@ -58,7 +108,7 @@ const handleCardClick = (courseId) => {
       v-for="enrollment in props.enrollments"
       :key="enrollment.courseId"
       class="course-card"
-      @click="handleCardClick(enrollment.courseId)"
+      @click="handleCardClick(enrollment)"
     >
       <!-- 課程縮圖 -->
       <div class="course-thumbnail">
@@ -68,7 +118,14 @@ const handleCardClick = (courseId) => {
       <!-- 課程資訊 -->
       <div class="course-info">
         <h3 class="course-title">{{ enrollment.courseTitle }}</h3>
-        <p class="course-instructor">作者: {{ enrollment.instructorName }}</p>
+        <p class="course-instructor">
+          <span
+            class="teacher-link"
+            @click="handleTeacherClick($event, enrollment.instructorId)"
+          >
+            {{ enrollment.instructorName }} 老師
+          </span>
+        </p>
 
         <!-- 進度資訊文字 -->
         <p class="progress-hint">{{ getProgressHint(enrollment) }}</p>
@@ -96,6 +153,38 @@ const handleCardClick = (courseId) => {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 var(--capy-spacing-lg);
+}
+
+/* Mobile: Horizontal Scroll with Snap */
+@media (max-width: 768px) {
+  .continue-learning {
+    display: flex;
+    grid-template-columns: none;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 0 var(--capy-spacing-md);
+    margin: 0 calc(-1 * var(--capy-spacing-md));
+    padding-left: var(--capy-spacing-md);
+    padding-right: var(--capy-spacing-md);
+
+    /* Hide scrollbar for clean look */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .continue-learning::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  .course-card {
+    flex: 0 0 85%;
+    max-width: 85%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
 }
 
 .course-card {
@@ -162,6 +251,16 @@ const handleCardClick = (courseId) => {
   white-space: nowrap;
 }
 
+.teacher-link {
+  cursor: pointer;
+  transition: color var(--capy-transition-fast);
+}
+
+.teacher-link:hover {
+  color: var(--capy-primary);
+  text-decoration: underline;
+}
+
 /* 進度提示文字 */
 .progress-hint {
   font-size: 12px;
@@ -205,16 +304,17 @@ const handleCardClick = (courseId) => {
   }
 }
 
-@media (max-width: 768px) {
-  .continue-learning {
-    grid-template-columns: 1fr;
-    padding: 0 var(--capy-spacing-md);
-    gap: 16px;
-  }
-}
-
 @media (max-width: 480px) {
+  .continue-learning {
+    padding-left: var(--capy-spacing-sm);
+    padding-right: var(--capy-spacing-sm);
+    margin: 0 calc(-1 * var(--capy-spacing-sm));
+    gap: 12px;
+  }
+
   .course-card {
+    flex: 0 0 90%;
+    max-width: 90%;
     padding: 12px;
     gap: 12px;
   }

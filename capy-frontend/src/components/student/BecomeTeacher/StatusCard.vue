@@ -1,7 +1,6 @@
 <template>
   <div class="status-card-container">
     <el-result
-      :icon="resultIcon"
       :title="resultTitle"
       :sub-title="resultDescription"
       class="status-result"
@@ -86,7 +85,7 @@ const goToHome = () => {
 
 // 前往講師後台
 const goToInstructorDashboard = () => {
-  router.push('/instructor/dashboard')
+  router.push('/teacher/workspace')
 }
 </script>
 

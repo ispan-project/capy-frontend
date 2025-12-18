@@ -49,6 +49,9 @@
           <p class="failed-message">
             很抱歉，您的付款未能成功完成
           </p>
+          <p v-if="errorMessage" class="failed-reason">
+            失敗原因：{{ errorMessage }}
+          </p>
           <p class="failed-hint">
             訂單編號：#{{ currentOrderId }}
           </p>
@@ -236,12 +239,16 @@ const isPolling = ref(false)
 // ==================== Methods ====================
 
 /**
- * 載入訂單資料（改進版：先檢查狀態）
+ * 載入訂單資料（改進版：先檢查 URL 參數，再檢查訂單狀態）
  */
 const loadOrderSuccess = async () => {
   try {
     loading.value = true
     error.value = false
+
+    // 步驟 0: 優先檢查 URL 參數中的狀態（後端 redirect 可能帶上）
+    const urlStatus = route.query.status
+    const urlReason = route.query.reason
 
     // 從 URL 參數取得 orderId
     const orderId = route.query.orderId || route.query.orderid ||
@@ -254,7 +261,18 @@ const loadOrderSuccess = async () => {
     currentOrderId.value = orderId
     console.log('載入訂單資料，訂單 ID:', orderId)
 
-    // 步驟 1: 先呼叫 details API 檢查訂單狀態
+    // 如果 URL 參數明確指示失敗，直接顯示失敗狀態
+    if (urlStatus === 'fail' || urlStatus === 'failed') {
+      orderStatus.value = 'failed'
+      if (urlReason) {
+        errorMessage.value = decodeURIComponent(urlReason)
+      }
+      console.log('URL 參數指示付款失敗:', urlReason)
+      loading.value = false
+      return
+    }
+
+    // 步驟 1: 呼叫 details API 檢查訂單狀態
     const detailsResponse = await getOrderDetails(orderId)
     const orderDetails = detailsResponse.data || detailsResponse
 
@@ -667,6 +685,18 @@ onUnmounted(() => {
   font-size: var(--capy-font-size-lg);
   color: var(--capy-text-secondary);
   margin: 0 0 var(--capy-spacing-sm) 0;
+}
+
+.failed-reason {
+  font-size: var(--capy-font-size-base);
+  color: var(--capy-danger);
+  background-color: var(--el-color-danger-light-9);
+  padding: var(--capy-spacing-sm) var(--capy-spacing-md);
+  border-radius: var(--capy-radius-sm);
+  border-left: 3px solid var(--capy-danger);
+  margin: var(--capy-spacing-md) 0;
+  max-width: 600px;
+  text-align: left;
 }
 
 .failed-hint {

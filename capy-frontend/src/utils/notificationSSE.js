@@ -37,7 +37,7 @@ class NotificationSSEService {
       }
     })
 
-    // 監聽網路斷線
+    // 監聯網路斷線
     window.addEventListener('offline', () => {
       console.log('🌐 網路已斷開')
       this.isOnline = false
@@ -47,6 +47,37 @@ class NotificationSSEService {
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer)
         this.reconnectTimer = null
+      }
+    })
+
+    // 🔥 頁面卸載/reload 前關閉連線，避免殘留連線
+    window.addEventListener('beforeunload', () => {
+      console.log('🔌 頁面即將卸載，關閉 SSE 連線')
+      if (this.eventSource) {
+        this.isManualClose = true
+        this.eventSource.close()
+        this.eventSource = null
+      }
+    })
+
+    // 🔥 頁面隱藏時也關閉連線（手機切換 App 等情況）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('👁️ 頁面已隱藏，暫停 SSE 連線')
+        if (this.eventSource) {
+          this.eventSource.close()
+          this.eventSource = null
+          this.updateConnectionState('disconnected')
+        }
+      } else if (document.visibilityState === 'visible') {
+        console.log('👁️ 頁面已顯示，嘗試重新連線')
+        if (!this.isManualClose && !this.isConnected() && this.onNotificationCallback) {
+          this.reconnectAttempts = 0
+          // 延遲一點再連線，避免頁面還沒完全載入
+          setTimeout(() => {
+            this.connect(this.onNotificationCallback, this.onErrorCallback, this.onConnectionStateChangeCallback)
+          }, 500)
+        }
       }
     })
   }
@@ -80,10 +111,20 @@ class NotificationSSEService {
       return
     }
 
-    // 防止重複連線
+    // 改進的重複連線檢查 - 頁面 reload 時強制重新建立連線
     if (this.eventSource) {
-      console.warn('SSE 連線已存在，無需重複建立')
-      return
+      const state = this.eventSource.readyState
+      console.log('🔍 檢測到現有連線，readyState:', state, '(0=CONNECTING, 1=OPEN, 2=CLOSED)')
+
+      // 🔥 關鍵修改：無論狀態如何，都強制關閉舊連線並重新建立
+      // 這樣可以解決頁面 reload 時的連線殘留問題
+      console.log('🧹 強制關閉舊連線並重新建立')
+      try {
+        this.eventSource.close()
+      } catch (e) {
+        console.warn('⚠️ 關閉舊連線時發生錯誤:', e)
+      }
+      this.eventSource = null
     }
 
     // 儲存回調函數供重連使用
@@ -94,6 +135,23 @@ class NotificationSSEService {
     // 更新狀態為連線中
     this.updateConnectionState('connecting')
 
+    // 🔥 新增：延遲連線，確保 JWT Cookie 已經準備好
+    // 頁面載入時 Cookie 可能還沒被完全設定
+    const initialDelay = this.reconnectAttempts === 0 ? 500 : 0
+    
+    if (initialDelay > 0) {
+      console.log(`⏳ 延遲 ${initialDelay}ms 後建立 SSE 連線，確保認證資訊已就緒...`)
+    }
+
+    setTimeout(() => {
+      this.doConnect()
+    }, initialDelay)
+  }
+
+  /**
+   * 實際執行連線
+   */
+  doConnect() {
     const url = 'http://localhost:8080/api/notifications/stream'
 
     try {
@@ -132,31 +190,17 @@ class NotificationSSEService {
       this.eventSource.onerror = (error) => {
         console.error('❌ SSE 連線錯誤:', error)
 
-        // 檢查是否為認證錯誤（401/403）
-        // EventSource 在遇到 HTTP 錯誤時會自動關閉並觸發 error 事件
-        // readyState 會變成 CLOSED (2)
-        if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
-          console.warn('⚠️ SSE 連線已關閉，可能是認證失敗 (401/403)')
-          this.updateConnectionState('error')
-
-          // 不再嘗試重連，因為可能是認證問題
-          this.isManualClose = true
-
-          if (this.onErrorCallback) {
-            this.onErrorCallback({
-              type: 'auth_error',
-              message: '連線失敗，請重新登入',
-              error
-            })
-          }
-
-          return
-        }
-
+        // 更新連線狀態
         this.updateConnectionState('error')
 
+        // 觸發錯誤回調
         if (this.onErrorCallback) {
-          this.onErrorCallback(error)
+          this.onErrorCallback({
+            type: 'connection_error',
+            message: 'SSE 連線發生錯誤',
+            error,
+            readyState: this.eventSource?.readyState
+          })
         }
 
         // 如果不是手動關閉且網路正常，則嘗試重連
@@ -195,6 +239,17 @@ class NotificationSSEService {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error(`❌ 已達到最大重連次數 (${this.maxReconnectAttempts})，停止重連`)
       this.updateConnectionState('error')
+
+      // 通知使用者達到最大重連次數
+      if (this.onErrorCallback) {
+        this.onErrorCallback({
+          type: 'max_retries_reached',
+          message: '通知連線失敗次數過多，請重新整理頁面或檢查網路連線',
+          reconnectAttempts: this.reconnectAttempts,
+          maxReconnectAttempts: this.maxReconnectAttempts
+        })
+      }
+
       return
     }
 

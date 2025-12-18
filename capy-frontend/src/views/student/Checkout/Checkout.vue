@@ -60,11 +60,12 @@
             <div
               v-for="item in cartStore.items"
               :key="item.courseId"
-              class="cart-item"
+              :class="['cart-item', { 'is-disabled': !getItemState(item).canBuy }]"
             >
               <!-- 選擇框 -->
               <el-checkbox
                 :model-value="isItemSelected(item.courseId)"
+                :disabled="!getItemState(item).canBuy"
                 @change="toggleItemSelection(item.courseId)"
                 class="item-checkbox"
               />
@@ -88,6 +89,23 @@
               <div class="item-info">
                 <h3 class="item-title">{{ item.title }}</h3>
                 <p class="item-instructor">講師：{{ item.instructor }}</p>
+                <!-- 狀態標籤 -->
+                <el-tag
+                  v-if="getItemState(item).type === 'UNAVAILABLE'"
+                  type="danger"
+                  size="small"
+                  class="item-status-tag"
+                >
+                  已下架
+                </el-tag>
+                <el-tag
+                  v-else-if="getItemState(item).type === 'ENROLLED'"
+                  type="info"
+                  size="small"
+                  class="item-status-tag"
+                >
+                  已擁有
+                </el-tag>
               </div>
 
               <!-- 價格 -->
@@ -95,7 +113,7 @@
                 {{ cartStore.formatPrice(item.price) }}
               </div>
 
-              <!-- 刪除按鈕 -->
+              <!-- 刪除按鈕 (保持啟用) -->
               <el-button
                 type="danger"
                 :icon="Delete"
@@ -156,12 +174,26 @@
               <span class="total-amount">{{ formattedSelectedTotal }}</span>
             </div>
 
+            <!-- 退款政策確認 -->
+            <div class="refund-policy-checkbox">
+              <el-checkbox
+                v-model="agreeRefundPolicy"
+                :disabled="selectedItems.length === 0"
+              >
+                <span class="policy-text">
+                  我已確認課程內容並同意
+                  <a href="#" @click.stop.prevent="showRefundPolicyDialog = true" class="policy-link">數位商品不可退款</a>
+                  之規定
+                </span>
+              </el-checkbox>
+            </div>
+
             <!-- 結帳按鈕 -->
             <el-button
               type="primary"
               size="large"
               class="checkout-btn"
-              :disabled="selectedItems.length === 0"
+              :disabled="selectedItems.length === 0 || !agreeRefundPolicy"
               :loading="isCheckingOut"
               @click="handleCheckout"
             >
@@ -179,6 +211,17 @@
         </div>
       </div>
     </div>
+
+    <!-- 退款政策對話框 -->
+    <el-dialog
+      v-model="showRefundPolicyDialog"
+      title="退款政策"
+      width="800px"
+      :close-on-click-modal="false"
+      class="refund-policy-dialog"
+    >
+      <RefundPolicyContent />
+    </el-dialog>
   </div>
 </template>
 
@@ -196,6 +239,8 @@ import {
 } from '@element-plus/icons-vue'
 import { useCartStore } from '@/stores/cart'
 import { createOrder, getEcpayCheckout } from '@/api/student/orders'
+import RefundPolicyContent from '@/components/legal/RefundPolicyContent.vue'
+import { getItemState } from '@/composable/useCourseState.js'
 
 // ==================== Composables ====================
 
@@ -215,21 +260,42 @@ const selectedItemIds = ref([])
  */
 const isCheckingOut = ref(false)
 
+/**
+ * 是否同意退款政策
+ */
+const agreeRefundPolicy = ref(false)
+
+/**
+ * 是否顯示退款政策對話框
+ */
+const showRefundPolicyDialog = ref(false)
+
 // ==================== Computed ====================
 
 /**
+ * 可購買的課程項目
+ * 過濾出狀態為可購買的課程（已上架且未擁有）
+ */
+const buyableItems = computed(() => {
+  return cartStore.items.filter(item => {
+    const state = getItemState(item)
+    return state.canBuy
+  })
+})
+
+/**
  * 全選狀態
+ * 只能選取可購買的項目
  */
 const selectAll = computed({
   get() {
-    return selectedItemIds.value.length === cartStore.itemCount && cartStore.itemCount > 0
+    return buyableItems.value.length > 0 &&
+           selectedItemIds.value.length === buyableItems.value.length
   },
   set(value) {
-    if (value) {
-      selectedItemIds.value = cartStore.items.map(item => item.courseId)
-    } else {
-      selectedItemIds.value = []
-    }
+    selectedItemIds.value = value
+      ? buyableItems.value.map(item => item.courseId)
+      : []
   }
 })
 
@@ -238,7 +304,8 @@ const selectAll = computed({
  */
 const isIndeterminate = computed(() => {
   const selectedCount = selectedItemIds.value.length
-  return selectedCount > 0 && selectedCount < cartStore.itemCount
+  const buyableCount = buyableItems.value.length
+  return selectedCount > 0 && selectedCount < buyableCount
 })
 
 /**
@@ -287,13 +354,10 @@ const toggleItemSelection = (courseId) => {
 
 /**
  * 處理全選/取消全選
+ * 注意：此方法已由 selectAll 的 setter 處理，保留以防需要額外邏輯
  */
 const handleSelectAll = (value) => {
-  if (value) {
-    selectedItemIds.value = cartStore.items.map(item => item.courseId)
-  } else {
-    selectedItemIds.value = []
-  }
+  selectAll.value = value
 }
 
 /**
@@ -338,6 +402,7 @@ const goToExplore = () => {
 
 /**
  * 處理結帳
+ * 只送出可購買的課程 ID
  */
 const handleCheckout = async () => {
   if (selectedItems.value.length === 0) {
@@ -345,12 +410,31 @@ const handleCheckout = async () => {
     return
   }
 
+  if (!agreeRefundPolicy.value) {
+    ElMessage.warning('請確認並同意退款政策')
+    return
+  }
+
   try {
     isCheckingOut.value = true
 
+    // 過濾出可購買的課程 ID（status === 'PUBLISHED' 且 !isEnrolled）
+    const buyableCourseIds = selectedItems.value
+      .filter(item => {
+        const state = getItemState(item)
+        return state.canBuy
+      })
+      .map(item => item.courseId)
+
+    if (buyableCourseIds.length === 0) {
+      ElMessage.warning('所選課程無法購買')
+      isCheckingOut.value = false
+      return
+    }
+
     // 步驟 1: 建立訂單
     ElMessage.info('正在建立訂單...')
-    const orderResponse = await createOrder(selectedItemIds.value)
+    const orderResponse = await createOrder(buyableCourseIds)
 
     // 後端回傳的 orderId 在 data 欄位中
     const orderId = orderResponse.data || orderResponse
@@ -358,8 +442,6 @@ const handleCheckout = async () => {
     if (!orderId) {
       throw new Error('訂單建立失敗：未取得訂單 ID')
     }
-
-    console.log('訂單建立成功，訂單 ID:', orderId)
 
     // 步驟 2: 取得 ECPay 付款表單資訊（指定信用卡付款）
     ElMessage.info('正在準備付款頁面...')
@@ -371,8 +453,6 @@ const handleCheckout = async () => {
     if (!ecpayData || !ecpayData.actionUrl || !ecpayData.formFields) {
       throw new Error('付款資訊取得失敗')
     }
-
-    console.log('ECPay 付款資訊:', ecpayData)
 
     // 步驟 3: 動態建立並提交表單到 ECPay
     const form = document.createElement('form')
@@ -424,13 +504,13 @@ const handleCheckout = async () => {
 
 // ==================== Lifecycle ====================
 
-// 載入購物車資料 - 優先從後端載入，失敗則從 localStorage 載入
+/**
+ * 載入購物車資料
+ * 從後端載入購物車列表，並處理自動選中邏輯
+ */
 const loadCart = async () => {
-  const success = await cartStore.fetchCartList()
-  if (!success) {
-    // 如果後端載入失敗，從 localStorage 載入
-    cartStore.loadFromStorage()
-  }
+  // 載入購物車資料
+  await cartStore.fetchCartList()
 
   // 檢查是否有 autoSelect 參數（從立即購買導向過來）
   const autoSelectId = route.query.autoSelect
@@ -439,7 +519,6 @@ const loadCart = async () => {
     // 自動選中該課程
     if (cartStore.items.some(item => item.courseId === courseId)) {
       selectedItemIds.value = [courseId]
-      console.log('自動選中課程:', courseId)
     }
   }
 }
@@ -606,6 +685,16 @@ onMounted(() => {
   box-shadow: var(--capy-shadow-sm);
 }
 
+.cart-item.is-disabled {
+  opacity: 0.6;
+  background-color: var(--capy-bg-base);
+}
+
+.cart-item.is-disabled:hover {
+  border-color: var(--capy-border-lighter);
+  box-shadow: none;
+}
+
 .item-checkbox {
   flex-shrink: 0;
 }
@@ -647,7 +736,6 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
 }
@@ -656,6 +744,10 @@ onMounted(() => {
   font-size: var(--capy-font-size-sm);
   color: var(--capy-text-secondary);
   margin: 0;
+}
+
+.item-status-tag {
+  margin-top: var(--capy-spacing-xs);
 }
 
 .item-price {
@@ -821,6 +913,62 @@ onMounted(() => {
   gap: var(--capy-spacing-xs);
   color: var(--capy-text-secondary);
   font-size: var(--capy-font-size-xs);
+}
+
+/* 退款政策確認 */
+.refund-policy-checkbox {
+  margin-bottom: var(--capy-spacing-md);
+  padding: var(--capy-spacing-md);
+  background-color: #FFF7E6;
+  border: 2px solid #FFD666;
+  border-radius: var(--capy-radius-md);
+}
+
+.refund-policy-checkbox :deep(.el-checkbox) {
+  align-items: flex-start;
+}
+
+.refund-policy-checkbox :deep(.el-checkbox__label) {
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.policy-text {
+  font-size: var(--capy-font-size-sm);
+  color: var(--capy-text-primary);
+  line-height: 1.6;
+}
+
+.policy-link {
+  color: var(--capy-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.policy-link:hover {
+  color: var(--capy-primary-dark);
+  text-decoration: underline;
+}
+
+/* 退款政策對話框樣式 */
+:deep(.refund-policy-dialog) {
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 30px;
+  }
+
+  .el-dialog__header {
+    border-bottom: 1px solid var(--capy-border-lighter);
+    padding: 20px 30px;
+  }
+
+  .el-dialog__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--capy-text-primary);
+  }
 }
 
 /* ==================== 響應式設計 ==================== */

@@ -3,8 +3,6 @@ import { useLesson } from "@/composable/useLesson";
 import VideoPlayer from "../admin/VideoPlayer.vue";
 import { nextTick } from "vue";
 import { useAttachment } from "@/composable/useAttachment";
-import { nextTick } from "vue";
-import { useAttachment } from "@/composable/useAttachment";
 const props = defineProps({
   sectionInfo: {
     type: Object,
@@ -29,10 +27,9 @@ const props = defineProps({
   },
 });
 
-
 const { defaultLessonInfo, currentSectionInfo } = useLesson(props.sectionInfo);
 const emit = defineEmits(["update:visible", "confirm", "update:videoUrl"]);
-const emit = defineEmits(["update:visible", "confirm", "update:videoUrl"]);
+
 const dialogVisible = computed({
   get() {
     return props.visible;
@@ -47,28 +44,17 @@ const formModel = ref({
   attachments: props.lessonInfo?.attachments?.map((item) => ({ ...item })) ?? [],
 });
 
-const formModel = ref({
-  ...props.lessonInfo,
-  videoUrl: props.videoUrl,
-  attachments: props.lessonInfo?.attachments?.map((item) => ({ ...item })) ?? [],
-});
-
 const requestData = computed(() => {
   return {
     ...formModel.value,
     lessonDescription: formModel.value.description,
-    videoMeta: videoMeta.value,
     videoMeta: videoMeta.value,
     attachmentOps: attachmentOps.value,
   };
 });
 let currentUploadVideo;
 const videoPlayerRef = ref(null);
-const videoMeta = ref({
-  rawVideoHeight: videoPlayerRef.value?.videoHeight,
-  fileSize: null,
-  durationSeconds: videoPlayerRef.value?.videoDuration,
-});
+
 const videoMeta = ref({
   rawVideoHeight: videoPlayerRef.value?.videoHeight,
   fileSize: null,
@@ -86,8 +72,6 @@ const handleVideoChange = async (file) => {
   formModel.value.videoUrl = URL.createObjectURL(file.raw);
   await nextTick();
   videoMeta.value.fileSize = file.raw.size;
-  await nextTick();
-  videoMeta.value.fileSize = file.raw.size;
 };
 watch(
   () => dialogVisible.value,
@@ -103,6 +87,7 @@ watch(
         videoUrl: props.videoUrl,
         attachments: props.lessonInfo?.attachments?.map((item) => ({ ...item })) ?? [],
       };
+      console.log(props.videoUrl);
     } else {
       emit("update:videoUrl", null);
       attachmentUploadRef.value.clearFiles();
@@ -117,24 +102,9 @@ watch(
     if (!newVal) {
       return;
     }
-    if (!newVal) {
-      return;
-    }
     if (!oldVal) {
       await nextTick();
       // console.log(videoPlayerRef.value);
-      try {
-        await videoPlayerRef.value.init();
-        await videoPlayerRef.value.play(newVal);
-        videoMeta.value.rawVideoHeight = videoPlayerRef.value.videoHeight;
-        videoMeta.value.durationSeconds = videoPlayerRef.value.videoDuration;
-      } catch (e) {
-        console.log(e);
-        ElMessage.error("影片播放錯誤");
-        videoPlayerRef.value.destroy();
-        formModel.value.videoUrl = null;
-      }
-
       try {
         await videoPlayerRef.value.init();
         await videoPlayerRef.value.play(newVal);
@@ -181,17 +151,7 @@ const handleDownloadAttachment = async (attachmentId) => {
   const { download } = useAttachment(attachmentId);
   await download();
 };
-const handleDeleteAttachment = (attachmentId) => {
-  const target = formModel.value.attachments.find((item) => item.attachmentId === attachmentId);
-  if (!target) {
-    return;
-  }
-  target.isDelete = true;
-};
-const handleDownloadAttachment = async (attachmentId) => {
-  const { download } = useAttachment(attachmentId);
-  await download();
-};
+
 const attachmentList = ref([]);
 //新增的Ops
 const newAttachmentList = computed(() =>
@@ -203,15 +163,9 @@ const defaultAttachmentList = computed(() => {
   }
   return [];
 });
-const defaultAttachmentList = computed(() => {
-  if (props.isEdit) {
-    return formModel.value.attachments.filter((attachment) => !attachment.isDelete);
-  }
-  return [];
-});
+
 const deleteAttachmentList = computed(() => {
   if (props.isEdit) {
-    return formModel.value.attachments.filter((attachment) => attachment.isDelete);
     return formModel.value.attachments.filter((attachment) => attachment.isDelete);
   }
   return [];
@@ -220,16 +174,16 @@ const attachmentUploadRef = ref(null);
 const attachmentOps = computed(() => [...newAttachmentList.value, ...deleteAttachmentList.value]);
 //新增的檔案
 const attachmentFileList = computed(() => attachmentList.value?.map((file) => file.raw));
-// onMounted(() => {
-//   if (!props.isEdit) {
-//     formModel.value = { ...defaultLessonInfo, videoUrl: props.videoUrl };
-//   }
-// });
-// onMounted(() => {
-//   if (!props.isEdit) {
-//     formModel.value = { ...defaultLessonInfo, videoUrl: props.videoUrl };
-//   }
-// });
+// let isDefferent = true;
+// watch(
+//   () => requestData,
+//   (newVal, oldVal) => {
+//     console.log(newVal);
+//     console.log(oldVal);
+//     console.log(newVal === oldVal);
+//   },
+//   { immediate: true }
+// );
 const save = () => {
   if (!formModel.value.videoUrl || formModel.value.videoUrl === props.videoUrl) {
     requestData.value.videoMeta = null;
@@ -270,7 +224,7 @@ const save = () => {
           inactive-text="否"
         />
       </el-form-item>
-      <el-form-item v-if="!formModel.videoUrl" label="上傳影片檔案 :">
+
       <el-form-item v-if="!formModel.videoUrl" label="上傳影片檔案 :">
         <div style="width: 100%">
           <el-upload
@@ -297,26 +251,10 @@ const save = () => {
           <div>
             <el-button type="primary">重新選擇影片檔案</el-button>
             <el-button type="info">清空</el-button>
-        </div>
-      </el-form-item>
-      <el-form-item v-else label="預覽影片 :">
-        <div>
-          <VideoPlayer ref="videoPlayerRef" />
-          <div>
-            <el-button type="primary">重新選擇影片檔案</el-button>
-            <el-button type="info">清空</el-button>
           </div>
         </div>
       </el-form-item>
       <el-form-item label="新增單元附件 :">
-      <el-form-item label="新增單元附件 :">
-        <!-- <el-upload class="upload" style="width: 100%" drag>
-          <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-          <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
-          <template #tip>
-            <div class="el-upload__tip">jpg/png files with a size less than 500kb</div>
-          </template>
-        </el-upload> -->
         <div style="width: 100%">
           <div>
             <el-upload
@@ -345,10 +283,10 @@ const save = () => {
               v-for="attachment in defaultAttachmentList"
               :key="attachment.attachmentId"
             >
-              <p style="width: 250px">
-                <span style="margin-right: 4px"
+              <p style="width: 250px; display: flex">
+                <span style="margin-right: 8px"
                   ><el-icon><Document /></el-icon></span
-                >{{ attachment.fileName }}
+                ><el-text truncated>{{ attachment.fileName }}</el-text>
               </p>
               <div>
                 <el-button link @click="handleDeleteAttachment(attachment.attachmentId)"
@@ -374,12 +312,6 @@ const save = () => {
     </template>
   </el-dialog>
 </template>
-<style scoped>
-.attachment-list-item {
-  display: flex;
-  gap: 24px;
-}
-</style>
 <style scoped>
 .attachment-list-item {
   display: flex;

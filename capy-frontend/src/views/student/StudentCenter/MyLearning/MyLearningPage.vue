@@ -88,7 +88,7 @@ const studentCenterStore = useStudentCenterStore()
 // 狀態管理
 const filterStatus = ref('all')
 const currentPage = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(5)
 const sortBy = ref('lastWatch,desc')
 
 // Rating dialog state
@@ -232,27 +232,21 @@ const handleOpenRateDialog = ({ course, initialRating: rating }) => {
  */
 const handleReviewSubmitted = async (reviewData) => {
   try {
-    // 判斷是新增還是更新評分
-    const course = myLearningContent.value.find(c => c.progressId === selectedProgressId.value)
-    const isUpdate = course && course.rating !== null && course.rating !== undefined
-
-    if (isUpdate) {
-      // 使用舊的 API 更新評分（基於 progressId）
-      await studentCenterStore.updateRating(selectedProgressId.value, {
-        rating: reviewData.rating,
-        comment: reviewData.comment
-      })
-    } else {
-      // 使用新的 API 提交評分（基於 courseId）
-      await rateCourse({
-        courseId: selectedCourseInfo.value.courseId,
-        rating: reviewData.rating,
-        comment: reviewData.comment
-      })
-
-      // 重新載入課程列表以更新評分狀態
-      await loadMyLearning()
+    // 確保有 courseId
+    if (!selectedCourseInfo.value?.courseId) {
+      ElMessage.error('課程資訊錯誤，請重試')
+      return
     }
+
+    // 提交評分（使用新的 rateCourse API，基於 courseId）
+    await rateCourse({
+      courseId: selectedCourseInfo.value.courseId,
+      rating: reviewData.rating,
+      comment: reviewData.comment
+    })
+
+    // 重新載入課程列表以更新評分狀態
+    await loadMyLearning()
 
     // Reset dialog state
     selectedProgressId.value = null
@@ -260,7 +254,7 @@ const handleReviewSubmitted = async (reviewData) => {
     initialRating.value = 0
     initialComment.value = ''
 
-    ElMessage.success(isUpdate ? '評價已更新' : '評價已提交')
+    ElMessage.success('評價已提交')
   } catch (error) {
     console.error('提交評價失敗:', error)
 
@@ -269,6 +263,8 @@ const handleReviewSubmitted = async (reviewData) => {
       ElMessage.error('已購買後才能評價')
     } else if (error.response?.status === 409) {
       ElMessage.error('已經評過此課程')
+      // 重新載入以同步狀態
+      await loadMyLearning()
     } else if (error.response?.status === 401 || error.response?.status === 403) {
       ElMessage.error('請先登入')
     } else {
@@ -283,7 +279,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .my-learning-page {
   padding: 0;
 }
@@ -294,6 +290,12 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 32px;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }
 
 .page-title {
@@ -301,12 +303,25 @@ onMounted(() => {
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
+
+  @include mobile {
+    font-size: 22px;
+  }
+
+  @include small-mobile {
+    font-size: 20px;
+  }
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
   align-items: center;
+
+  @include mobile {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 .filter-status-btn {
@@ -318,12 +333,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-}
 
-.filter-status-btn:hover,
-.filter-status-btn:focus {
-  background: var(--capy-primary-dark);
-  border-color: var(--capy-primary-dark);
+  &:hover,
+  &:focus {
+    background: var(--capy-primary-dark);
+    border-color: var(--capy-primary-dark);
+  }
+
+  @include small-mobile {
+    padding: 8px 16px;
+    height: 36px;
+    font-size: 14px;
+  }
 }
 
 .filter-icon {
@@ -334,15 +355,15 @@ onMounted(() => {
 :deep(.el-dropdown-menu__item) {
   padding: 10px 20px;
   font-size: 14px;
-}
 
-:deep(.el-dropdown-menu__item.active) {
-  color: var(--capy-primary);
-  font-weight: 600;
-}
+  &.active {
+    color: var(--capy-primary);
+    font-weight: 600;
+  }
 
-:deep(.el-dropdown-menu__item:hover) {
-  background: #f5f5f5;
+  &:hover {
+    background: #f5f5f5;
+  }
 }
 
 /* Course List */
@@ -351,6 +372,10 @@ onMounted(() => {
   flex-direction: column;
   gap: 20px;
   margin-bottom: 32px;
+
+  @include mobile {
+    gap: 16px;
+  }
 }
 
 /* Loading State */
@@ -362,15 +387,15 @@ onMounted(() => {
   gap: 12px;
   padding: 60px 20px;
   color: var(--capy-text-secondary);
-}
 
-.loading-wrapper .el-icon {
-  font-size: 32px;
-  color: var(--capy-primary);
-}
+  .el-icon {
+    font-size: 32px;
+    color: var(--capy-primary);
+  }
 
-.loading-wrapper span {
-  font-size: 14px;
+  span {
+    font-size: 14px;
+  }
 }
 
 /* Pagination */
@@ -382,57 +407,23 @@ onMounted(() => {
 
 :deep(.el-pagination) {
   gap: 8px;
-}
 
-:deep(.el-pagination button),
-:deep(.el-pager li) {
-  min-width: 36px;
-  height: 36px;
-  line-height: 36px;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-:deep(.el-pager li.is-active) {
-  background: #1a1a1a;
-  color: white;
-}
-
-:deep(.el-pager li:hover) {
-  color: var(--capy-primary);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .page-title {
-    font-size: 22px;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .course-list {
-    gap: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-title {
-    font-size: 20px;
-  }
-
-  .filter-status-btn {
-    padding: 8px 16px;
+  button,
+  .el-pager li {
+    min-width: 36px;
     height: 36px;
-    font-size: 14px;
+    line-height: 36px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .el-pager li.is-active {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .el-pager li:hover {
+    color: var(--capy-primary);
   }
 }
 </style>

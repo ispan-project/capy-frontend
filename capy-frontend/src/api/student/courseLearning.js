@@ -12,6 +12,7 @@ import http from '@/utils/http'
  * Response: Result<LessonSummaryVo>
  * {
  *   lessonDescription: string,
+ *   completionPercentage: number | null,  // 課程完成百分比（登入且有購買時回傳，否則為 null）
  *   course: {
  *     courseId: string,
  *     courseTitle: string,
@@ -51,7 +52,8 @@ export const getLessonSummary = (lessonId) => {
  *           id: number,
  *           title: string,  // 單元標題
  *           displayOrder: number,
- *           duration: string  // MM:SS 格式
+ *           duration: string,  // MM:SS 格式
+ *           completed: boolean // 是否已完成
  *         }
  *       ]
  *     }
@@ -285,6 +287,57 @@ export const triggerAttachmentDownload = async (attachmentId, fileName) => {
   }
 }
 
+/**
+ * 課程評論相關 API
+ */
+
+/**
+ * 查詢我自己的評論（需已購課且登入）
+ * @param {string} courseId - 課程 ID
+ * @returns {Promise<CourseReviewVo|null>}
+ * @example
+ * Response: Result<CourseReviewVo>
+ * {
+ *   courseId: string,
+ *   userId: string,
+ *   rating: number,  // 1-5 星
+ *   comment: string,
+ *   createdAt: string  // ISO-8601 格式
+ * }
+ *
+ * 若尚未評論則 data 為 null
+ */
+export const getMyReview = (courseId) => {
+  return http.get('/student/reviews/me', {
+    params: { courseId }
+  })
+}
+
+/**
+ * 儲存單元觀看進度
+ * @param {{ lessonId: number|string, lastWatchSeconds: number }} payload
+ * @returns {Promise<LessonProgressSaveVo>}
+ * @example
+ * Request Body:
+ * {
+ *   lessonId: number,
+ *   lastWatchSeconds: number
+ * }
+ *
+ * Response: Result<LessonProgressSaveVo>
+ * {
+ *   progressId: number,
+ *   lessonId: number,
+ *   courseId: number,
+ *   lastWatchSeconds: number,
+ *   completed: boolean,      // 後端判斷是否已完成
+ *   completedAt: string|null // ISO-8601 格式，完成時間
+ * }
+ */
+export const saveLessonProgress = (payload) => {
+  return http.post('/lesson/progress/update', payload)
+}
+
 export default {
   getLessonSummary,
   getCourseSections,
@@ -296,5 +349,7 @@ export default {
   getHlsMaster,
   getHlsResource,
   buildHlsUrl,
-  triggerAttachmentDownload
+  triggerAttachmentDownload,
+  getMyReview,
+  saveLessonProgress
 }

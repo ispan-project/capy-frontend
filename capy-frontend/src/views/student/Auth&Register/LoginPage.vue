@@ -20,20 +20,20 @@
         <div class="tabs">
           <button
             :class="['tab', { active: activeTab === 'login' }]"
-            @click="activeTab = 'login'"
+            @click="handleTabChange('login')"
           >
             登入
           </button>
           <button
             :class="['tab', { active: activeTab === 'register' }]"
-            @click="activeTab = 'register'"
+            @click="handleTabChange('register')"
           >
             註冊
           </button>
         </div>
 
         <!-- 登入表單 -->
-        <div v-if="activeTab === 'login'" class="form-content">
+        <div v-show="activeTab === 'login'" class="form-content">
           <div class="form-group">
             <label class="form-label">電子郵件</label>
             <input
@@ -70,6 +70,11 @@
             <router-link to="/forgot-password" class="link">忘記密碼？</router-link>
           </div>
 
+          <!-- Turnstile Widget -->
+          <div class="turnstile-container">
+            <div ref="loginTurnstileRef"></div>
+          </div>
+
           <button
             class="submit-button"
             @click="handleLogin"
@@ -93,7 +98,7 @@
         </div>
 
         <!-- 註冊表單 -->
-        <div v-else class="form-content">
+        <div v-show="activeTab === 'register'" class="form-content">
           <!-- 註冊成功狀態 -->
           <div v-if="isRegisterSuccess" class="success-state">
             <div class="success-icon">
@@ -114,7 +119,16 @@
           <!-- 註冊表單 -->
           <div v-else>
           <div class="form-group">
-            <label class="form-label">暱稱</label>
+            <div class="label-with-tooltip">
+              <label class="form-label">暱稱</label>
+              <el-tooltip
+                content="僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白"
+                placement="right"
+                effect="light"
+              >
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
             <div class="input-with-icon">
               <input
                 v-model="registerForm.username"
@@ -133,9 +147,6 @@
             </div>
             <div v-show="nicknameValidation.message" :class="['validation-message', nicknameValidation.type]">
               {{ nicknameValidation.message || '&nbsp;' }}
-            </div>
-            <div v-if="!nicknameValidation.message && registerForm.username" class="nickname-hint">
-              僅能包含中英文、數字、底線(_)、連接號(-)、句點(.)，不允許空白
             </div>
           </div>
 
@@ -206,13 +217,22 @@
           </div>
 
           <div class="checkbox-group">
-            <input
+            <el-checkbox
               v-model="registerForm.agreeTerms"
-              type="checkbox"
               id="terms"
-              class="checkbox"
-            />
-            <label for="terms" class="checkbox-label">我同意服務條款和隱私政策</label>
+            >
+              <span class="checkbox-text">
+                我已閱讀並同意
+                <a href="#" @click.stop.prevent="showTermsDialog = true" class="legal-link">服務條款</a>
+                和
+                <a href="#" @click.stop.prevent="showPrivacyDialog = true" class="legal-link">隱私權政策</a>
+              </span>
+            </el-checkbox>
+          </div>
+
+          <!-- Turnstile Widget -->
+          <div class="turnstile-container">
+            <div ref="registerTurnstileRef"></div>
           </div>
 
           <button
@@ -240,13 +260,37 @@
         </div>
       </div>
     </div>
+
+    <!-- 服務條款對話框 -->
+    <el-dialog
+      v-model="showTermsDialog"
+      title="服務條款"
+      width="800px"
+      :close-on-click-modal="false"
+      class="legal-dialog"
+    >
+      <TermsOfServiceContent />
+    </el-dialog>
+
+    <!-- 隱私權政策對話框 -->
+    <el-dialog
+      v-model="showPrivacyDialog"
+      title="隱私權政策"
+      width="800px"
+      :close-on-click-modal="false"
+      class="legal-dialog"
+    >
+      <PrivacyPolicyContent />
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { View, Hide, Message, Loading, InfoFilled } from '@element-plus/icons-vue';
+import { View, Hide, Message, Loading, InfoFilled, QuestionFilled } from '@element-plus/icons-vue';
+import TermsOfServiceContent from '@/components/legal/TermsOfServiceContent.vue';
+import PrivacyPolicyContent from '@/components/legal/PrivacyPolicyContent.vue';
 import {
   validateNicknameFormat,
   createNicknameValidator,
@@ -261,6 +305,125 @@ import { useUserStore } from '@/stores/user';
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
+
+// Turnstile 配置
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+
+// 檢查 Site Key 是否存在
+if (!turnstileSiteKey) {
+  console.error('❌ 缺少 Turnstile Site Key！');
+  console.error('請確認：');
+  console.error('1. 專案根目錄是否有 .env 檔案');
+  console.error('2. .env 檔案中是否包含 VITE_TURNSTILE_SITE_KEY=你的site_key');
+  console.error('3. 修改 .env 後需要重新啟動開發伺服器 (npm run dev)');
+}
+
+const loginTurnstileRef = ref(null);
+const registerTurnstileRef = ref(null);
+const loginTurnstileToken = ref('');
+const registerTurnstileToken = ref('');
+const loginWidgetId = ref(null);
+const registerWidgetId = ref(null);
+
+// Turnstile 回調函數
+const onLoginTurnstileVerify = (token) => {
+  loginTurnstileToken.value = token;
+};
+
+const onLoginTurnstileExpire = () => {
+  loginTurnstileToken.value = '';
+  console.log('登入 Turnstile token 已過期');
+};
+
+const onRegisterTurnstileVerify = (token) => {
+  registerTurnstileToken.value = token;
+  console.log('註冊 Turnstile 驗證成功:', token);
+};
+
+const onRegisterTurnstileExpire = () => {
+  registerTurnstileToken.value = '';
+  console.log('註冊 Turnstile token 已過期');
+};
+
+// 渲染 Turnstile Widget
+const renderLoginTurnstile = () => {
+  if (!window.turnstile || !loginTurnstileRef.value) {
+    console.log('Turnstile 尚未載入或元素不存在');
+    return;
+  }
+
+  // 檢查 Site Key
+  if (!turnstileSiteKey) {
+    console.error('❌ 無法渲染 Turnstile：缺少 Site Key');
+    ElMessage.error('系統配置錯誤：缺少 Turnstile Site Key，請聯絡管理員');
+    return;
+  }
+
+  try {
+    loginWidgetId.value = window.turnstile.render(loginTurnstileRef.value, {
+      sitekey: turnstileSiteKey,
+      callback: onLoginTurnstileVerify,
+      'expired-callback': onLoginTurnstileExpire,
+      theme: 'light',
+    });
+    console.log('✅ 登入 Turnstile Widget 已渲染，ID:', loginWidgetId.value);
+  } catch (error) {
+    console.error('❌ 渲染登入 Turnstile 失敗:', error);
+    ElMessage.error('人機驗證載入失敗，請重新整理頁面');
+  }
+};
+
+const renderRegisterTurnstile = () => {
+  if (!window.turnstile || !registerTurnstileRef.value) {
+    console.log('Turnstile 尚未載入或元素不存在');
+    return;
+  }
+
+  // 檢查 Site Key
+  if (!turnstileSiteKey) {
+    console.error('❌ 無法渲染 Turnstile：缺少 Site Key');
+    ElMessage.error('系統配置錯誤：缺少 Turnstile Site Key，請聯絡管理員');
+    return;
+  }
+
+  try {
+    registerWidgetId.value = window.turnstile.render(registerTurnstileRef.value, {
+      sitekey: turnstileSiteKey,
+      callback: onRegisterTurnstileVerify,
+      'expired-callback': onRegisterTurnstileExpire,
+      theme: 'light',
+    });
+    console.log('✅ 註冊 Turnstile Widget 已渲染，ID:', registerWidgetId.value);
+  } catch (error) {
+    console.error('❌ 渲染註冊 Turnstile 失敗:', error);
+    ElMessage.error('人機驗證載入失敗，請重新整理頁面');
+  }
+};
+
+// 重置 Turnstile Widget
+const resetLoginTurnstile = () => {
+  if (window.turnstile && loginWidgetId.value !== null) {
+    try {
+      window.turnstile.reset(loginWidgetId.value);
+      loginTurnstileToken.value = '';
+      console.log('登入 Turnstile 已重置');
+    } catch (error) {
+      console.error('重置登入 Turnstile 失敗:', error);
+    }
+  }
+};
+
+const resetRegisterTurnstile = () => {
+  if (window.turnstile && registerWidgetId.value !== null) {
+    try {
+      window.turnstile.reset(registerWidgetId.value);
+      registerTurnstileToken.value = '';
+      console.log('註冊 Turnstile 已重置');
+    } catch (error) {
+      console.error('重置註冊 Turnstile 失敗:', error);
+    }
+  }
+};
 
 // Hero Section 隨機化
 const heroOptions = [
@@ -293,6 +456,10 @@ const registeredEmail = ref('');
 // 密碼顯示狀態
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
+
+// 法律條款對話框狀態
+const showTermsDialog = ref(false);
+const showPrivacyDialog = ref(false);
 
 // 登入載入狀態
 const isLoggingIn = ref(false);
@@ -473,8 +640,22 @@ onUnmounted(() => {
 
 // 處理登入
 const handleLogin = async () => {
+  console.log('=== 開始登入流程 ===');
+  console.log('Email:', loginForm.email);
+  console.log('Password:', loginForm.password ? '***已填寫***' : '未填寫');
+  console.log('Turnstile Token:', loginTurnstileToken.value);
+  console.log('Token 長度:', loginTurnstileToken.value ? loginTurnstileToken.value.length : 0);
+  console.log('Token 類型:', typeof loginTurnstileToken.value);
+
   if (!loginForm.email || !loginForm.password) {
     ElMessage.error('請填寫所有欄位');
+    return;
+  }
+
+  // 驗證 Turnstile
+  if (!loginTurnstileToken.value) {
+    console.error('❌ Turnstile token 是空的！');
+    ElMessage.error('請完成人機驗證');
     return;
   }
 
@@ -486,12 +667,22 @@ const handleLogin = async () => {
   // 開始載入
   isLoggingIn.value = true;
 
+  const loginData = {
+    email: loginForm.email,
+    password: loginForm.password,
+    turnstileToken: loginTurnstileToken.value
+  };
+
+  console.log('準備送出的登入資料:', {
+    email: loginData.email,
+    password: '***',
+    turnstileToken: loginData.turnstileToken ? `${loginData.turnstileToken.substring(0, 20)}...` : 'null'
+  });
+
   try {
     // 呼叫登入 API（後端會自動設定 Cookie）
-    const response = await login({
-      email: loginForm.email,
-      password: loginForm.password
-    });
+    const response = await login(loginData);
+    console.log('✅ 登入 API 回應成功');
 
     // 後端回傳格式: { user: { id, email, nickname, role, avatarUrl }, roles: [...] }
     const { user, roles } = response;
@@ -547,12 +738,15 @@ const handleLogin = async () => {
     if (status === 403 || errorMessage.includes('未驗證') || errorMessage.includes('停用') ||
         errorMessage.includes('not active') || errorMessage.includes('suspended')) {
       ElMessage.warning('您的帳號尚未啟用，請檢查您的電子郵件以完成驗證');
+    } else if (status === 400 && errorMessage.includes('Turnstile')) {
+      ElMessage.error('人機驗證失敗，請重試');
     } else {
       ElMessage.error(errorMessage || '登入失敗，請檢查您的帳號密碼');
     }
 
-    // 登入失敗時重置載入狀態
+    // 登入失敗時重置載入狀態和 Turnstile
     isLoggingIn.value = false;
+    resetLoginTurnstile();
   }
 };
 
@@ -585,6 +779,12 @@ const handleRegister = async () => {
   // 驗證其他欄位
   if (!registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
     ElMessage.error('請填寫所有欄位');
+    return;
+  }
+
+  // 驗證 Turnstile
+  if (!registerTurnstileToken.value) {
+    ElMessage.error('請完成人機驗證');
     return;
   }
 
@@ -648,7 +848,8 @@ const handleRegister = async () => {
       email: registerForm.email,
       password: registerForm.password,
       nickname: registerForm.username.trim(),
-      googleId: registerForm.googleId || undefined // 如果有 Google ID 則一併送出
+      googleId: registerForm.googleId || undefined, // 如果有 Google ID 則一併送出
+      turnstileToken: registerTurnstileToken.value
     });
 
     // 判斷是否為 Google OAuth 註冊
@@ -679,12 +880,12 @@ const handleRegister = async () => {
         // 等待 Cookie 完全寫入（給瀏覽器時間處理 Set-Cookie header）
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        // 驗證 Cookie 是否已設定（透過呼叫 verify API）
+        // 註冊後自動登入成功，使用登入模式載入完整資料（呼叫 /student/user）
         try {
-          await userStore.init();
-          console.log('Cookie 驗證成功，使用者已認證');
+          await userStore.init(true);
+          console.log('✅ 使用者完整資料載入成功');
         } catch (verifyError) {
-          console.warn('Cookie 驗證失敗，但繼續跳轉:', verifyError);
+          console.warn('⚠️ 載入完整資料失敗，但繼續跳轉:', verifyError);
         }
 
         // 跳轉到學生中心
@@ -703,7 +904,18 @@ const handleRegister = async () => {
     }
   } catch (error) {
     console.error('註冊失敗:', error);
-    ElMessage.error(error.response?.data?.message || error.message || '註冊失敗，請稍後再試');
+    const errorMessage = error.response?.data?.message || error.message || '註冊失敗，請稍後再試';
+    const status = error.response?.status;
+
+    // 如果是 Turnstile 驗證失敗
+    if (status === 400 && errorMessage.includes('Turnstile')) {
+      ElMessage.error('人機驗證失敗，請重試');
+      resetRegisterTurnstile();
+    } else {
+      ElMessage.error(errorMessage);
+      // 其他錯誤也重置 Turnstile
+      resetRegisterTurnstile();
+    }
   } finally {
     // 無論成功或失敗，都重置載入狀態
     isRegistering.value = false;
@@ -718,6 +930,23 @@ const handleGoogleLogin = () => {
   console.log(userStore);
   initiateGoogleOAuth();
 };
+
+// 處理 tab 切換
+const handleTabChange = (tab) => {
+  activeTab.value = tab;
+  // 渲染邏輯已移至 watch 監聽器，避免重複渲染
+};
+
+// 監聽 activeTab 變化，確保 Turnstile 在任何情況下都能被渲染
+watch(activeTab, async (newTab) => {
+  await nextTick();  // 等待 DOM 更新
+
+  if (newTab === 'register' && registerWidgetId.value === null) {
+    renderRegisterTurnstile();
+  } else if (newTab === 'login' && loginWidgetId.value === null) {
+    renderLoginTurnstile();
+  }
+});
 
 /**
  * 處理 OAuth 回調的三種情境
@@ -735,7 +964,7 @@ onMounted(() => {
     ElMessage.error(`Google 登入失敗: ${oauthError}`);
     // 清除 URL 中的查詢參數
     router.replace({ path: '/login', query: {} });
-    return;
+    // ⚠️ 移除 return，讓程式繼續執行 initTurnstile
   }
 
   // 情境 2: 未綁定的 Google 帳號，需要完成註冊/綁定
@@ -752,8 +981,28 @@ onMounted(() => {
 
     // 清除 URL 中的查詢參數
     router.replace({ path: '/login', query: {} });
-    return;
+    // ⚠️ 移除 return，讓程式繼續執行 initTurnstile
   }
+
+  // 等待 Turnstile script 載入後渲染 widgets
+  const initTurnstile = () => {
+    if (window.turnstile) {
+      console.log('Turnstile 已載入，Site Key:', turnstileSiteKey);
+      // 根據當前 tab 渲染對應的 widget
+      setTimeout(() => {
+        if (activeTab.value === 'login' && loginWidgetId.value === null) {
+          renderLoginTurnstile();
+        } else if (activeTab.value === 'register' && registerWidgetId.value === null) {
+          renderRegisterTurnstile();
+        }
+      }, 100);
+    } else {
+      console.log('等待 Turnstile 載入...');
+      setTimeout(initTurnstile, 100);
+    }
+  };
+
+  initTurnstile();
 });
 </script>
 
@@ -868,17 +1117,43 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 40px;
+  padding: 40px; /* 減少上下 padding，留更多空間給內容 */
   background: white;
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
+  overflow: hidden; /* 防止圓角被內容切掉 */
+  position: relative; /* 確保內容定位正確 */
 }
 
 .form-container {
   width: 100%;
   max-width: 370px;
-  min-height: 500px; /* 固定最小高度 */
+  height: 100%; /* 填滿父容器 */
+  overflow-y: auto; /* 啟用垂直捲動 */
+  padding-right: 4px; /* 預留捲軸空間，避免內容貼邊 */
+  
+  /* 隱藏捲軸但保留功能 (Chrome, Safari, Opera) */
+  &::-webkit-scrollbar {
+    width: 0px; 
+    background: transparent;
+  }
+  
+  /* 隱藏捲軸 (Firefox) */
+  scrollbar-width: none;
+  
+  /* 隱藏捲軸 (IE 10+) */
+  -ms-overflow-style: none;
+  
+  /* 確保內容有足夠空間顯示 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 內容少時置中 */
+}
+
+/* 當內容超出時，改為頂部對齊，避免無法捲動到最上方 */
+.form-container:has(.form-content) {
+  justify-content: flex-start;
+  padding-top: 20px; /* 預留頂部空間 */
 }
 
 .title {
@@ -950,12 +1225,35 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.label-with-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
 .form-label {
   display: block;
   font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
+  margin-bottom: 0; /* 改為 0，由 label-with-tooltip 控制間距 */
+}
+
+/* 針對非 tooltip 包裹的 label 恢復間距 */
+.form-group > .form-label {
   margin-bottom: 6px;
+}
+
+.help-icon {
+  font-size: 14px;
+  color: var(--capy-text-secondary);
+  cursor: help;
+  transition: color 0.3s ease;
+}
+
+.help-icon:hover {
+  color: var(--capy-primary);
 }
 
 .form-input {
@@ -1180,24 +1478,34 @@ onMounted(() => {
 
 /* Checkbox */
 .checkbox-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   margin-bottom: 16px;
 }
 
-.checkbox {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--capy-primary);
+.checkbox-group :deep(.el-checkbox) {
+  align-items: flex-start;
 }
 
-.checkbox-label {
+.checkbox-group :deep(.el-checkbox__label) {
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.checkbox-text {
   font-size: 14px;
   color: #666;
-  cursor: pointer;
-  user-select: none;
+  line-height: 1.6;
+}
+
+.legal-link {
+  color: var(--capy-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.legal-link:hover {
+  color: var(--capy-primary-dark);
+  text-decoration: underline;
 }
 
 /* 密碼強度提示 */
@@ -1232,6 +1540,19 @@ onMounted(() => {
 .password-hint .el-icon {
   font-size: 16px;
   flex-shrink: 0;
+}
+
+/* Turnstile 容器 */
+.turnstile-container {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
+.turnstile-container .cf-turnstile {
+  display: flex;
+  justify-content: center;
 }
 
 /* Google 按鈕 */
@@ -1339,6 +1660,26 @@ onMounted(() => {
   .right-section {
     border-radius: 0 0 20px 20px;
     padding: 40px 20px;
+  }
+}
+
+/* 法律條款對話框樣式 */
+:deep(.legal-dialog) {
+  .el-dialog__body {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 20px 30px;
+  }
+
+  .el-dialog__header {
+    border-bottom: 1px solid var(--capy-border-lighter);
+    padding: 20px 30px;
+  }
+
+  .el-dialog__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--capy-text-primary);
   }
 }
 </style>

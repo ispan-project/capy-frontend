@@ -18,7 +18,7 @@
       <div class="progress-section">
         <div class="progress-info">
           <span class="progress-text">學習進度</span>
-          <span class="progress-stats">{{ completedCount }}/{{ totalCount }}</span>
+          <span class="progress-stats">{{ progressPercentage }}%</span>
         </div>
         <el-progress
           :percentage="progressPercentage"
@@ -58,14 +58,14 @@
                 class="lesson-item"
                 :class="{
                   'is-active': lesson.id === currentLessonId,
-                  'is-completed': lesson.isCompleted,
+                  'is-completed': lesson.completed || lesson.isCompleted,
                   'is-locked': lesson.isLocked
                 }"
                 @click="handleLessonClick(lesson)"
               >
                 <!-- 左側狀態圖示 -->
                 <div class="lesson-status">
-                  <el-icon v-if="lesson.isCompleted" class="status-icon completed">
+                  <el-icon v-if="lesson.completed || lesson.isCompleted" class="status-icon completed">
                     <CircleCheck />
                   </el-icon>
                   <el-icon v-else-if="lesson.isLocked" class="status-icon locked">
@@ -131,6 +131,10 @@ const props = defineProps({
   isCollapsed: {
     type: Boolean,
     default: false
+  },
+  completionPercentage: {
+    type: Number,
+    default: null  // null 表示未登入或未購買，使用前端計算
   }
 })
 
@@ -161,14 +165,20 @@ const totalCount = computed(() => {
  */
 const completedCount = computed(() => {
   return props.chapters.reduce((total, chapter) => {
-    return total + chapter.lessons.filter(lesson => lesson.isCompleted).length
+    return total + chapter.lessons.filter(lesson => lesson.completed || lesson.isCompleted).length
   }, 0)
 })
 
 /**
  * 計算進度百分比
+ * 優先使用後端回傳的 completionPercentage，否則根據已完成單元數計算
  */
 const progressPercentage = computed(() => {
+  // 優先使用後端回傳的百分比
+  if (props.completionPercentage !== null && props.completionPercentage !== undefined) {
+    return Math.round(props.completionPercentage)
+  }
+  // fallback: 根據已完成單元數計算
   if (totalCount.value === 0) return 0
   return Math.round((completedCount.value / totalCount.value) * 100)
 })

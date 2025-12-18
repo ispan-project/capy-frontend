@@ -76,19 +76,18 @@ const notificationStore = useNotificationStore()
 const activeFilter = ref('all')
 const searchQuery = ref('')
 const currentPage = ref(1)
-const announcementType = ref(undefined) // platform / instructor / other / undefined=全部
 
-// 從 activeFilter 映射到 announcementType
-const filterToAnnouncementType = {
-  'all': undefined,
-  'platform': 'platform',
-  'instructor': 'instructor',
-  'other': 'other'
-}
-
-// 顯示的通知列表（客戶端搜尋過濾）
+// 顯示的通知列表（客戶端篩選：已讀/未讀 + 搜尋）
 const displayedNotifications = computed(() => {
   let filtered = notificationStore.notifications
+
+  // 已讀/未讀篩選
+  if (activeFilter.value === 'unread') {
+    filtered = filtered.filter(n => !n.isRead)
+  } else if (activeFilter.value === 'read') {
+    filtered = filtered.filter(n => n.isRead)
+  }
+  // activeFilter.value === 'all' 時不篩選，顯示全部
 
   // 客戶端搜尋過濾
   if (searchQuery.value) {
@@ -107,11 +106,11 @@ const emptyStateText = computed(() => {
   if (searchQuery.value) {
     return '找不到符合搜尋條件的通知'
   }
-  if (activeFilter.value === 'platform') {
-    return '目前沒有平台公告'
+  if (activeFilter.value === 'unread') {
+    return '目前沒有未讀通知'
   }
-  if (activeFilter.value === 'instructor') {
-    return '目前沒有講師公告'
+  if (activeFilter.value === 'read') {
+    return '目前沒有已讀通知'
   }
   return '目前沒有通知'
 })
@@ -120,9 +119,8 @@ const emptyStateText = computed(() => {
 const loadNotifications = async (page = 0) => {
   try {
     await notificationStore.fetchStudentNotifications({
-      announcementType: announcementType.value,
       page,
-      size: 5,
+      size: 20, // 增加每頁數量以支援客戶端篩選
       sort: 'createdAt,DESC'
     })
   } catch (error) {
@@ -130,12 +128,10 @@ const loadNotifications = async (page = 0) => {
   }
 }
 
-// 處理篩選變更
+// 處理篩選變更（客戶端篩選，不需要重新載入）
 const handleFilterChange = (filter) => {
   activeFilter.value = filter
-  announcementType.value = filterToAnnouncementType[filter]
-  currentPage.value = 1
-  loadNotifications(0)
+  // 客戶端篩選會自動透過 computed 更新 displayedNotifications
 }
 
 // 處理搜尋
@@ -152,7 +148,7 @@ const handlePageChange = (page) => {
 // 處理通知點擊
 const handleNotificationClick = async (notification) => {
   // 標記為已讀
-  if (!notification.is_read) {
+  if (!notification.isRead) {
     await notificationStore.markAsRead(notification.id)
   }
 
@@ -187,7 +183,9 @@ const handleDeleteNotification = async (notificationId) => {
 const handleMarkAllAsRead = async () => {
   try {
     await notificationStore.markAllAsRead()
+    // 標記已讀後重新載入當前頁面的通知
     await loadNotifications(currentPage.value - 1)
+    // 不需要重新獲取未讀數量，因為 markAllAsRead 已經更新了
   } catch (error) {
     console.error('標記全部已讀失敗:', error)
   }
@@ -195,8 +193,9 @@ const handleMarkAllAsRead = async () => {
 
 // 初始化
 onMounted(async () => {
+  // 只載入通知列表
+  // 未讀數量已經由 App.vue 在登入時透過 fetchUnreadCount 和 SSE 維護
   await loadNotifications(0)
-  await notificationStore.fetchUnreadCount()
 })
 
 </script>

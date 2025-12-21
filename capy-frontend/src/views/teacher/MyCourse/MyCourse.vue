@@ -29,7 +29,7 @@ onMounted(async () => {
     <!-- <p style="text-align: center">加載中...</p> -->
 
     <el-row :gutter="24">
-      <el-col v-for="i in 3" :xs="24" :sm="8" :md="6" :lg="6" :xl="6" class="course-col">
+      <el-col v-for="i in 4" :xs="24" :sm="8" :md="6" :lg="6" :xl="6" class="course-col">
         <el-skeleton animated>
           <template #template>
             <el-skeleton-item variant="image" style="height: 240px" />

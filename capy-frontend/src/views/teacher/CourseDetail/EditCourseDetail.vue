@@ -55,6 +55,7 @@ const handleSaveUpdate = async () => {
     //ref 的next方法
     await detailFormRef.value.next();
     ElMessage.success("更新成功");
+    router.push({ name: "mycourse" });
   } catch (e) {
     ElMessage.error(e.message);
     return;
@@ -70,7 +71,7 @@ const handleSaveUpdate = async () => {
     <div class="bottom-operation-btn-group">
       <el-button size="large" type="info" @click="$router.go(-1)">返回</el-button>
       <el-button size="large" type="danger" @click="handleDeleteCourse">刪除課程</el-button>
-      <el-button size="large" type="primary" @click="handleDeleteCourse">保存更新</el-button>
+      <el-button size="large" type="primary" @click="handleSaveUpdate">保存更新</el-button>
       <el-button size="large" type="warning" @click="handlePublishCourse">申請上架</el-button>
     </div>
   </div>

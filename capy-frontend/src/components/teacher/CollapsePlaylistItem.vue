@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { VueDraggable as Draggable } from "vue-draggable-plus";
 import TextInputDialog from "../common/TextInputDialog.vue";
 import AlertDialog from "../common/AlertDialog.vue";
@@ -10,7 +10,7 @@ import { useVideo } from "@/composable/useVideo";
 import { useVideoStore } from "@/stores/video";
 import { getVideoUrl } from "@/api/teacher/video";
 import { createLesson, updateLesson } from "@/api/teacher/course";
-
+const emit = defineEmits(["dragDisabled"]);
 const props = defineProps({
   sectionInfo: {
     type: Object,
@@ -23,10 +23,11 @@ const props = defineProps({
 });
 
 const courseStore = useCourseStore();
+const videoStore = useVideoStore();
 const { deleteSection, updateSection, deleteCourseLesson, reorderCourseLesson } = useLesson(
   props.sectionInfo
 );
-
+const uploadingList = ref([]);
 // 依 displayOrder 排序的課程列表
 const sortedLessons = computed(() => {
   if (!props.sectionInfo?.lessons) return [];
@@ -108,10 +109,24 @@ const handleSaveLesson = async (data) => {
       await courseStore.fetchCourseOverview();
       if (data.request.videoMeta) {
         ElMessage.warning("影片上傳中，請勿離開當前頁面或重新刷新");
-        const videoStore = useVideoStore();
-        videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
-        const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
-        await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
+        // const videoStore = useVideoStore();
+        // videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
+        // const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
+        const task = {
+          lessonId: res.lessonId,
+          videoId: res.videoInfo.videoAssetId,
+          lessonName: res.lessonTitle,
+          initiateURL: res.videoInfo.initiateUrl,
+          file: data.videoFile,
+          fileSize: data.videoFile.size,
+          uploadedBytes: 0,
+          progressPersent: 0,
+          isUploading: false,
+          isPause: false,
+        };
+        uploadingList.value.push(res.lessonId);
+        await videoStore.uploadVideoToGCP(task);
+        console.log(897);
       } else {
         ElMessage.success("創建成功");
       }
@@ -120,10 +135,28 @@ const handleSaveLesson = async (data) => {
       await courseStore.fetchCourseOverview();
       if (data.request.videoMeta) {
         ElMessage.warning("影片上傳中，請勿離開當前頁面或重新刷新");
-        const videoStore = useVideoStore();
-        videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
-        const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
-        await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
+        // const videoStore = useVideoStore();
+        // videoStore.append({ lessonId: res.lessonId, videoAssetId: res.videoInfo.videoAssetId });
+        // const { uploadVideoToGCP } = useVideo(res.videoInfo.videoAssetId);
+        // await uploadVideoToGCP(res.videoInfo.initiateUrl, data.videoFile);
+        const task = {
+          lessonId: res.lessonId,
+          videoId: res.videoInfo.videoAssetId,
+          lessonName: res.lessonTitle,
+          initiateURL: res.videoInfo.initiateUrl,
+          file: data.videoFile,
+          fileSize: data.videoFile.size,
+          uploadedBytes: 0,
+          progressPersent: 0,
+          isUploading: false,
+          isPause: false,
+        };
+        // console.log(uploadingList.value.length);
+        uploadingList.value.push(res.lessonId);
+        // console.log(uploadingList.value.length);
+        // console.log(uploadingList.value);
+        await videoStore.uploadVideoToGCP(task);
+        console.log(568);
       } else {
         ElMessage.success("更新成功");
       }
@@ -136,10 +169,33 @@ const handleSaveLesson = async (data) => {
 };
 
 const checkIsUploading = (lessonId) => {
-  const { isUploading } = useVideo();
-  return isUploading(lessonId);
+  // const { isUploading } = useVideo();
+  // return isUploading(lessonId);
+  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId);
 };
-
+const findUploadingProgress = (lessonId) => {
+  const target = videoStore.uploadingTasks.find(
+    (item) => item.lessonId === lessonId
+  )?.progressPersent;
+  console.log(target);
+  return target;
+  // return computed(() => Number(target)).value;
+};
+const persentList = computed((lessonId) => {
+  return videoStore.uploadingTasks.find((task) => task.lessonId === lessonId).progressPersent;
+});
+watch(
+  () => uploadingList.value.length,
+  () => {
+    console.log(111111);
+  }
+);
+const checkIsPause = (lessonId) => {
+  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId)?.isPause;
+};
+const checkUploadingStatus = (lessonId) => {
+  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId)?.isUploading;
+};
 const handleDeleteLesson = async (lessonId) => {
   await deleteCourseLesson(lessonId);
 };
@@ -159,7 +215,10 @@ watch(lessonOrderList, async (newVal, oldVal) => {
   const verify = () => {
     return newVal.every((val, index) => val === oldVal[index]);
   };
-  if (newVal.length < 1) {
+  if (newVal.length <= 1) {
+    return;
+  }
+  if (newVal.length === oldVal.length + 1 && !isEditLesson.value) {
     return;
   }
   if (newVal.length === oldVal.length && verify()) {
@@ -178,7 +237,18 @@ watch(lessonOrderList, async (newVal, oldVal) => {
 
 const handleStartDrag = () => {
   ElMessage.primary("拖拽以調整單元影片順序");
+  console.log(isDraggable.value);
 };
+const isDraggable = computed(() => {
+  return showSectionEditDialog.value || showSectionDeleteDialog.value || showLessonDialog.value;
+});
+
+watch(
+  () => isDraggable.value,
+  (val) => {
+    emit("dragDisabled", !val);
+  }
+);
 </script>
 
 <template>
@@ -218,7 +288,7 @@ const handleStartDrag = () => {
       <template #title>
         <div class="section-header">
           <div class="section-title-area">
-            <span class="section-number">{{ String(sectionIndex).padStart(2, '0') }}</span>
+            <span class="section-number">{{ String(sectionIndex).padStart(2, "0") }}</span>
             <span class="section-name">{{ sectionInfo.title }}</span>
           </div>
           <div class="section-actions">
@@ -234,7 +304,13 @@ const handleStartDrag = () => {
             </div>
             <div class="section-buttons">
               <el-button size="small" @click.stop="showSectionEditDialog = true">編輯</el-button>
-              <el-button size="small" type="danger" plain @click.stop="showSectionDeleteDialog = true">刪除</el-button>
+              <el-button
+                size="small"
+                type="danger"
+                plain
+                @click.stop="showSectionDeleteDialog = true"
+                >刪除</el-button
+              >
             </div>
           </div>
         </div>
@@ -249,7 +325,11 @@ const handleStartDrag = () => {
 
         <!-- 單元列表 -->
         <div v-if="sectionInfo.lessons?.length > 0" class="lessons-list">
-          <Draggable @start="handleStartDrag" v-model="sectionInfo.lessons" class="lessons-draggable">
+          <Draggable
+            @start="handleStartDrag"
+            v-model="sectionInfo.lessons"
+            class="lessons-draggable"
+          >
             <div
               v-for="(lesson, index) in sectionInfo.lessons"
               :key="lesson.lessonId"
@@ -258,30 +338,63 @@ const handleStartDrag = () => {
               <div class="lesson-left">
                 <span class="lesson-index">{{ (index + 1).toString().padStart(2, "0") }}</span>
                 <span class="lesson-name">{{ lesson.lessonTitle }}</span>
-                <el-tag v-if="lesson.freePreview" size="small" type="success" class="free-tag">
+                <el-tag
+                  v-if="lesson.freePreview"
+                  size="small"
+                  effect="plain"
+                  type="info"
+                  class="free-tag"
+                >
                   試看
                 </el-tag>
               </div>
+              <!-- 沒有在上傳 -->
               <div class="lesson-right" v-if="!checkIsUploading(lesson.lessonId)">
                 <span class="lesson-duration">
-                  {{ lesson.videoAssetStatus === "upload_failed" ? "暫無影片" : formatDuration(lesson.lessonDurationSeconds) }}
+                  {{
+                    lesson.videoAssetStatus === "upload_failed" || !lesson.videoAssetStatus
+                      ? "暫無影片"
+                      : formatDuration(lesson.lessonDurationSeconds)
+                  }}
                 </span>
                 <el-button size="small" type="primary" plain @click="handleEditLesson(lesson)">
                   編輯
                 </el-button>
-                <el-button size="small" type="danger" plain @click="handleDeleteLesson(lesson.lessonId)">
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  @click="handleDeleteLesson(lesson.lessonId)"
+                >
                   刪除
                 </el-button>
               </div>
+              <!-- 上傳中的狀態 -->
               <div class="lesson-right uploading" v-else>
-                <span class="uploading-text">上傳中...</span>
-                <el-progress
-                  :percentage="100"
-                  :show-text="false"
-                  :indeterminate="true"
-                  :duration="5"
-                  style="width: 120px;"
-                />
+                <div v-if="checkUploadingStatus(lesson.lessonId)">
+                  <!-- <span class="uploading-text">等待上傳中...</span>
+                <span class="uploading-text">等待上傳中...</span> -->
+                  <div style="display: flex; justify-content: space-between">
+                    <el-button v-if="checkIsPause(lesson.lessonId)" class="uploading-text" link
+                      ><el-icon><VideoPlay /></el-icon>點擊繼續</el-button
+                    >
+                    <el-button v-else class="uploading-text" link
+                      ><el-icon><VideoPause /></el-icon>點擊暫停</el-button
+                    >
+                    取消上傳
+                  </div>
+                  <el-progress :percentage="persentList(lesson.lessonId)" style="width: 120px" />
+                </div>
+                <div v-else>
+                  <span class="uploading-text">等待上傳中...</span>
+                  <el-progress
+                    :percentage="100"
+                    :show-text="false"
+                    :indeterminate="true"
+                    :duration="5"
+                    style="width: 120px"
+                  />
+                </div>
               </div>
             </div>
           </Draggable>
@@ -296,14 +409,14 @@ const handleStartDrag = () => {
 <style scoped>
 /* 章節摺疊樣式 */
 .section-collapse-item {
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
 }
 
 /* Override Element Plus Collapse Item Header */
 :deep(.el-collapse-item__header) {
-  background-color: #FAFAFA;
+  background-color: #fafafa;
   border-bottom: 1px solid transparent;
   padding: 0 16px;
   height: auto;
@@ -312,8 +425,8 @@ const handleStartDrag = () => {
 }
 
 :deep(.el-collapse-item__header.is-active) {
-  border-bottom-color: #E5E7EB;
-  background-color: #FFFFFF;
+  border-bottom-color: #e5e7eb;
+  background-color: #ffffff;
 }
 
 :deep(.el-collapse-item__wrap) {
@@ -322,19 +435,19 @@ const handleStartDrag = () => {
 
 :deep(.el-collapse-item__content) {
   padding: 0;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
 }
 
 .collapse-icon {
   font-size: 14px;
-  color: #9CA3AF;
+  color: #9ca3af;
   transition: transform 0.3s;
   margin-right: 8px;
 }
 
 .collapse-icon.is-active {
   transform: rotate(90deg);
-  color: #4B5563;
+  color: #4b5563;
 }
 
 .section-header {
@@ -356,7 +469,7 @@ const handleStartDrag = () => {
   font-size: 14px;
   font-family: inherit;
   font-weight: 500;
-  color: #6B7280;
+  color: #6b7280;
   min-width: 24px;
 }
 
@@ -382,7 +495,7 @@ const handleStartDrag = () => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .section-buttons {
@@ -402,9 +515,9 @@ const handleStartDrag = () => {
   justify-content: center;
   gap: 8px;
   padding: 12px;
-  border: 1px dashed #D1D5DB;
+  border: 1px dashed #d1d5db;
   border-radius: 8px;
-  color: #6B7280;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: 12px;
@@ -413,7 +526,7 @@ const handleStartDrag = () => {
 .add-lesson-btn:hover {
   border-color: var(--el-color-primary);
   color: var(--el-color-primary);
-  background-color: #F9FAFB;
+  background-color: #f9fafb;
 }
 
 /* 單元列表樣式 */
@@ -433,7 +546,7 @@ const handleStartDrag = () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background-color: #FAFAFA;
+  background-color: #fafafa;
   border-radius: 6px;
   cursor: grab;
   transition: background-color 0.15s ease;
@@ -441,7 +554,7 @@ const handleStartDrag = () => {
 }
 
 .lesson-item:hover {
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-left-color: var(--el-color-primary-light-5);
 }
 
@@ -459,7 +572,7 @@ const handleStartDrag = () => {
 .lesson-index {
   font-size: 13px;
   font-weight: 500;
-  color: #D1D5DB;
+  color: #d1d5db;
   min-width: 20px;
 }
 
@@ -494,7 +607,7 @@ const handleStartDrag = () => {
 
 .lesson-duration {
   font-size: 13px;
-  color: #9CA3AF;
+  color: #9ca3af;
   font-variant-numeric: tabular-nums;
 }
 

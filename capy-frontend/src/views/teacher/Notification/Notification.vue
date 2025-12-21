@@ -77,7 +77,18 @@ const handleCheckNotification = (item) => {
 };
 const handleReadNotification = async () => {
   await markAsRead(currentRow.value.id);
-  instructorNotificationStore.removeFromDB(item.id);
+  //資料庫的未讀通知數
+  instructorNotificationStore.removeFromDB(currentRow.value.id);
+  //當前畫面業的未讀通知
+
+  const target = instructorNotificationStore.resultNotificationList.find(
+    (item) => item.id === currentRow.value.id
+  );
+  if (target) {
+    target.isRead = true;
+  }
+  //暫存的未讀通知數
+  instructorNotificationStore.removeFromDB(currentRow.value.id);
   dialogVisible.value = false;
 };
 const totalPage = ref(1);

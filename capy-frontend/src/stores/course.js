@@ -89,6 +89,7 @@ export const useCourseStore = defineStore("course", () => {
   const setCourseInfo = async (data, clear) => {
     if (clear) {
       courseInfo.value = data;
+      // console.log(courseInfo.value.tagIds);
       return;
     }
     const res = currentCourseId.value ? await updateCourseDetail(data) : await createCourse(data);

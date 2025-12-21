@@ -14,47 +14,54 @@ const props = defineProps({
 });
 const emits = defineEmits(["update:modelValue"]);
 
-const defaultList = props.optionList?.map((item) => ({ ...item, active: false }));
-defaultList.forEach((item) => {
-  if (props.modelValue?.includes(item.id)) {
-    item.active = true;
+const tagPoolList = ref([]);
+const syncTagPoolList = () => {
+  if (!props.optionList || props.optionList.length === 0) {
+    tagPoolList.value = [];
+    return;
   }
-});
-
-const tagPoolList = ref(defaultList);
+  tagPoolList.value = props.optionList.map((item) => ({
+    ...item,
+    active: props.modelValue?.includes(item.id) || false,
+  }));
+};
+watch(
+  () => [props.optionList, props.modelValue],
+  () => {
+    syncTagPoolList();
+  },
+  { immediate: true, deep: true }
+);
 
 const activeList = computed(() => tagPoolList.value?.filter((item) => item.active));
 const activeValue = computed(() => activeList.value?.map((item) => item.id));
-const inActiveList = computed(() => tagPoolList.value?.filter((item) => !item.active));
-const becomeActive = (id) => {
-  if (activeList.value.length >= 10) {
-    ElMessage.error("已達標籤數量上限");
+
+const toggleActive = (id) => {
+  const target = tagPoolList.value?.find((item) => item.id === id);
+  if (!target) return;
+  if (!target.active && activeList.value.length >= 10) {
+    ElMessage.error("最多只能選擇10個標籤");
     return;
   }
-  tagPoolList.value.find((item) => item.id === id).active = true;
+  target.active = !target.active;
   emits("update:modelValue", activeValue.value);
 };
-const becomeInActive = (id) => {
-  tagPoolList.value.find((item) => item.id === id).active = false;
-};
-// defineExpose({ activeList: activeList.value });
 </script>
 <template>
   <div>
-    <div>
-      <div class="tagpool">
-        <span class="tag" @click="becomeInActive(item.id)" v-for="item in activeList" :key="item.id"
-          ><el-icon style="margin-right: 8px"><CircleClose /></el-icon>{{ item.name }}</span
+    <div class="tagpool">
+      <div @click="toggleActive(item.id)" v-for="item in tagPoolList" :key="item.id">
+        <el-tag size="large" :type="item.active ? 'primary' : 'info'" effect="plain" round
+          ><span style="margin-right: 8px"
+            ><el-icon v-if="!item.active"><CircleCheck /></el-icon
+            ><el-icon v-else><CircleCheckFilled /></el-icon></span
+          >{{ item.name }}</el-tag
         >
       </div>
-      <p class="tip-text">已選擇({{ activeList?.length }}/3)</p>
     </div>
-    <p style="margin-bottom: 8px; color: #606266; line-height: 1">所有標籤 :</p>
-    <div class="tagpool">
-      <span class="tag" @click="becomeActive(item.id)" v-for="item in inActiveList" :key="item.id"
-        ><el-icon style="margin-right: 8px"><CirclePlus /></el-icon>{{ item.name }}</span
-      >
-    </div>
+    <p style="font-size: 14px; text-align: end; padding: 4px 4px; color: #a8abb2">
+      已選擇 {{ activeList.length }}/10
+    </p>
   </div>
 </template>
 <style scoped>
@@ -66,7 +73,7 @@ const becomeInActive = (id) => {
   background-color: #fff;
   border: 1px solid #dcdfe6;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 12px;
   min-height: 36px;
 }

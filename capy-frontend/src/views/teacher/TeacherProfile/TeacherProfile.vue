@@ -16,8 +16,6 @@ onMounted(async () => {
     const res = await getTeacherProfile();
     defaultFormModel = res;
     formModel.value = { ...res };
-    formModel.value.avatarUrl = "";
-    console.log(res);
   } catch (e) {
     console.log(e);
     ElMessage.error("載入失敗，請重新嘗試");

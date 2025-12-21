@@ -54,10 +54,13 @@ const handleCheckQuestion = (item) => {
 const handleAnswerQuestion = async (val) => {
   const responsedanswer = currentComment.value.id;
   try {
-    const res = await answerQuestion(currentComment.id, { content: val });
+    const res = await answerQuestion(currentComment.value.id, { content: val });
+    // console.log(res);
     const target = questionList.value.find((item) => item.id === responsedanswer);
     if (target) {
       target.answer = res;
+      target.isAnswered = true;
+      // console.log(123);
     }
     ElMessage.success("回覆成功");
   } catch (e) {

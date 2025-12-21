@@ -134,6 +134,7 @@ const handleAttachmentChange = (file, files) => {
 };
 const handleAttachmentClear = () => {
   attachmentUploadRef.value.clearFiles();
+  attachmentList.value = [];
 };
 const handleAttachmentRemove = (file, files) => {
   console.log(file);
@@ -210,7 +211,7 @@ const save = () => {
   >
     <template #header>
       <div class="dialog-header">
-        <span class="dialog-title">{{ props.isEdit ? '編輯單元影片' : '新增單元影片' }}</span>
+        <span class="dialog-title">{{ props.isEdit ? "編輯單元影片" : "新增單元影片" }}</span>
         <el-button class="dialog-close-btn" text circle @click="dialogVisible = false">
           <el-icon :size="20"><Close /></el-icon>
         </el-button>
@@ -267,7 +268,7 @@ const save = () => {
             </div>
           </div>
 
-          <el-divider style="margin: 20px 0;" />
+          <el-divider style="margin: 20px 0" />
 
           <!-- 影片簡介 -->
           <div class="form-section">
@@ -285,11 +286,7 @@ const save = () => {
           <!-- 試看開關 -->
           <div class="form-section switch-section">
             <span class="switch-label">是否為試看單元</span>
-            <el-switch
-              v-model="formModel.freePreview"
-              active-text="是"
-              inactive-text="否"
-            />
+            <el-switch v-model="formModel.freePreview" active-text="是" inactive-text="否" />
           </div>
 
           <!-- 重新選擇影片 -->
@@ -301,7 +298,7 @@ const save = () => {
             </div>
           </div>
 
-          <el-divider style="margin: 20px 0;" />
+          <el-divider style="margin: 20px 0" />
 
           <!-- 上傳附件 -->
           <div class="attachments-block">
@@ -321,11 +318,18 @@ const save = () => {
               <template #trigger>
                 <el-button type="primary" plain>選擇上傳文件</el-button>
               </template>
-              <el-button type="default" plain @click.stop="handleAttachmentClear" style="margin-left: 8px;">
+              <el-button
+                type="default"
+                plain
+                @click.stop="handleAttachmentClear"
+                style="margin-left: 8px"
+              >
                 清空上傳列表
               </el-button>
               <template #tip>
-                <div class="upload-tip">最多可上傳 {{ 3 - formModel.attachments.length }} 個檔案</div>
+                <div class="upload-tip">
+                  最多可上傳 {{ 3 - formModel.attachments.length }} 個檔案
+                </div>
               </template>
             </el-upload>
           </div>
@@ -366,8 +370,8 @@ const save = () => {
             </div>
           </div>
         </el-form>
+      </div>
     </div>
-  </div>
 
     <template #footer>
       <div class="dialog-footer">
@@ -389,7 +393,7 @@ const save = () => {
 :deep(.lesson-dialog .el-dialog__header) {
   margin: 0;
   padding: 0;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 :deep(.lesson-dialog .el-dialog__body) {
@@ -398,7 +402,7 @@ const save = () => {
 
 :deep(.lesson-dialog .el-dialog__footer) {
   padding: 16px 24px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid #f3f4f6;
 }
 
 .dialog-header {
@@ -417,13 +421,13 @@ const save = () => {
 }
 
 .dialog-close-btn {
-  color: #9CA3AF !important;
+  color: #9ca3af !important;
   margin-right: -8px;
 }
 
 .dialog-close-btn:hover {
-  color: #4B5563 !important;
-  background-color: #F3F4F6 !important;
+  color: #4b5563 !important;
+  background-color: #f3f4f6 !important;
 }
 
 .dialog-footer {
@@ -490,7 +494,7 @@ const save = () => {
 .video-placeholder {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background-color: #18181B;
+  background-color: #18181b;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -521,11 +525,11 @@ const save = () => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  color: #52525B;
+  color: #52525b;
 }
 
 .placeholder-content .el-icon {
-  color: #71717A;
+  color: #71717a;
 }
 
 .upload-text {
@@ -576,7 +580,7 @@ const save = () => {
 .info-row {
   display: flex;
   gap: 32px;
-  color: #6B7280;
+  color: #6b7280;
   font-size: 14px;
   margin-bottom: 8px;
 }
@@ -588,7 +592,7 @@ const save = () => {
 }
 
 .info-item .label {
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .info-item .value {
@@ -638,7 +642,7 @@ const save = () => {
 
 .upload-tip {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
   margin-top: 8px;
 }
 
@@ -653,14 +657,14 @@ const save = () => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: #F9FAFB;
-  border: 1px solid #F3F4F6;
+  background-color: #f9fafb;
+  border: 1px solid #f3f4f6;
   border-radius: 6px;
   transition: border-color 0.2s;
 }
 
 .attachment-item:hover {
-  border-color: #E5E7EB;
+  border-color: #e5e7eb;
 }
 
 .attachment-info {
@@ -671,13 +675,13 @@ const save = () => {
 }
 
 .file-icon {
-  color: #9CA3AF;
+  color: #9ca3af;
   font-size: 16px;
 }
 
 .attachment-name {
   font-size: 14px;
-  color: #4B5563;
+  color: #4b5563;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

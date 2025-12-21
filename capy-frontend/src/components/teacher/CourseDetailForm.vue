@@ -11,9 +11,16 @@ const { setDefaultCourseInfo, courseInfoRules, reset, validate, formRef } = useC
 onMounted(() => {
   if (!currentCourseId.value) {
     setDefaultCourseInfo();
-    formModel.value = { ...courseInfo.value };
+    for (let key in courseInfo.value) {
+      formModel.value[key] = courseInfo.value[key];
+    }
+    console.log(formModel.value.tagIds);
+    // formModel.value = { ...courseInfo.value };
     console.log("init form");
+  } else {
+    formModel.value = { ...courseInfo.value };
   }
+  console.log(formModel.value.tagIds);
 });
 const formModel = ref({ ...courseInfo.value });
 const requestCourseData = computed(() => {
@@ -116,7 +123,9 @@ defineExpose({
               <template #trigger>
                 <el-button type="primary" size="default">選擇圖片</el-button>
               </template>
-              <el-button type="info" size="default" @click.stop="handleUploadRemove">清空</el-button>
+              <el-button type="info" size="default" @click.stop="handleUploadRemove"
+                >清空</el-button
+              >
             </el-upload>
             <div class="upload-tip">建議尺寸 16:9，支援 JPG、PNG 格式</div>
           </el-form-item>
@@ -131,8 +140,8 @@ defineExpose({
             </template>
             <el-input
               v-model="formModel.title"
-              placeholder="請輸入課程名稱（最多15字）"
-              maxlength="15"
+              placeholder="請輸入課程名稱（最多40字）"
+              maxlength="40"
               show-word-limit
             />
           </el-form-item>
@@ -194,9 +203,12 @@ defineExpose({
 
 <style scoped>
 .detail-layout {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 28px;
+  /* display: grid;
+  grid-template-columns: 240px 1fr; */
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  /* gap: 28px; */
 }
 
 .cover-section {
@@ -244,13 +256,15 @@ defineExpose({
 .upload-tip {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+  margin-left: 12px;
   margin-top: 8px;
 }
 
 .info-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  /* gap: 16px; */
+  gap: 28px;
 }
 
 .form-label {
@@ -289,9 +303,9 @@ defineExpose({
 
 .tags-input {
   padding: 12px 14px;
-  background-color: #F9FAFB;
+  background-color: #f9fafb;
   border-radius: 8px;
-  border: 1px solid #F3F4F6;
+  border: 1px solid #f3f4f6;
   min-height: 48px;
 }
 

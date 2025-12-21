@@ -20,7 +20,7 @@ const validateCategory = (rule, value, callback) => {
 const courseInfoRules = {
   title: [
     { required: true, message: "課程名稱為必填項", trigger: "blur" },
-    { max: 15, message: "課程名稱最多為15個字", trigger: "blur" },
+    { max: 40, message: "課程名稱最多為40個字", trigger: "blur" },
   ],
   coverImageUrl: [{ required: true, message: "課程封面為必需項", trigger: "change" }],
   price: [{ required: true, message: "課程價格為必填項", trigger: "blur" }],

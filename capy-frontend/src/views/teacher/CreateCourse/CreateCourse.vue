@@ -20,6 +20,7 @@ let isRequesting = false;
 const goNextStep = async () => {
   if (isRequesting) {
     ElMessage.warning("處理中，請稍後");
+    return;
   }
   if (activeStep.value === 2) {
     return;

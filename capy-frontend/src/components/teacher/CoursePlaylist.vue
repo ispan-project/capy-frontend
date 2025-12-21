@@ -69,7 +69,10 @@ watch(sectionIds, async (newVal, oldVal) => {
   const verify = () => {
     return newVal.every((val, index) => val === oldVal[index]);
   };
-  if (newVal.length < 1) {
+  if (newVal.length <= 1) {
+    return;
+  }
+  if (newVal.length === oldVal.length + 1 && !isEditLesson.value) {
     return;
   }
   if (newVal.length === oldVal.length && verify()) {
@@ -90,7 +93,10 @@ watch(sectionIds, async (newVal, oldVal) => {
 const handleStartDrag = () => {
   ElMessage.primary("拖拽以調整章節順序");
 };
-
+const isDraggable = ref(true);
+const handleDragDisabled = (val) => {
+  isDraggable.value = val;
+};
 defineExpose({ next });
 </script>
 
@@ -132,9 +138,19 @@ defineExpose({ next });
       </div>
     </div>
 
-    <el-collapse v-if="courseSections?.length > 0" v-model="ActiveCollapse" class="playlist-collapse">
-      <Draggable @start="handleStartDrag" class="section-playlist" v-model="courseSections">
+    <el-collapse
+      v-if="courseSections?.length > 0"
+      v-model="ActiveCollapse"
+      class="playlist-collapse"
+    >
+      <Draggable
+        :disabled="ActiveCollapse.length > 0 || !isDraggable"
+        @start="handleStartDrag"
+        class="section-playlist"
+        v-model="courseSections"
+      >
         <CollapsePlaylistItem
+          @dragDisabled="handleDragDisabled"
           v-for="(section, index) in courseSections"
           :key="section.sectionId ?? section.id"
           :sectionInfo="section"
@@ -186,13 +202,13 @@ defineExpose({ next });
   font-size: 13px;
   color: var(--el-text-color-secondary);
   padding: 4px 10px;
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 6px;
 }
 
 .stat-badge .el-icon {
   font-size: 14px;
-  color: #4F46E5;
+  color: #4f46e5;
 }
 
 .playlist-collapse {

@@ -124,7 +124,7 @@ const handleSaveLesson = async (data) => {
           isUploading: false,
           isPause: false,
         };
-        uploadingList.value.push(res.lessonId);
+        // uploadingList.value.push(res.lessonId);
         await videoStore.uploadVideoToGCP(task);
         console.log(897);
       } else {
@@ -152,7 +152,7 @@ const handleSaveLesson = async (data) => {
           isPause: false,
         };
         // console.log(uploadingList.value.length);
-        uploadingList.value.push(res.lessonId);
+        // uploadingList.value.push(res.lessonId);
         // console.log(uploadingList.value.length);
         // console.log(uploadingList.value);
         await videoStore.uploadVideoToGCP(task);
@@ -168,33 +168,22 @@ const handleSaveLesson = async (data) => {
   }
 };
 
-const checkIsUploading = (lessonId) => {
-  // const { isUploading } = useVideo();
-  // return isUploading(lessonId);
-  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId);
-};
-const findUploadingProgress = (lessonId) => {
-  const target = videoStore.uploadingTasks.find(
-    (item) => item.lessonId === lessonId
-  )?.progressPersent;
-  console.log(target);
-  return target;
-  // return computed(() => Number(target)).value;
-};
-const persentList = computed((lessonId) => {
-  return videoStore.uploadingTasks.find((task) => task.lessonId === lessonId).progressPersent;
+const uploadingTaskMap = computed(() => {
+  const map = new Map();
+  videoStore.uploadingTasks.forEach((task) => {
+    map.set(task.lessonId, task);
+  });
+  return map;
 });
-watch(
-  () => uploadingList.value.length,
-  () => {
-    console.log(111111);
-  }
-);
-const checkIsPause = (lessonId) => {
-  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId)?.isPause;
-};
+const getUploadingTask = (lessonId) => uploadingTaskMap.value.get(lessonId);
+const checkIsUploading = (lessonId) => !!getUploadingTask(lessonId);
+const findUploadingProgress = (lessonId) =>
+  Number(getUploadingTask(lessonId)?.progressPersent || 0);
+const checkIsPause = (lessonId) => getUploadingTask(lessonId)?.isPause;
+// const checkUploadingStatus = (lessonId) => getUploadingTask(lessonId)?.isUploading;
 const checkUploadingStatus = (lessonId) => {
-  return videoStore.uploadingTasks.find((item) => item.lessonId === lessonId)?.isUploading;
+  const task = getUploadingTask(lessonId);
+  return task.isUploading || task.isPause;
 };
 const handleDeleteLesson = async (lessonId) => {
   await deleteCourseLesson(lessonId);
@@ -249,6 +238,14 @@ watch(
     emit("dragDisabled", !val);
   }
 );
+const handlePauseUploading = (lessonId) => {
+  console.log(lessonId);
+  videoStore.pauseUploading(lessonId);
+  console.log(12);
+};
+const handleResumableUpload = (lessonId) => {
+  videoStore.resumableUpload(lessonId);
+};
 </script>
 
 <template>
@@ -375,15 +372,30 @@ watch(
                   <!-- <span class="uploading-text">等待上傳中...</span>
                 <span class="uploading-text">等待上傳中...</span> -->
                   <div style="display: flex; justify-content: space-between">
-                    <el-button v-if="checkIsPause(lesson.lessonId)" class="uploading-text" link
-                      ><el-icon><VideoPlay /></el-icon>點擊繼續</el-button
-                    >
-                    <el-button v-else class="uploading-text" link
-                      ><el-icon><VideoPause /></el-icon>點擊暫停</el-button
-                    >
+                    <div style="margin-right: 16px">
+                      <el-button
+                        @click="handleResumableUpload(lesson.lessonId)"
+                        v-if="checkIsPause(lesson.lessonId)"
+                        class="uploading-text"
+                        type="primary"
+                        link
+                        ><el-icon size="large"><VideoPlay /></el-icon>繼續</el-button
+                      >
+                      <el-button
+                        @click="handlePauseUploading(lesson.lessonId)"
+                        v-else
+                        class="uploading-text"
+                        type="primary"
+                        link
+                        ><el-icon size="large"><VideoPause /></el-icon>暫停</el-button
+                      >
+                    </div>
                     取消上傳
                   </div>
-                  <el-progress :percentage="persentList(lesson.lessonId)" style="width: 120px" />
+                  <el-progress
+                    :percentage="findUploadingProgress(lesson.lessonId)"
+                    style="width: 100%"
+                  />
                 </div>
                 <div v-else>
                   <span class="uploading-text">等待上傳中...</span>
@@ -602,7 +614,7 @@ watch(
 
 .uploading-text {
   font-size: 13px;
-  color: var(--el-color-warning);
+  /* color: var(--el-color-warning); */
 }
 
 .lesson-duration {

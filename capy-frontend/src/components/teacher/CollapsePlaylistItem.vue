@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from "vue";
+import { ArrowRight, CirclePlus, Clock, VideoPlay } from "@element-plus/icons-vue";
 import { VueDraggable as Draggable } from "vue-draggable-plus";
 import TextInputDialog from "../common/TextInputDialog.vue";
 import AlertDialog from "../common/AlertDialog.vue";

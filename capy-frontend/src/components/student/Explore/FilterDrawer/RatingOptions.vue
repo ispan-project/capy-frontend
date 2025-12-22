@@ -14,8 +14,8 @@
           size="small"
         />
         <span class="rating-label">
-          <span class="rating-value">{{ rating.value }}.0</span>
-          <span class="rating-up" v-if="rating.value < 5"> & up</span>
+          <span class="rating-value">{{ Number.isInteger(rating.value) ? rating.value + '.0' : rating.value }}</span>
+          <span class="rating-up"> & up</span>
         </span>
         <span class="rating-count">({{ rating.count }})</span>
       </div>
@@ -52,7 +52,7 @@ const localRating = ref(props.modelValue)
 const computedRatingOptions = computed(() => {
   const q = props.rateQuantities || {}
   return [
-    { value: 5, count: q.fiveStarQuantity ?? 0 },
+    { value: 4.5, count: q.fiveStarQuantity ?? 0 },
     { value: 4, count: q.fourStarQuantity ?? 0 },
     { value: 3, count: q.threeStarQuantity ?? 0 },
     { value: 2, count: q.twoStarQuantity ?? 0 },

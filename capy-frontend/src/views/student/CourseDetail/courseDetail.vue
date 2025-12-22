@@ -1207,6 +1207,50 @@ onBeforeUnmount(async () => {
   z-index: 1000;
 }
 
+/* Mobile Action Bar - 手機版底部懸浮購買列 */
+.mobile-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: 12px 16px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 100;
+  gap: 12px;
+
+  /* 桌面版隱藏 */
+  @include not-mobile {
+    display: none !important;
+  }
+
+  /* 手機版顯示 */
+  @include mobile {
+    display: flex;
+  }
+
+  .action-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+
+    .action-btn {
+      flex: 1;
+      max-width: 200px;
+    }
+  }
+}
+
 .buy-overlay-content {
   text-align: center;
   padding: 40px;

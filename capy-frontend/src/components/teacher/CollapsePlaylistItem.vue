@@ -246,6 +246,9 @@ const handlePauseUploading = (lessonId) => {
 const handleResumableUpload = (lessonId) => {
   videoStore.resumableUpload(lessonId);
 };
+const handelCancelUploading = (lessonId) => {
+  videoStore.cancelUploading(lessonId);
+};
 </script>
 
 <template>
@@ -349,7 +352,9 @@ const handleResumableUpload = (lessonId) => {
               <div class="lesson-right" v-if="!checkIsUploading(lesson.lessonId)">
                 <span class="lesson-duration">
                   {{
-                    lesson.videoAssetStatus === "upload_failed" || !lesson.videoAssetStatus
+                    lesson.videoAssetStatus === "upload_failed" ||
+                    !lesson.videoAssetStatus ||
+                    lesson.videoAssetStatus === "uploading"
                       ? "暫無影片"
                       : formatDuration(lesson.lessonDurationSeconds)
                   }}
@@ -372,7 +377,7 @@ const handleResumableUpload = (lessonId) => {
                   <!-- <span class="uploading-text">等待上傳中...</span>
                 <span class="uploading-text">等待上傳中...</span> -->
                   <div style="display: flex; justify-content: space-between">
-                    <div style="margin-right: 16px">
+                    <div style="margin-right: 48px">
                       <el-button
                         @click="handleResumableUpload(lesson.lessonId)"
                         v-if="checkIsPause(lesson.lessonId)"
@@ -390,7 +395,13 @@ const handleResumableUpload = (lessonId) => {
                         ><el-icon size="large"><VideoPause /></el-icon>暫停</el-button
                       >
                     </div>
-                    取消上傳
+                    <el-button
+                      @click="handelCancelUploading(lesson.lessonId)"
+                      size="small"
+                      type="info"
+                      link
+                      >取消上傳</el-button
+                    >
                   </div>
                   <el-progress
                     :percentage="findUploadingProgress(lesson.lessonId)"
@@ -435,10 +446,20 @@ const handleResumableUpload = (lessonId) => {
   min-height: 56px;
   transition: all 0.2s ease;
 }
-
+:deep(.el-collapse-item__header:not(.is-active)) {
+  cursor: grab;
+}
+:deep(.el-collapse-item__header):hover .section-number {
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
 :deep(.el-collapse-item__header.is-active) {
   border-bottom-color: #e5e7eb;
   background-color: #ffffff;
+}
+:deep(.el-collapse-item__header.is-active) .section-number {
+  font-weight: 700;
+  color: var(--el-color-primary);
 }
 
 :deep(.el-collapse-item__wrap) {
@@ -554,6 +575,7 @@ const handleResumableUpload = (lessonId) => {
 }
 
 .lesson-item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -567,7 +589,10 @@ const handleResumableUpload = (lessonId) => {
 
 .lesson-item:hover {
   background-color: #f3f4f6;
-  border-left-color: var(--el-color-primary-light-5);
+}
+.lesson-item:hover .lesson-index {
+  color: var(--el-color-primary);
+  font-weight: 700;
 }
 
 .lesson-item:active {

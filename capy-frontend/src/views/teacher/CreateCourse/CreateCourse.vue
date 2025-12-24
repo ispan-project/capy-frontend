@@ -148,7 +148,7 @@ const stepProgressRef = ref(null);
   /* transform: translateX(50%); */
 }
 :deep(.el-step__head.is-finish .el-step__icon) {
-  background-color: #409eff;
+  background-color: var(--el-color-primary);
   /* border-color: pink; */
   color: #fff;
 }

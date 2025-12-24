@@ -209,10 +209,22 @@ export const useVideoStore = defineStore("videoStore", () => {
       console.log(3);
     }
   };
+  const cancelUploading = async (lessonId) => {
+    const target = uploadingTasks.value.find((item) => item.lessonId === lessonId);
+    if (target) {
+      await markUploadFailed(target.videoId);
+      uploadingTasks.value = uploadingTasks.value.filter((item) => item.lessonId !== lessonId);
+      target.isUploading = false;
+      target.abortController.abort();
+    } else {
+      ElMessage.error("單元影片不存在");
+    }
+  };
   return {
     uploadingTasks,
     uploadVideoToGCP,
     resumableUpload,
     pauseUploading,
+    cancelUploading,
   };
 });

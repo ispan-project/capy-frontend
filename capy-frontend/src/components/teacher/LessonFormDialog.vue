@@ -445,8 +445,8 @@ const save = () => {
 /* 可滾動內容區域 */
 .lesson-content {
   padding: 24px;
-  max-height: 70vh;
-  overflow-y: auto;
+  /* max-height: 70vh; */
+  /* overflow-y: auto; */
 }
 
 /* 影片區域 */
@@ -604,7 +604,8 @@ const save = () => {
 .switch-section {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 36px;
+  /* justify-content: space-between; */
   padding: 12px 0;
 }
 

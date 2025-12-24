@@ -4,11 +4,9 @@ import "./styles/theme-variables.css";
 import "./styles/admin-dashboard.css";
 // import "./styles/learning.scss";
 import ElementPlus from "element-plus";
-import "element-plus/dist/index.css";
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { Icon } from "@iconify/vue";
-import ElementPlus from "element-plus";
 import * as ElementPlusIconVue from "@element-plus/icons-vue"
 import "element-plus/dist/index.css"
 import App from "./App.vue";
